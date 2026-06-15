@@ -1,0 +1,51 @@
+.order-tabs {
+  background:#FFFFFF; white-space:nowrap;
+  border-bottom:2rpx solid #F0E8E0;
+  position:sticky; top:0; z-index:10;
+}
+.tab-list { display:inline-flex; padding:0 20rpx; }
+.tab-item {
+  display:inline-block; padding:24rpx 28rpx;
+  font-size:28rpx; color:#8B7E72;
+  position:relative;
+}
+.tab-active { color:#E8A87C; font-weight:500; }
+.tab-active::after {
+  content:''; position:absolute; bottom:0; left:28rpx; right:28rpx;
+  height:4rpx; background:linear-gradient(135deg,#E8A87C,#F5D6B8);
+  border-radius:2rpx;
+}
+.order-card {
+  background:#FFFFFF; margin:20rpx; border-radius:20rpx;
+  box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06); overflow:hidden;
+}
+.order-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:24rpx 28rpx; border-bottom:2rpx solid #F0E8E0;
+}
+.order-no { font-size:24rpx; color:#B0A59A; }
+.order-status { font-size:24rpx; }
+.order-product {
+  display:flex; align-items:center; padding:20rpx 28rpx;
+}
+.prod-img {
+  width:100rpx; height:100rpx; border-radius:12rpx;
+  background:#F5F0EB; margin-right:20rpx; flex-shrink:0;
+}
+.prod-info { flex:1; }
+.prod-name { font-size:28rpx; color:#4A3F35; display:block; }
+.prod-spec { font-size:24rpx; color:#B0A59A; margin-top:4rpx; display:block; }
+.prod-price { font-size:28rpx; color:#E0725A; font-weight:500; }
+.order-footer {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16rpx 28rpx; background:#FDF8F3;
+}
+.order-time { font-size:22rpx; color:#B0A59A; }
+.order-total { font-size:24rpx; color:#4A3F35; }
+.order-total-price { font-size:30rpx; color:#E0725A; font-weight:600; }
+
+.go-shop-btn {
+  margin-top:30rpx; padding:16rpx 60rpx;
+  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
+  color:#4A3F35; border-radius:40rpx; font-size:28rpx;
+}

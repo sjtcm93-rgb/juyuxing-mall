@@ -1,0 +1,42 @@
+<!-- 购物车页 -->
+<view class="page-wrap">
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{cartItems.length === 0 && !loading}}">
+    <text class="empty-icon">🛒</text>
+    <text class="empty-text">购物车还是空的</text>
+    <navigator url="/pages/index/index" open-type="switchTab" class="go-shop-btn">去逛逛</navigator>
+  </view>
+
+  <!-- 购物车商品列表 -->
+  <view wx:for="{{cartItems}}" wx:key="productId" wx:for-item="item" class="cart-item">
+    <image class="cart-item-img" src="{{item.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
+    <view class="cart-item-info">
+      <text class="cart-item-name">{{item.name || '小紫瓶'}}</text>
+      <text class="cart-item-spec">{{item.spec || '13.5g'}}</text>
+    </view>
+    <view class="cart-item-right">
+      <text class="cart-item-price">¥{{((item.price || 6900)/100).toFixed(2)}}</text>
+      <view class="cart-qty-control">
+        <view class="qty-mini-btn" data-index="{{index}}" bindtap="decreaseItemQty">−</view>
+        <text class="qty-mini-val">{{item.quantity}}</text>
+        <view class="qty-mini-btn" data-index="{{index}}" bindtap="increaseItemQty">+</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+    <view class="loading-dot"></view>
+  </view>
+
+  <!-- 底部结算栏 -->
+  <view class="cart-bottom" wx:if="{{cartItems.length > 0}}">
+    <view class="total-area">
+      <text class="total-label">合计：</text>
+      <text class="total-price">¥{{(totalPrice/100).toFixed(2)}}</text>
+    </view>
+    <button class="checkout-btn" bindtap="goCheckout">结算</button>
+  </view>
+</view>

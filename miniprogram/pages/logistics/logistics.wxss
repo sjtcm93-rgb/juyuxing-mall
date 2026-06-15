@@ -1,0 +1,5 @@
+.order-info {
+  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
+  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+}
+.info-label { font-size:26rpx; color:#8B7E72; display:block; margin-bottom:8rpx; }

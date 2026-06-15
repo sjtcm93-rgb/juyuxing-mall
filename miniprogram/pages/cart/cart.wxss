@@ -1,0 +1,137 @@
+/* 购物车样式 */
+/* 购物车商品卡片 */
+.cart-item {
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  margin: 20rpx;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(74, 63, 53, 0.06);
+}
+
+.cart-item-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 16rpx;
+  background: #F5F0EB;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-item-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #4A3F35;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cart-item-spec {
+  font-size: 24rpx;
+  color: #B0A59A;
+  margin-top: 6rpx;
+  display: block;
+}
+
+.cart-item-right {
+  text-align: right;
+  margin-left: 16rpx;
+  flex-shrink: 0;
+}
+
+.cart-item-price {
+  font-size: 30rpx;
+  color: #E0725A;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.cart-qty-control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+}
+
+.qty-mini-btn {
+  width: 48rpx;
+  height: 48rpx;
+  line-height: 48rpx;
+  text-align: center;
+  background: #F5F0EB;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #4A3F35;
+  font-weight: 500;
+}
+
+.qty-mini-val {
+  width: 60rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #4A3F35;
+  font-weight: 500;
+}
+
+/* 底部结算栏 */
+.cart-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  padding: 20rpx 32rpx;
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom, 0));
+  border-top: 2rpx solid #F0E8E0;
+}
+
+.total-area {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+}
+
+.total-label {
+  font-size: 28rpx;
+  color: #4A3F35;
+}
+
+.total-price {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #E0725A;
+}
+
+.checkout-btn {
+  width: 200rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: linear-gradient(135deg, #E8A87C, #F5D6B8);
+  color: #4A3F35;
+  border: none;
+  border-radius: 40rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.checkout-btn::after { border: none; }
+
+.go-shop-btn {
+  margin-top: 30rpx;
+  padding: 16rpx 60rpx;
+  background: linear-gradient(135deg, #E8A87C, #F5D6B8);
+  color: #4A3F35;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}

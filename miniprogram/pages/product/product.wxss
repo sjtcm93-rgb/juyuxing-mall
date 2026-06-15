@@ -1,0 +1,262 @@
+/* 商品详情页 */
+.product-swiper {
+  width: 100%;
+  height: 750rpx;
+  background: #F5F0EB;
+}
+
+.swiper-image {
+  width: 100%;
+  height: 750rpx;
+}
+
+.product-info-section {
+  background: #FFFFFF;
+  padding: 32rpx;
+  margin: 20rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(74, 63, 53, 0.06);
+}
+
+.price-area {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.current-price {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #E0725A;
+}
+
+.original-price {
+  font-size: 26rpx;
+  color: #B0A59A;
+  text-decoration: line-through;
+}
+
+.sales-count {
+  margin-left: auto;
+  font-size: 24rpx;
+  color: #B0A59A;
+}
+
+.product-name {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #4A3F35;
+  display: block;
+}
+
+.product-subtitle {
+  font-size: 26rpx;
+  color: #8B7E72;
+  display: block;
+  margin-top: 8rpx;
+}
+
+/* 规格 */
+.spec-section, .quantity-section {
+  margin-top: 28rpx;
+  padding-top: 24rpx;
+  border-top: 2rpx solid #F0E8E0;
+}
+
+.spec-label {
+  font-size: 28rpx;
+  color: #4A3F35;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.spec-list {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.spec-item {
+  padding: 12rpx 28rpx;
+  background: #F5F0EB;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #4A3F35;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2rpx solid transparent;
+}
+
+.spec-active {
+  background: #FFFBF7;
+  border-color: #E8A87C;
+  color: #E8A87C;
+}
+
+.spec-stock {
+  font-size: 20rpx;
+  color: #E0725A;
+  margin-top: 4rpx;
+}
+
+/* 数量 */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.qty-btn {
+  width: 60rpx;
+  height: 60rpx;
+  line-height: 60rpx;
+  text-align: center;
+  background: #F5F0EB;
+  border-radius: 10rpx;
+  font-size: 32rpx;
+  color: #4A3F35;
+  font-weight: 500;
+}
+
+.qty-value {
+  width: 80rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #4A3F35;
+}
+
+/* 商品详情 */
+.detail-section {
+  margin: 20rpx;
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 12rpx rgba(74, 63, 53, 0.06);
+}
+
+.detail-header {
+  padding: 28rpx 32rpx 0;
+}
+
+.detail-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #4A3F35;
+}
+
+.detail-content {
+  padding: 24rpx 32rpx 32rpx;
+  font-size: 26rpx;
+  color: #8B7E72;
+  line-height: 1.8;
+}
+
+/* 品牌卡片 */
+.brand-card {
+  margin: 20rpx;
+  padding: 40rpx 32rpx;
+  background: linear-gradient(135deg, #FDF8F3, #FFFBF7);
+  border-radius: 20rpx;
+  text-align: center;
+  border: 2rpx solid #F5D6B8;
+}
+
+.brand-card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #4A3F35;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.brand-card-text {
+  font-size: 26rpx;
+  color: #8B7E72;
+  line-height: 1.6;
+}
+
+/* 底部操作栏 */
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  background: #FFFFFF;
+  padding: 12rpx 20rpx;
+  padding-bottom: calc(12rpx + env(safe-area-inset-bottom, 0));
+  border-top: 2rpx solid #F0E8E0;
+  z-index: 100;
+}
+
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 16rpx;
+}
+
+.action-icon {
+  font-size: 40rpx;
+}
+
+.action-text {
+  font-size: 20rpx;
+  color: #8B7E72;
+  margin-top: 4rpx;
+}
+
+.action-right {
+  flex: 1;
+  display: flex;
+  gap: 16rpx;
+  margin-left: 20rpx;
+}
+
+.btn-add-cart {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: #FFFFFF;
+  color: #E8A87C;
+  border: 2rpx solid #E8A87C;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.btn-add-cart::after {
+  border: none;
+}
+
+.btn-buy-now {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: linear-gradient(135deg, #E8A87C, #F5D6B8);
+  color: #4A3F35;
+  border: none;
+  border-radius: 36rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  text-align: center;
+}
+
+.btn-buy-now::after {
+  border: none;
+}
+
+.page-wrap {
+  padding-bottom: 120rpx;
+}

@@ -1,0 +1,14 @@
+<view class="page-wrap">
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <view class="loading-dot"></view><view class="loading-dot"></view><view class="loading-dot"></view>
+  </view>
+  <view class="order-info" wx:if="{{order}}">
+    <text class="info-label">订单编号：{{order.orderNo}}</text>
+    <text class="info-label" wx:if="{{order.logistics}}">
+      物流公司：{{order.logistics.company}} | 运单号：{{order.logistics.trackingNo}}
+    </text>
+  </view>
+  <view class="empty-wrap" wx:if="{{!loading && (!order || !order.logistics)}}">
+    <text class="empty-text">暂无物流信息</text>
+  </view>
+</view>

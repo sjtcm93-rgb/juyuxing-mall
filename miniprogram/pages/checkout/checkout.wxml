@@ -1,0 +1,50 @@
+<!-- 结算页 -->
+<view class="page-wrap">
+  <!-- 收货地址 -->
+  <view class="section address-section" bindtap="selectAddress">
+    <view wx:if="{{address}}" class="address-info">
+      <view class="address-top">
+        <text class="address-name">{{address.name}}</text>
+        <text class="address-phone">{{address.phone}}</text>
+      </view>
+      <text class="address-detail">{{address.region.join(' ')}} {{address.detail}}</text>
+    </view>
+    <view wx:else class="address-empty">
+      <text>请添加收货地址</text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 商品清单 -->
+  <view class="section order-items">
+    <text class="section-title">商品清单</text>
+    <view class="order-item" wx:for="{{items}}" wx:key="productId">
+      <image class="item-img" src="{{item.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
+      <view class="item-info">
+        <text class="item-name">{{item.name}}</text>
+        <text class="item-spec">{{item.spec || '13.5g'}}</text>
+      </view>
+      <view class="item-price-area">
+        <text class="item-price">¥{{(item.price/100).toFixed(2)}}</text>
+        <text class="item-qty">×{{item.quantity}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="section remark-section">
+    <text class="section-title">备注</text>
+    <input class="remark-input" placeholder="选填：给商家的留言" bindinput="onRemarkInput" />
+  </view>
+
+  <!-- 底部 -->
+  <view class="checkout-bottom">
+    <view class="bottom-total">
+      <text class="total-text">合计：</text>
+      <text class="total-price">¥{{(totalPrice/100).toFixed(2)}}</text>
+    </view>
+    <button class="submit-btn {{submitting ? 'btn-disabled' : ''}}" bindtap="submitOrder" disabled="{{submitting}}">
+      {{submitting ? '提交中...' : '提交订单'}}
+    </button>
+  </view>
+</view>

@@ -1,0 +1,14 @@
+{
+  "name": "juyuxing-mall",
+  "version": "0.1.0",
+  "private": true,
+  "description": "橘与杏中医生活 - 微信小程序商城",
+  "scripts": {
+    "smoke": "node scripts/smoke-test.js",
+    "setup": "bash scripts/setup.sh",
+    "lint:functions": "for f in cloudfunctions/*/index.js; do node --check \"$f\" || exit 1; done"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
+}

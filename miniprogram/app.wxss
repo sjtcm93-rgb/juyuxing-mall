@@ -1,0 +1,243 @@
+/* 橘与杏中医生活 - 全局样式 */
+/* 品牌色系 */
+/* 米白 #FDF8F3 / 淡杏 #F5D6B8 / 杏色 #E8A87C */
+/* 草绿 #8BA888 / 深褐 #4A3F35 / 中灰 #8B7E72 / 浅灰 #D4C9C0 */
+
+page {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  color: #4A3F35;
+  background-color: #FDF8F3;
+  font-size: 28rpx;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+view, text, scroll-view {
+  box-sizing: border-box;
+}
+
+/* 通用按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #E8A87C 0%, #F5D6B8 100%);
+  color: #4A3F35;
+  border: none;
+  border-radius: 44rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  box-shadow: 0 4rpx 16rpx rgba(232, 168, 124, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-primary:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  background: #FFFFFF;
+  color: #E8A87C;
+  border: 2rpx solid #E8A87C;
+  border-radius: 44rpx;
+  height: 80rpx;
+  line-height: 76rpx;
+  text-align: center;
+  font-size: 30rpx;
+}
+
+.btn-disabled {
+  background: #D4C9C0;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 44rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  font-size: 30rpx;
+}
+
+/* 卡片容器 */
+.card {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(74, 63, 53, 0.06);
+}
+
+/* 页面容器 */
+.page-wrap {
+  min-height: 100vh;
+  padding-bottom: 30rpx;
+}
+
+/* 分隔线 */
+.divider {
+  height: 2rpx;
+  background: #F0E8E0;
+  margin: 24rpx 0;
+}
+
+/* 加载状态 */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 0;
+  color: #8B7E72;
+  font-size: 26rpx;
+}
+
+.loading-dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: #E8A87C;
+  border-radius: 50%;
+  margin: 0 8rpx;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 160rpx 0;
+}
+
+.empty-icon {
+  width: 200rpx;
+  height: 200rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  color: #8B7E72;
+  font-size: 28rpx;
+}
+
+/* 价格样式 */
+.price {
+  color: #E0725A;
+  font-size: 36rpx;
+  font-weight: 600;
+}
+
+.price-symbol {
+  font-size: 24rpx;
+}
+
+.price-original {
+  color: #B0A59A;
+  font-size: 24rpx;
+  text-decoration: line-through;
+  margin-left: 12rpx;
+}
+
+/* 页面标题区 */
+.page-header {
+  padding: 20rpx 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #4A3F35;
+}
+
+/* 列表行 */
+.list-row {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 0;
+  border-bottom: 2rpx solid #F0E8E0;
+}
+
+.list-row:last-child {
+  border-bottom: none;
+}
+
+.list-label {
+  width: 160rpx;
+  color: #8B7E72;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.list-value {
+  flex: 1;
+  color: #4A3F35;
+  font-size: 28rpx;
+}
+
+/* 徽章 */
+.badge {
+  display: inline-block;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  background: #E0725A;
+  color: #FFFFFF;
+  font-size: 20rpx;
+  border-radius: 16rpx;
+  padding: 0 8rpx;
+}
+
+/* 状态标签 */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.tag-pending { background: #FFF3E0; color: #E8A87C; }
+.tag-paid { background: #E8F5E9; color: #6ABF69; }
+.tag-shipped { background: #E3F2FD; color: #5B9BD5; }
+.tag-received { background: #E8F5E9; color: #6ABF69; }
+.tag-refund { background: #FFF0F0; color: #E0725A; }
+
+/* 输入框统一样式 */
+.input-field {
+  width: 100%;
+  height: 72rpx;
+  border: 2rpx solid #E8E0D8;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #4A3F35;
+  background: #FFFFFF;
+}
+
+.textarea-field {
+  width: 100%;
+  min-height: 160rpx;
+  border: 2rpx solid #E8E0D8;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #4A3F35;
+  background: #FFFFFF;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}

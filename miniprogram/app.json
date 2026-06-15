@@ -1,0 +1,55 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/product/product",
+    "pages/cart/cart",
+    "pages/checkout/checkout",
+    "pages/order/order",
+    "pages/order-detail/order-detail",
+    "pages/user/user",
+    "pages/agent-center/agent-center",
+    "pages/agent-join/agent-join",
+    "pages/address/address",
+    "pages/address-edit/address-edit",
+    "pages/logistics/logistics",
+    "pages/about/about",
+    "pages/withdrawal/withdrawal",
+    "pages/admin/admin"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#FDF8F3",
+    "navigationBarTitleText": "橘与杏中医生活",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FDF8F3",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8B7E72",
+    "selectedColor": "#E8A87C",
+    "backgroundColor": "#FDF8F3",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/icons/home.png",
+        "selectedIconPath": "images/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/cart/cart",
+        "text": "购物车",
+        "iconPath": "images/icons/cart.png",
+        "selectedIconPath": "images/icons/cart-active.png"
+      },
+      {
+        "pagePath": "pages/user/user",
+        "text": "我的",
+        "iconPath": "images/icons/user.png",
+        "selectedIconPath": "images/icons/user-active.png"
+      }
+    ]
+  },
+  "usingComponents": {},
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

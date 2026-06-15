@@ -1,0 +1,385 @@
+/* 首页样式 - 自然草本·温暖治愈风 */
+.home-wrap {
+  background: linear-gradient(180deg, #FDF8F3 0%, #FFFBF7 50%, #FDF8F3 100%);
+}
+
+/* ===== 英雄区 ===== */
+.hero-section {
+  position: relative;
+  padding: 100rpx 40rpx 120rpx;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(245, 214, 184, 0.15) 0%,
+    rgba(253, 248, 243, 1) 60%,
+    rgba(253, 248, 243, 1) 100%
+  );
+}
+
+/* 装饰圆形 */
+.hero-deco-circle {
+  position: absolute;
+  top: -120rpx;
+  right: -80rpx;
+  width: 460rpx;
+  height: 460rpx;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(232, 168, 124, 0.10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-deco-circle-2 {
+  position: absolute;
+  bottom: -60rpx;
+  left: -100rpx;
+  width: 300rpx;
+  height: 300rpx;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(139, 168, 136, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-deco-herb {
+  position: absolute;
+  top: 60rpx;
+  right: 60rpx;
+  width: 120rpx;
+  height: 120rpx;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+.hero-deco-herb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 4rpx;
+  height: 120rpx;
+  background: #8BA888;
+  border-radius: 2rpx;
+  transform: translateX(-50%);
+}
+
+.hero-deco-herb::after {
+  content: '';
+  position: absolute;
+  top: 20rpx;
+  left: 50%;
+  width: 60rpx;
+  height: 60rpx;
+  border: 3rpx solid #8BA888;
+  border-radius: 50%;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-brand-wrap {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.hero-brand-char {
+  font-size: 72rpx;
+  font-weight: 700;
+  color: #4A3F35;
+  letter-spacing: 4rpx;
+  animation: charAppear 0.6s ease-out both;
+  text-shadow: 0 2rpx 8rpx rgba(74, 63, 53, 0.06);
+}
+
+@keyframes charAppear {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hero-divider {
+  width: 120rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, #E8A87C, #F5D6B8);
+  border-radius: 2rpx;
+  margin-bottom: 24rpx;
+}
+
+.hero-subtitle {
+  font-size: 30rpx;
+  color: #E8A87C;
+  letter-spacing: 6rpx;
+  font-weight: 400;
+}
+
+.hero-slogan {
+  font-size: 26rpx;
+  color: #B0A59A;
+  margin-top: 16rpx;
+  letter-spacing: 8rpx;
+}
+
+/* ===== 分区标题 ===== */
+.section-header {
+  padding: 48rpx 40rpx 24rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.section-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #4A3F35;
+  position: relative;
+}
+
+.section-subtitle {
+  font-size: 22rpx;
+  color: #D4C9C0;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+/* ===== 产品卡片 ===== */
+.product-card {
+  margin: 0 32rpx;
+  background: #FFFFFF;
+  border-radius: 28rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 40rpx rgba(74, 63, 53, 0.08);
+  transition: transform 0.2s;
+}
+
+.product-card:active {
+  transform: scale(0.98);
+}
+
+.product-image-wrap {
+  position: relative;
+  width: 100%;
+  height: 520rpx;
+  background: linear-gradient(135deg, #F5F0EB, #FAF5F0);
+  overflow: hidden;
+}
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s;
+}
+
+.product-badge {
+  position: absolute;
+  top: 24rpx;
+  left: 24rpx;
+  background: linear-gradient(135deg, #8BA888, #6D9A6A);
+  color: #FFFFFF;
+  font-size: 22rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 24rpx;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+
+.product-info {
+  padding: 32rpx 32rpx 28rpx;
+}
+
+.product-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #4A3F35;
+  display: block;
+}
+
+.product-subtitle {
+  font-size: 26rpx;
+  color: #8B7E72;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.product-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 16rpx;
+  flex-wrap: wrap;
+}
+
+.product-spec {
+  font-size: 24rpx;
+  color: #8B7E72;
+  background: #F5F0EB;
+  padding: 6rpx 18rpx;
+  border-radius: 10rpx;
+}
+
+.product-sales {
+  font-size: 24rpx;
+  color: #B0A59A;
+}
+
+.product-rating {
+  font-size: 24rpx;
+  color: #E8A87C;
+  margin-left: auto;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: center;
+  margin-top: 24rpx;
+  gap: 12rpx;
+}
+
+.product-price {
+  display: flex;
+  align-items: baseline;
+}
+
+.price-symbol {
+  font-size: 24rpx;
+  color: #E0725A;
+  font-weight: 500;
+}
+
+.price-value {
+  font-size: 48rpx;
+  color: #E0725A;
+  font-weight: 700;
+  letter-spacing: -2rpx;
+}
+
+.product-original-price {
+  font-size: 24rpx;
+  color: #B0A59A;
+  text-decoration: line-through;
+}
+
+.buy-btn {
+  margin-left: auto;
+  background: linear-gradient(135deg, #E8A87C 0%, #F0C4A0 100%);
+  color: #4A3F35;
+  border: none;
+  border-radius: 44rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  padding: 0 40rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  box-shadow: 0 4rpx 16rpx rgba(232, 168, 124, 0.3);
+}
+
+.buy-btn::after {
+  border: none;
+}
+
+.buy-btn:active {
+  opacity: 0.85;
+}
+
+/* ===== 品牌故事 ===== */
+.story-content {
+  margin: 0 32rpx;
+  position: relative;
+  padding: 40rpx 36rpx;
+  background: linear-gradient(135deg, #FFFFFF, #FFFBF7);
+}
+
+.story-quote-mark {
+  font-size: 80rpx;
+  color: #F5D6B8;
+  line-height: 1;
+  margin-bottom: -10rpx;
+  font-family: Georgia, serif;
+}
+
+.story-text {
+  color: #8B7E72;
+  font-size: 28rpx;
+  line-height: 1.9;
+  display: block;
+  margin-bottom: 16rpx;
+  text-align: justify;
+}
+
+.story-link {
+  display: inline-block;
+  color: #E8A87C;
+  font-size: 26rpx;
+  margin-top: 8rpx;
+  font-weight: 500;
+}
+
+/* ===== 代理入口 ===== */
+.agent-entry {
+  display: flex;
+  align-items: center;
+  margin: 48rpx 32rpx;
+  padding: 32rpx 36rpx;
+  background: linear-gradient(135deg, #FFFBF7, #FDF8F3);
+  border: 2rpx solid #F5D6B8;
+  border-radius: 24rpx;
+}
+
+.agent-icon-wrap {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 40rpx;
+  background: linear-gradient(135deg, #F5D6B8, #E8A87C);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+
+.agent-icon-text {
+  font-size: 36rpx;
+}
+
+.agent-entry-text {
+  flex: 1;
+}
+
+.agent-entry-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #4A3F35;
+  display: block;
+}
+
+.agent-entry-desc {
+  font-size: 24rpx;
+  color: #8B7E72;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.agent-entry-btn {
+  font-size: 26rpx;
+  color: #E8A87C;
+  flex-shrink: 0;
+  font-weight: 500;
+  padding: 12rpx 24rpx;
+  border: 2rpx solid #E8A87C;
+  border-radius: 32rpx;
+}
+
+.footer-space {
+  height: 60rpx;
+}

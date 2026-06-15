@@ -1,0 +1,24 @@
+.address-card {
+  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
+  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+}
+.addr-top { display:flex; align-items:center; gap:12rpx; margin-bottom:8rpx; }
+.addr-name { font-size:30rpx; font-weight:500; color:#4A3F35; }
+.addr-phone { font-size:26rpx; color:#8B7E72; }
+.addr-default {
+  font-size:20rpx; color:#E8A87C; border:2rpx solid #E8A87C;
+  padding:2rpx 12rpx; border-radius:8rpx;
+}
+.addr-detail { font-size:26rpx; color:#8B7E72; line-height:1.5; }
+.addr-actions {
+  display:flex; gap:24rpx; margin-top:16rpx; padding-top:16rpx;
+  border-top:2rpx solid #F0E8E0;
+}
+.addr-action { font-size:24rpx; color:#8B7E72; }
+.add-btn-wrap { padding:20rpx 32rpx; }
+.add-btn {
+  display:block; text-align:center;
+  height:80rpx; line-height:80rpx;
+  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
+  color:#4A3F35; border-radius:40rpx; font-size:30rpx; font-weight:500;
+}

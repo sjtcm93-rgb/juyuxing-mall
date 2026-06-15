@@ -1,0 +1,61 @@
+<view class="page-wrap">
+  <!-- 状态区 -->
+  <view class="status-bar {{'bg-' + (order.status || 'pending')}}">
+    <text class="status-icon">
+      {{order.status === 'pending' ? '⏳' : order.status === 'paid' ? '✅' : order.status === 'shipped' ? '📦' : order.status === 'received' ? '🎉' : '↩️'}}
+    </text>
+    <view class="status-text">
+      <text class="status-title">{{statusText(order.status)}}</text>
+      <text class="status-desc">{{statusDesc(order.status)}}</text>
+    </view>
+  </view>
+
+  <!-- 地址 -->
+  <view class="address-card" wx:if="{{order.address}}">
+    <text class="address-icon">📍</text>
+    <view class="address-info">
+      <view class="address-top">
+        <text class="address-name">{{order.address.name}}</text>
+        <text class="address-phone">{{order.address.phone}}</text>
+      </view>
+      <text class="address-detail">{{order.address.region ? order.address.region.join(' ') : ''}} {{order.address.detail}}</text>
+    </view>
+  </view>
+
+  <!-- 商品清单 -->
+  <view class="section">
+    <view class="order-product" wx:for="{{order.items || []}}" wx:key="productId" wx:for-item="prod">
+      <image class="prod-img" src="{{prod.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
+      <view class="prod-info">
+        <text class="prod-name">{{prod.name}}</text>
+        <text class="prod-spec">{{prod.spec || '13.5g'}}</text>
+      </view>
+      <view class="prod-price-area">
+        <text class="prod-price">¥{{(prod.price/100).toFixed(2)}}</text>
+        <text class="prod-qty">×{{prod.quantity}}</text>
+      </view>
+    </view>
+    <view class="order-summary">
+      <view class="summary-row"><text>订单编号</text><text>{{order.orderNo}}</text></view>
+      <view class="summary-row"><text>下单时间</text><text>{{formatTime(order.createTime)}}</text></view>
+      <view class="summary-row" wx:if="{{order.remark}}"><text>备注</text><text>{{order.remark}}</text></view>
+    </view>
+  </view>
+
+  <!-- 物流信息 -->
+  <view class="section" wx:if="{{order.logistics && order.logistics.trackingNo}}">
+    <view class="section-header">
+      <text class="section-title">物流信息</text>
+      <navigator url="/pages/logistics/logistics?id={{order._id}}" class="section-more">查看详情 ›</navigator>
+    </view>
+    <text class="logistics-info">{{order.logistics.company}}：{{order.logistics.trackingNo}}</text>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-actions">
+    <button wx:if="{{order.status === 'pending'}}" class="btn-primary" bindtap="payOrder">立即支付</button>
+    <button wx:if="{{order.status === 'pending'}}" class="btn-secondary" bindtap="cancelOrder">取消订单</button>
+    <button wx:if="{{order.status === 'shipped'}}" class="btn-primary" bindtap="confirmReceive">确认收货</button>
+    <button wx:if="{{order.status === 'received'}}" class="btn-secondary" bindtap="contactService">联系客服</button>
+  </view>
+</view>

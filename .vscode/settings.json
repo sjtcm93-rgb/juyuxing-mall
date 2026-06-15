@@ -1,0 +1,30 @@
+{
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": false,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  "files.associations": {
+    "*.wxml": "html",
+    "*.wxss": "css",
+    "*.json": "jsonc"
+  },
+
+  "emmet.includeLanguages": {
+    "wxml": "html"
+  },
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "miniprogram_npm": true,
+    "cloudfunctions/**/node_modules": true
+  },
+
+  "[json]": {
+    "editor.defaultFormatter": "vscode-json-language-features"
+  },
+
+  // 微信小程序：不在编辑器里编译，编译交给微信开发者工具
+  "wechat-devtools.runInTerminal": false
+}

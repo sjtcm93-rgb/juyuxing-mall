@@ -1,0 +1,31 @@
+.brand-hero {
+  text-align:center; padding:80rpx 40rpx 60rpx;
+  background:linear-gradient(180deg,#FDF8F3,#FFFBF7);
+}
+.brand-name { font-size:64rpx; font-weight:700; color:#4A3F35; letter-spacing:8rpx; display:block; }
+.brand-subtitle { font-size:28rpx; color:#E8A87C; margin-top:12rpx; letter-spacing:4rpx; display:block; }
+.content-section {
+  background:#FFFFFF; margin:20rpx; padding:32rpx;
+  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+}
+.content-title {
+  font-size:32rpx; font-weight:600; color:#4A3F35;
+  display:block; margin-bottom:20rpx; position:relative; padding-left:24rpx;
+}
+.content-title::before {
+  content:''; position:absolute; left:0; top:6rpx; bottom:6rpx;
+  width:6rpx; background:linear-gradient(180deg,#E8A87C,#F5D6B8);
+  border-radius:3rpx;
+}
+.content-text { font-size:28rpx; color:#8B7E72; line-height:1.8; display:block; margin-bottom:16rpx; }
+.principle { display:flex; margin-bottom:24rpx; }
+.principle:last-child { margin-bottom:0; }
+.principle-icon { font-size:40rpx; margin-right:20rpx; flex-shrink:0; }
+.principle-text { flex:1; }
+.principle-title { font-size:28rpx; font-weight:500; color:#4A3F35; display:block; margin-bottom:4rpx; }
+.principle-desc { font-size:24rpx; color:#8B7E72; line-height:1.5; }
+.end-section {
+  text-align:center; padding:60rpx 32rpx;
+  background:linear-gradient(135deg,#FDF8F3,#FFFBF7);
+}
+.end-text { font-size:30rpx; color:#8B7E72; display:block; line-height:1.8; }

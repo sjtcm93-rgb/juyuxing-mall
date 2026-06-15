@@ -1,0 +1,57 @@
+.status-bar {
+  display:flex; align-items:center; padding:40rpx 32rpx;
+  margin:20rpx; border-radius:20rpx;
+}
+.bg-pending { background:linear-gradient(135deg,#FFF3E0,#FFFBF7); }
+.bg-paid { background:linear-gradient(135deg,#E8F5E9,#F1F8E9); }
+.bg-shipped { background:linear-gradient(135deg,#E3F2FD,#E8F5F5); }
+.bg-received { background:linear-gradient(135deg,#E8F5E9,#F1F8E9); }
+.status-icon { font-size:56rpx; margin-right:24rpx; }
+.status-text { flex:1; }
+.status-title { font-size:34rpx; font-weight:600; color:#4A3F35; display:block; }
+.status-desc { font-size:24rpx; color:#8B7E72; margin-top:4rpx; display:block; }
+.address-card {
+  display:flex; align-items:flex-start;
+  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
+  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+}
+.address-icon { font-size:36rpx; margin-right:16rpx; margin-top:4rpx; }
+.address-info { flex:1; }
+.address-top { display:flex; gap:16rpx; margin-bottom:6rpx; }
+.address-name { font-size:30rpx; font-weight:500; color:#4A3F35; }
+.address-phone { font-size:28rpx; color:#8B7E72; }
+.address-detail { font-size:26rpx; color:#8B7E72; line-height:1.5; }
+.section {
+  background:#FFFFFF; margin:20rpx; border-radius:20rpx;
+  box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06); overflow:hidden;
+}
+.section-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:28rpx 32rpx 16rpx;
+}
+.section-title { font-size:30rpx; font-weight:600; color:#4A3F35; }
+.section-more { font-size:24rpx; color:#B0A59A; }
+.order-product {
+  display:flex; align-items:center; padding:20rpx 32rpx;
+  border-bottom:2rpx solid #F0E8E0;
+}
+.prod-img { width:100rpx; height:100rpx; border-radius:12rpx; background:#F5F0EB; margin-right:20rpx; }
+.prod-info { flex:1; }
+.prod-name { font-size:28rpx; color:#4A3F35; display:block; }
+.prod-spec { font-size:24rpx; color:#B0A59A; display:block; }
+.prod-price-area { text-align:right; }
+.prod-price { font-size:28rpx; color:#E0725A; font-weight:500; display:block; }
+.prod-qty { font-size:24rpx; color:#B0A59A; }
+.order-summary { padding:20rpx 32rpx; }
+.summary-row {
+  display:flex; justify-content:space-between;
+  padding:10rpx 0; font-size:26rpx; color:#8B7E72;
+}
+.logistics-info { padding:0 32rpx 28rpx; font-size:26rpx; color:#8B7E72; display:block; }
+.bottom-actions {
+  display:flex; gap:20rpx;
+  padding:20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom,0));
+}
+.bottom-actions .btn-primary { flex:1; height:80rpx; line-height:80rpx; font-size:30rpx; }
+.bottom-actions .btn-secondary { flex:1; height:80rpx; line-height:80rpx; font-size:28rpx; }
+.page-wrap { padding-bottom: 20rpx; }

@@ -1,0 +1,72 @@
+<view class="page-wrap">
+  <!-- 用户头像区 -->
+  <view class="user-header">
+    <view class="avatar-wrap" bindtap="loginOrUpdateProfile">
+      <image class="avatar" src="{{userInfo.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+      <view class="avatar-badge" wx:if="{{!hasUserInfo}}">
+        <text>登录</text>
+      </view>
+    </view>
+    <text class="user-name" bindtap="loginOrUpdateProfile">
+      {{userInfo.nickName || (isLoggedIn ? '微信用户' : '点击登录')}}
+    </text>
+    <text class="user-desc" wx:if="{{!isLoggedIn}}">登录后解锁完整功能</text>
+    <text class="user-desc" wx:else>橘与杏生活家</text>
+  </view>
+
+  <!-- 订单入口 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">我的订单</text>
+      <navigator url="/pages/order/order" class="section-more">全部订单 ›</navigator>
+    </view>
+    <view class="order-tabs">
+      <navigator url="/pages/order/order?status=pending" class="order-tab">
+        <text class="tab-icon">📋</text>
+        <text class="tab-text">待付款</text>
+      </navigator>
+      <navigator url="/pages/order/order?status=shipped" class="order-tab">
+        <text class="tab-icon">📦</text>
+        <text class="tab-text">待收货</text>
+      </navigator>
+      <navigator url="/pages/order/order" class="order-tab">
+        <text class="tab-icon">✅</text>
+        <text class="tab-text">已完成</text>
+      </navigator>
+      <navigator url="/pages/order/order?status=refunding" class="order-tab">
+        <text class="tab-icon">↩️</text>
+        <text class="tab-text">退款/售后</text>
+      </navigator>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="section menu-section">
+    <navigator url="/pages/address/address" class="menu-item">
+      <text class="menu-icon">📍</text>
+      <text class="menu-text">收货地址</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator url="/pages/agent-center/agent-center" class="menu-item" wx:if="{{isAgent}}">
+      <text class="menu-icon">🌟</text>
+      <text class="menu-text">代理中心</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator url="/pages/agent-join/agent-join" class="menu-item" wx:else>
+      <text class="menu-icon">🌟</text>
+      <text class="menu-text">成为代理</text>
+      <text class="menu-tag">分享赚钱</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+        <navigator url="/pages/admin/admin" class="menu-item" wx:if="{{isAdmin}}">
+      <text class="menu-icon">⚙️</text>
+      <text class="menu-text">管理后台</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+<navigator url="/pages/about/about" class="menu-item">
+      <text class="menu-icon">📖</text>
+      <text class="menu-text">关于橘与杏</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+  </view>
+</view>

@@ -1,0 +1,95 @@
+<view class="home-wrap">
+  
+  <!-- 品牌头图 -->
+  <view class="hero-section">
+    <view class="hero-deco-circle"></view>
+    <view class="hero-deco-circle-2"></view>
+    <view class="hero-deco-herb"></view>
+    <view class="hero-content">
+      <view class="hero-brand-wrap">
+        <text class="hero-brand-char" wx:for="{{['橘','与','杏']}}" wx:key="index" style="animation-delay:{{index * 0.15}}s">{{item}}</text>
+      </view>
+      <view class="hero-divider"></view>
+      <text class="hero-subtitle">中医生活 · 自然疗愈</text>
+      <text class="hero-slogan">源于草本 温润日常</text>
+    </view>
+  </view>
+
+  <!-- 产品展示区 -->
+  <view class="product-section" id="product">
+    <view class="section-header">
+      <text class="section-title">热卖单品</text>
+      <text class="section-subtitle">Hot</text>
+    </view>
+
+    <view class="product-card" wx:if="{{product}}" data-id="{{product._id}}" bindtap="goToProduct">
+      <view class="product-image-wrap">
+        <image class="product-image" src="{{product.images && product.images[0] || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
+        <view class="product-badge">新品</view>
+      </view>
+      <view class="product-info">
+        <text class="product-name">{{product.name}}</text>
+        <text class="product-subtitle">{{product.subtitle}}</text>
+        <view class="product-meta">
+          <text class="product-spec">{{product.specs && product.specs[0].name}}</text>
+          <text class="product-sales">已售 {{product.sales || 0}} 件</text>
+          <text class="product-rating">★ {{product.rating || 5.0}}</text>
+        </view>
+        <view class="product-price-row">
+          <view class="product-price">
+            <text class="price-symbol">¥</text>
+            <text class="price-value">{{(product.price/100).toFixed(2)}}</text>
+          </view>
+          <text class="product-original-price">¥{{(product.originalPrice/100).toFixed(2)}}</text>
+          <button class="buy-btn" bindtap="buyNow" data-id="{{product._id}}">立即购买</button>
+        </view>
+      </view>
+    </view>
+
+    <view class="loading-wrap" wx:elif="{{loading}}">
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <text style="margin-top:20rpx;color:#B0A59A;font-size:26rpx">加载中...</text>
+    </view>
+
+    <view class="empty-wrap" wx:else>
+      <text class="empty-icon">🌿</text>
+      <text class="empty-text" style="margin-top:16rpx">商品即将上架</text>
+    </view>
+  </view>
+
+  <!-- 品牌故事 -->
+  <view class="story-section">
+    <view class="section-header">
+      <text class="section-title">品牌故事</text>
+      <text class="section-subtitle">About</text>
+    </view>
+    <view class="story-content card">
+      <view class="story-quote-mark">"</view>
+      <text class="story-text">
+        「橘与杏」取自中医经典——橘皮理气，杏仁润肺。我们相信，草木的力量就藏在日常的细节里。
+      </text>
+      <text class="story-text">
+        坚持用传统草本智慧，结合现代生活所需，做温和、安全、有效的日用产品。让每一个日常，都有自然相伴。
+      </text>
+      <navigator url="/pages/about/about" class="story-link">
+        了解更多 →
+      </navigator>
+    </view>
+  </view>
+
+  <!-- 代理入口 -->
+  <view class="agent-entry card">
+    <view class="agent-icon-wrap">
+      <text class="agent-icon-text">🤝</text>
+    </view>
+    <view class="agent-entry-text">
+      <text class="agent-entry-title">成为橘与杏代理</text>
+      <text class="agent-entry-desc">分享好物，收获一份事业</text>
+    </view>
+    <navigator url="/pages/agent-join/agent-join" class="agent-entry-btn">了解更多</navigator>
+  </view>
+
+  <view class="footer-space"></view>
+</view>

@@ -1,0 +1,43 @@
+<view class="page-wrap">
+  <!-- 订单状态Tab -->
+  <scroll-view scroll-x class="order-tabs">
+    <view class="tab-list">
+      <view class="tab-item {{currentTab === 'all' ? 'tab-active' : ''}}" data-tab="all" bindtap="switchTab">全部</view>
+      <view class="tab-item {{currentTab === 'pending' ? 'tab-active' : ''}}" data-tab="pending" bindtap="switchTab">待付款</view>
+      <view class="tab-item {{currentTab === 'paid' ? 'tab-active' : ''}}" data-tab="paid" bindtap="switchTab">已支付</view>
+      <view class="tab-item {{currentTab === 'shipped' ? 'tab-active' : ''}}" data-tab="shipped" bindtap="switchTab">待收货</view>
+      <view class="tab-item {{currentTab === 'received' ? 'tab-active' : ''}}" data-tab="received" bindtap="switchTab">已完成</view>
+    </view>
+  </scroll-view>
+
+  <!-- 空状态 -->
+  <view class="empty-wrap" wx:if="{{orders.length === 0 && !loading}}">
+    <text class="empty-text">暂无订单</text>
+    <navigator url="/pages/index/index" open-type="switchTab" class="go-shop-btn">去逛逛</navigator>
+  </view>
+
+  <!-- 订单列表 -->
+  <view wx:for="{{orders}}" wx:key="_id" class="order-card" data-id="{{item._id}}" bindtap="goDetail">
+    <view class="order-header">
+      <text class="order-no">订单号：{{item.orderNo}}</text>
+      <text class="order-status {{'tag-' + item.status}}">{{statusText(item.status)}}</text>
+    </view>
+    <view class="order-product" wx:for="{{item.items}}" wx:key="productId" wx:for-item="prod">
+      <image class="prod-img" src="{{prod.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
+      <view class="prod-info">
+        <text class="prod-name">{{prod.name}}</text>
+        <text class="prod-spec">{{prod.spec || '13.5g'}} × {{prod.quantity}}</text>
+      </view>
+      <text class="prod-price">¥{{(prod.price * prod.quantity / 100).toFixed(2)}}</text>
+    </view>
+    <view class="order-footer">
+      <text class="order-time">{{formatTime(item.createTime)}}</text>
+      <text class="order-total">合计：<text class="order-total-price">¥{{(item.totalFee/100).toFixed(2)}}</text></text>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-wrap" wx:if="{{loading}}">
+    <view class="loading-dot"></view><view class="loading-dot"></view><view class="loading-dot"></view>
+  </view>
+</view>

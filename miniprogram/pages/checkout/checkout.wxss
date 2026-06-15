@@ -1,0 +1,59 @@
+/* 结算页 */
+.section {
+  background: #FFFFFF;
+  margin: 20rpx;
+  padding: 28rpx 32rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(74,63,53,0.06);
+}
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #4A3F35;
+  display: block;
+  margin-bottom: 16rpx;
+}
+.address-section { min-height: 100rpx; }
+.address-top { display:flex; gap:16rpx; margin-bottom:8rpx; }
+.address-name { font-size:30rpx; font-weight:500; color:#4A3F35; }
+.address-phone { font-size:28rpx; color:#8B7E72; }
+.address-detail { font-size:26rpx; color:#8B7E72; line-height:1.5; }
+.address-empty {
+  display:flex; justify-content:space-between; align-items:center;
+  color:#B0A59A; font-size:28rpx;
+}
+.arrow { font-size:36rpx; color:#D4C9C0; }
+.order-item {
+  display:flex; align-items:center; padding:16rpx 0;
+  border-bottom: 2rpx solid #F0E8E0;
+}
+.order-item:last-child { border-bottom:none; }
+.item-img { width:120rpx; height:120rpx; border-radius:12rpx; background:#F5F0EB; margin-right:20rpx; }
+.item-info { flex:1; }
+.item-name { font-size:28rpx; color:#4A3F35; display:block; }
+.item-spec { font-size:24rpx; color:#B0A59A; margin-top:4rpx; display:block; }
+.item-price-area { text-align:right; }
+.item-price { font-size:30rpx; color:#E0725A; font-weight:600; display:block; }
+.item-qty { font-size:24rpx; color:#B0A59A; }
+.remark-input {
+  width:100%; height:72rpx; border:none;
+  font-size:28rpx; color:#4A3F35;
+  background: #F5F0EB; border-radius:12rpx; padding:0 20rpx;
+}
+.checkout-bottom {
+  position:fixed; bottom:0; left:0; right:0;
+  display:flex; align-items:center;
+  background:#FFFFFF; padding:20rpx 32rpx;
+  padding-bottom:calc(20rpx + env(safe-area-inset-bottom,0));
+  border-top:2rpx solid #F0E8E0;
+}
+.bottom-total { flex:1; display:flex; align-items:baseline; }
+.total-text { font-size:28rpx; color:#4A3F35; }
+.total-price { font-size:40rpx; font-weight:700; color:#E0725A; margin-left:8rpx; }
+.submit-btn {
+  width:240rpx; height:80rpx; line-height:80rpx;
+  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
+  color:#4A3F35; border:none; border-radius:40rpx; font-size:30rpx; font-weight:500;
+}
+.submit-btn::after { border:none; }
+.page-wrap { padding-bottom: 140rpx; }

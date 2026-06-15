@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# IDE
+.idea/
+# .vscode/        # 保留 .vscode/ 以共享工作区设置和推荐扩展
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# WeChat Dev
+miniprogram_npm/
+cloudfunctions/**/node_modules/
+
+# Env
+.env
+.env.local

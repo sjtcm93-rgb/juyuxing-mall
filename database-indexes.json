@@ -1,0 +1,75 @@
+{
+  "说明": "将此JSON导入微信云开发控制台 -> 数据库 -> 对应集合 -> 索引管理",
+  "collections": [
+    {
+      "name": "users",
+      "indexes": [
+        { "name": "referrer_index", "fields": [{ "name": "referrer", "direction": "asc" }] },
+        { "name": "isAgent_index", "fields": [{ "name": "isAgent", "direction": "desc" }] }
+      ]
+    },
+    {
+      "name": "orders",
+      "indexes": [
+        { "name": "user_orders", "fields": [
+          { "name": "userId", "direction": "asc" },
+          { "name": "createTime", "direction": "desc" }
+        ]},
+        { "name": "user_orders_status", "fields": [
+          { "name": "userId", "direction": "asc" },
+          { "name": "status", "direction": "asc" },
+          { "name": "createTime", "direction": "desc" }
+        ]},
+        { "name": "agent_orders", "fields": [
+          { "name": "agentId", "direction": "asc" },
+          { "name": "status", "direction": "asc" },
+          { "name": "createTime", "direction": "desc" }
+        ]}
+      ]
+    },
+    {
+      "name": "commissions",
+      "indexes": [
+        { "name": "agent_commissions", "fields": [
+          { "name": "agentId", "direction": "asc" },
+          { "name": "createTime", "direction": "desc" }
+        ]},
+        { "name": "agent_commissions_status", "fields": [
+          { "name": "agentId", "direction": "asc" },
+          { "name": "status", "direction": "asc" }
+        ]}
+      ]
+    },
+    {
+      "name": "addresses",
+      "indexes": [
+        { "name": "user_addresses", "fields": [
+          { "name": "userId", "direction": "asc" },
+          { "name": "isDefault", "direction": "desc" },
+          { "name": "createTime", "direction": "desc" }
+        ]}
+      ]
+    },
+    {
+      "name": "withdrawals",
+      "indexes": [
+        { "name": "agent_withdrawals", "fields": [
+          { "name": "agentId", "direction": "asc" },
+          { "name": "createTime", "direction": "desc" }
+        ]},
+        { "name": "agent_withdrawals_status", "fields": [
+          { "name": "agentId", "direction": "asc" },
+          { "name": "status", "direction": "asc" }
+        ]}
+      ]
+    },
+    {
+      "name": "cart",
+      "indexes": [
+        { "name": "user_cart", "fields": [
+          { "name": "userId", "direction": "asc" }
+        ]}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<view class="page-wrap">
+  <view class="brand-hero">
+    <text class="brand-name">橘与杏</text>
+    <text class="brand-subtitle">中医生活·自然疗愈</text>
+  </view>
+
+  <view class="content-section">
+    <text class="content-title">品牌缘起</text>
+    <text class="content-text">
+      「橘与杏」的名字，取自两味中医经典本草——
+    </text>
+    <text class="content-text">
+      橘皮理气和中，杏仁润肺降气。一升一降，一散一收，正如中医所追求的平衡之道。
+    </text>
+    <text class="content-text">
+      我们相信，真正的健康不是来自药柜里的瓶瓶罐罐，而是藏在每一天的生活细节里——洗手时的清香、沐浴时的放松、护肤时的温柔。
+    </text>
+  </view>
+
+  <view class="content-section">
+    <text class="content-title">品牌理念</text>
+    <view class="principle">
+      <text class="principle-icon">🌿</text>
+      <view class="principle-text">
+        <text class="principle-title">源于草本</text>
+        <text class="principle-desc">甄选天然植物成分，用传统智慧守护现代生活</text>
+      </view>
+    </view>
+    <view class="principle">
+      <text class="principle-icon">🧪</text>
+      <view class="principle-text">
+        <text class="principle-title">科学配方</text>
+        <text class="principle-desc">融合现代科技与传统方剂，做安全有效的产品</text>
+      </view>
+    </view>
+    <view class="principle">
+      <text class="principle-icon">💚</text>
+      <view class="principle-text">
+        <text class="principle-title">温和亲肤</text>
+        <text class="principle-desc">拒绝刺激添加，做全家人都能安心使用的日常好物</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="content-section end-section">
+    <text class="end-text">让每一个日常，都有自然相伴。</text>
+    <text class="end-text">—— 橘与杏团队</text>
+  </view>
+</view>

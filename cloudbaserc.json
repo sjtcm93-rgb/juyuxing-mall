@@ -1,0 +1,66 @@
+{
+  "envId": "cloud1-d4gx1jxk675274501",
+  "functionRoot": "cloudfunctions",
+  "functions": [
+    {
+      "name": "login",
+      "timeout": 5,
+      "memorySize": 128,
+      "triggers": []
+    },
+    {
+      "name": "product",
+      "timeout": 5,
+      "memorySize": 128,
+      "triggers": []
+    },
+    {
+      "name": "cart",
+      "timeout": 5,
+      "memorySize": 128,
+      "triggers": []
+    },
+    {
+      "name": "order",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "pay",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "agent",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "commission",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "init",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "withdrawal",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "admin",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+<view class="page-wrap">
+  <!-- 顶部 Tab 导航 -->
+  <view class="admin-tabs">
+    <view class="admin-tab {{tab === 'dashboard' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="dashboard">
+      <text>概览</text>
+    </view>
+    <view class="admin-tab {{tab === 'orders' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="orders">
+      <text>订单</text>
+      <text class="tab-badge" wx:if="{{stats.paidOrders > 0}}">{{stats.paidOrders}}</text>
+    </view>
+    <view class="admin-tab {{tab === 'agents' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="agents">
+      <text>代理</text>
+      <text class="tab-badge" wx:if="{{stats.pendingAgents > 0}}">{{stats.pendingAgents}}</text>
+    </view>
+    <view class="admin-tab {{tab === 'withdrawals' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="withdrawals">
+      <text>提现</text>
+      <text class="tab-badge" wx:if="{{stats.pendingWithdrawals > 0}}">{{stats.pendingWithdrawals}}</text>
+    </view>
+  </view>
+
+  <!-- 概览 -->
+  <view wx:if="{{tab === 'dashboard'}}">
+    <view class="stats-grid">
+      <view class="stat-card"><text class="stat-num">{{stats.totalOrders}}</text><text>总订单</text></view>
+      <view class="stat-card"><text class="stat-num">{{stats.paidOrders}}</text><text>待发货</text></view>
+      <view class="stat-card"><text class="stat-num">{{(stats.totalSales/100).toFixed(0)}}</text><text>销售额(元)</text></view>
+      <view class="stat-card"><text class="stat-num">{{stats.pendingAgents}}</text><text>待审代理</text></view>
+    </view>
+    <view class="section-title" style="padding:30rpx 32rpx 16rpx">快捷操作</view>
+    <view class="quick-actions">
+      <view class="quick-action" bindtap="switchTab" data-tab="orders">
+        <text class="qa-icon">📦</text>
+        <text class="qa-text">待发货订单 ({{stats.paidOrders}})</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="agents">
+        <text class="qa-icon">👥</text>
+        <text class="qa-text">代理审核 ({{stats.pendingAgents}})</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="withdrawals">
+        <text class="qa-icon">💰</text>
+        <text class="qa-text">提现处理 ({{stats.pendingWithdrawals}})</text>
+        <text class="qa-arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 订单管理 -->
+  <view wx:elif="{{tab === 'orders'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待发货订单</view>
+    <view class="order-item" wx:for="{{orders}}" wx:key="_id" wx:for-item="ord">
+      <view class="oi-header">
+        <text class="oi-no">{{ord.orderNo}}</text>
+        <text class="oi-status tag-paid">已支付</text>
+      </view>
+      <view class="oi-products" wx:for="{{ord.items || []}}" wx:key="productId">
+        <text class="oi-product">
+          {{item.name}} × {{item.quantity}}
+        </text>
+      </view>
+      <view class="oi-footer">
+        <text class="oi-total">¥{{(ord.totalFee/100).toFixed(2)}}</text>
+        <view class="oi-ship-form" wx:if="{{shipTarget === ord._id}}">
+          <input class="ship-input" placeholder="物流公司" data-order-id="{{ord._id}}" bindinput="onCompanyInput" />
+          <input class="ship-input" placeholder="运单号" bindinput="onTrackingInput" />
+          <view class="ship-actions">
+            <button class="ship-confirm" bindtap="confirmShip" data-order-id="{{ord._id}}">确认发货</button>
+            <button class="ship-cancel" bindtap="cancelShip">取消</button>
+          </view>
+        </view>
+        <button class="oi-ship-btn" wx:else bindtap="showShipForm" data-order-id="{{ord._id}}">发货</button>
+      </view>
+    </view>
+    <view class="empty-wrap" wx:if="{{orders.length === 0}}">
+      <text class="empty-text">没有待发货的订单</text>
+    </view>
+  </view>
+
+  <!-- 代理审核 -->
+  <view wx:elif="{{tab === 'agents'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待审核代理</view>
+    <view class="agent-card" wx:for="{{pendingAgents}}" wx:key="_id">
+      <view class="ac-top">
+        <image class="ac-avatar" src="{{item.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+        <view class="ac-info">
+          <text class="ac-name">{{item.agentInfo?.name || item.nickName || '未知用户'}}</text>
+          <text class="ac-contact">微信：{{item.agentInfo?.wechat || '-'}} | 手机：{{item.agentInfo?.phone || '-'}}</text>
+        </view>
+      </view>
+      <text class="ac-reason" wx:if="{{item.agentInfo?.reason}}">申请理由：{{item.agentInfo.reason}}</text>
+      <view class="ac-actions">
+        <button class="ac-approve" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="true">通过</button>
+        <button class="ac-reject" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="false">拒绝</button>
+      </view>
+    </view>
+    <view class="empty-wrap" wx:if="{{pendingAgents.length === 0}}">
+      <text class="empty-text">没有待审核的代理申请</text>
+    </view>
+  </view>
+
+  <!-- 提现处理 -->
+  <view wx:elif="{{tab === 'withdrawals'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待处理提现</view>
+    <view class="wd-card" wx:for="{{pendingWithdrawals}}" wx:key="_id">
+      <view class="wd-top">
+        <text class="wd-amount">¥{{(item.amount/100).toFixed(2)}}</text>
+        <text class="wd-status tag-pending">待审核</text>
+      </view>
+      <text class="wd-info">收款人：{{item.name}} | 账号：{{item.account}}</text>
+      <text class="wd-time">{{formatTime(item.createTime)}}</text>
+      <view class="wd-actions">
+        <button class="ac-approve" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="true">确认打款</button>
+        <button class="ac-reject" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="false">拒绝</button>
+      </view>
+    </view>
+    <view class="empty-wrap" wx:if="{{pendingWithdrawals.length === 0}}">
+      <text class="empty-text">没有待处理的提现申请</text>
+    </view>
+  </view>
+</view>
