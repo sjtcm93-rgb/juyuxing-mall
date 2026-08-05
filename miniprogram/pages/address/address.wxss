@@ -1,24 +1,50 @@
 .address-card {
-  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
-  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+  padding: var(--space-md);
+  margin: var(--space-sm) var(--space-md);
 }
-.addr-top { display:flex; align-items:center; gap:12rpx; margin-bottom:8rpx; }
-.addr-name { font-size:30rpx; font-weight:500; color:#4A3F35; }
-.addr-phone { font-size:26rpx; color:#8B7E72; }
-.addr-default {
-  font-size:20rpx; color:#E8A87C; border:2rpx solid #E8A87C;
-  padding:2rpx 12rpx; border-radius:8rpx;
+.address-top { display: flex; align-items: center; gap: var(--space-sm); margin-bottom: 12rpx; }
+.address-name { font-size: var(--fs-md); font-weight: 600; color: var(--color-text); }
+.address-phone { font-size: var(--fs-sm); color: var(--color-text-sub); }
+.default-tag {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
 }
-.addr-detail { font-size:26rpx; color:#8B7E72; line-height:1.5; }
-.addr-actions {
-  display:flex; gap:24rpx; margin-top:16rpx; padding-top:16rpx;
-  border-top:2rpx solid #F0E8E0;
+.address-detail { font-size: var(--fs-sm); color: var(--color-text); line-height: 1.6; }
+.address-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-md);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 2rpx solid var(--color-divider);
 }
-.addr-action { font-size:24rpx; color:#8B7E72; }
-.add-btn-wrap { padding:20rpx 32rpx; }
+.addr-action {
+  font-size: var(--fs-xs);
+  color: var(--color-text-sub);
+  padding: 4rpx 8rpx;
+}
+.addr-action-danger { color: var(--color-danger); }
+.add-btn-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--space-md);
+  background: var(--color-card);
+  border-top: 2rpx solid var(--color-divider);
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0));
+}
 .add-btn {
-  display:block; text-align:center;
-  height:80rpx; line-height:80rpx;
-  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
-  color:#4A3F35; border-radius:40rpx; font-size:30rpx; font-weight:500;
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-md);
+  border: none;
 }
+.add-btn::after { border: none; }

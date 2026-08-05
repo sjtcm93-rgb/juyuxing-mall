@@ -1,0 +1,68 @@
+<view class="page-wrap">
+  <!-- 退款详情模式（只读） -->
+  <block wx:if="{{mode === 'detail'}}">
+    <view class="section" wx:if="{{refund}}">
+      <text class="section-title">退款状态</text>
+      <view class="refund-status-card">
+        <view class="refund-status {{refund.status}}">{{refundStatusText}}</view>
+        <text class="refund-time">申请时间：{{refundCreateTime}}</text>
+      </view>
+    </view>
+
+    <view class="section" wx:if="{{refund}}">
+      <text class="section-title">退款原因</text>
+      <text class="refund-reason">{{refund.reason || '未填写'}}</text>
+      <text wx:if="{{refund.description}}" class="refund-desc">{{refund.description}}</text>
+    </view>
+
+    <view class="section" wx:if="{{refund && refund.adminNote}}">
+      <text class="section-title">处理备注</text>
+      <text class="refund-admin-note">{{refund.adminNote}}</text>
+    </view>
+  </block>
+
+  <!-- 提交退款申请模式 -->
+  <block wx:if="{{mode === 'submit'}}">
+    <view class="section order-summary">
+      <text class="section-title">退款订单</text>
+      <view class="order-amount">
+        <text class="amount-label">预计退款</text>
+        <text class="amount-value">¥{{refundAmountText}}</text>
+      </view>
+      <view class="order-items" wx:if="{{orderItems.length > 0}}">
+        <view wx:for="{{orderItems}}" wx:key="name-{{item.spec}}" class="mini-item">
+          <text class="mini-name">{{item.name}}{{item.spec ? '（' + item.spec + '）' : ''}}</text>
+          <text class="mini-qty">×{{item.quantity}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">退款原因</text>
+      <view class="reason-list">
+        <view
+          wx:for="{{reasons}}"
+          wx:key="*this"
+          class="reason-item {{reason === item ? 'reason-active' : ''}}"
+          data-index="{{index}}"
+          bindtap="pickReason"
+        >
+          <text>{{item}}</text>
+          <text wx:if="{{reason === item}}" class="reason-check"></text>
+        </view>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">退款说明</text>
+      <textarea class="textarea-field" placeholder="请详细描述您遇到的问题（选填）" value="{{description}}" bindinput="onDescInput" maxlength="200" />
+    </view>
+  </block>
+
+  <!-- 提交按钮（仅 submit 模式） -->
+  <view class="submit-bar safe-bottom" wx:if="{{mode === 'submit'}}">
+    <button class="submit-btn" bindtap="submit" disabled="{{submitting || !reason}}">
+      {{submitting ? '提交中...' : '提交申请'}}
+    </button>
+  </view>
+</view>

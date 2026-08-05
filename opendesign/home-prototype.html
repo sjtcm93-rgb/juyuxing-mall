@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>橘与杏 · 首页高保真原型</title>
+<style>
+  :root{
+    --bg:#FDF8F3; --bg-pale:#FFFBF7; --bg-soft:#F5F0EB; --card:#FFFFFF;
+    --text:#4A3F35; --text-sub:#8B7E72; --text-muted:#B0A59A;
+    --primary:#E8A87C; --primary-light:#F5D6B8; --primary-dark:#E0725A;
+    --secondary:#8BA888; --divider:#E8E0D8;
+    --shadow-sm:0 2px 12px rgba(74,63,53,.06);
+    --shadow-md:0 10px 30px rgba(232,168,124,.18);
+    --serif:"Songti SC","STSong","Noto Serif SC",serif;
+    --sans:"PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    background:#E7E0D8;font-family:var(--sans);color:var(--text);
+    display:flex;justify-content:center;align-items:flex-start;
+    padding:28px 16px;min-height:100vh;
+  }
+  .phone{
+    width:390px;height:844px;background:var(--bg);border-radius:46px;
+    box-shadow:0 30px 80px rgba(74,63,53,.28);overflow:hidden;
+    position:relative;display:flex;flex-direction:column;
+  }
+  .screen{overflow-y:auto;flex:1;padding-bottom:80px;scrollbar-width:none;}
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* status bar */
+  .statusbar{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 30px 4px;font-size:13px;font-weight:600;color:var(--text);
+  }
+  .statusbar .sig{display:flex;gap:4px;align-items:center;}
+
+  /* hero */
+  .hero{
+    position:relative;padding:30px 32px 38px;text-align:center;overflow:hidden;
+    background:linear-gradient(180deg,var(--bg-pale),var(--bg));
+  }
+  .hero .deco{
+    position:absolute;top:-50px;right:-40px;width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,var(--primary-light),transparent 70%);opacity:.7;pointer-events:none;
+  }
+  .yinyang{width:54px;height:54px;display:block;margin:6px auto 16px;}
+  .brand{
+    font-family:var(--serif);font-size:42px;font-weight:600;letter-spacing:8px;color:var(--text);
+    padding-left:8px;
+  }
+  .brand span{display:inline-block;opacity:0;transform:translateY(18px);
+    animation:rise .7s cubic-bezier(.16,1,.3,1) forwards;}
+  .brand span:nth-child(1){animation-delay:.05s;}
+  .brand span:nth-child(2){animation-delay:.20s;}
+  .brand span:nth-child(3){animation-delay:.35s;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  .divider{width:56px;height:2px;background:var(--primary);margin:14px auto 12px;border-radius:2px;}
+  .subtitle{font-size:13px;color:var(--secondary);letter-spacing:4px;}
+  .slogan{font-size:12px;color:var(--text-sub);margin-top:6px;letter-spacing:2px;}
+
+  /* search */
+  .search{
+    margin:18px 24px 4px;height:42px;border-radius:21px;background:var(--card);
+    border:1px solid var(--divider);display:flex;align-items:center;gap:10px;padding:0 18px;
+    box-shadow:var(--shadow-sm);
+  }
+  .search svg{flex-shrink:0;}
+  .search input{border:none;outline:none;background:transparent;font-size:13px;color:var(--text-sub);flex:1;font-family:var(--sans);}
+
+  /* category */
+  .cat{display:flex;justify-content:space-between;padding:22px 20px 6px;}
+  .cat-item{display:flex;flex-direction:column;align-items:center;gap:8px;width:20%;}
+  .cat-ic{
+    width:48px;height:48px;border-radius:50%;background:var(--card);
+    border:1.5px solid var(--primary-light);display:flex;align-items:center;justify-content:center;
+    box-shadow:var(--shadow-sm);transition:transform .2s;
+  }
+  .cat-item:active .cat-ic{transform:scale(.92);}
+  .cat-label{font-size:11px;color:var(--text);}
+
+  /* banner */
+  .banner{margin:18px 24px 4px;height:148px;border-radius:18px;overflow:hidden;box-shadow:var(--shadow-md);}
+  .banner-track{display:flex;width:200%;height:100%;animation:slide 9s ease-in-out infinite;}
+  .slide{width:50%;height:100%;position:relative;display:flex;align-items:center;padding:0 24px;}
+  .slide.img{background:linear-gradient(120deg,#E8A87C,#F0C4A0);}
+  .slide.green{background:linear-gradient(120deg,#8BA888,#6D9A6A);}
+  .slide img{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:96px;height:128px;object-fit:cover;border-radius:12px;box-shadow:0 6px 16px rgba(0,0,0,.18);}
+  .slide .t1{color:#fff;font-size:19px;font-weight:600;font-family:var(--serif);letter-spacing:1px;}
+  .slide .t2{color:rgba(255,255,255,.92);font-size:12px;margin-top:6px;}
+  .slide .cta{margin-top:14px;display:inline-block;background:#fff;color:var(--primary-dark);font-size:12px;font-weight:600;padding:7px 18px;border-radius:16px;}
+  @keyframes slide{0%,42%{transform:translateX(0);}50%,92%{transform:translateX(-50%);}100%{transform:translateX(0);}}
+
+  /* benefits */
+  .benefits{display:flex;justify-content:space-around;margin:18px 24px 4px;padding:14px 8px;background:var(--bg-soft);border-radius:14px;}
+  .ben{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .ben span{font-size:11px;color:var(--text);}
+  .ben svg{opacity:.85;}
+
+  /* section title */
+  .sec-head{display:flex;align-items:baseline;gap:10px;padding:30px 28px 14px;}
+  .sec-title{font-size:19px;font-weight:600;color:var(--text);font-family:var(--serif);}
+  .sec-sub{font-size:11px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;}
+
+  /* product grid */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px;}
+  .pcard{background:var(--card);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);transition:transform .2s;padding-bottom:12px;}
+  .pcard:active{transform:scale(.97);}
+  .pimg{width:100%;height:130px;display:block;position:relative;}
+  .pimg svg.bottle{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+  .pbadge{position:absolute;top:10px;left:10px;background:var(--primary);color:#fff;font-size:10px;padding:3px 9px;border-radius:10px;font-weight:500;}
+  .pinfo{padding:12px 12px 0;}
+  .pname{font-size:13px;color:var(--text);font-weight:500;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  .psub{font-size:11px;color:var(--text-sub);margin-top:4px;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
+  .prow{display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding:0 12px;}
+  .price{display:flex;align-items:baseline;color:var(--primary-dark);}
+  .price .cur{font-size:12px;}.price .num{font-size:18px;font-weight:700;margin-left:1px;}
+  .addbtn{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-light));
+    color:#4A3F35;font-size:22px;font-weight:300;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 12px rgba(232,168,124,.35);transition:transform .15s;}
+  .addbtn:active{transform:scale(.85);}
+
+  /* story (editorial, no card) */
+  .story{padding:8px 30px 8px;position:relative;}
+  .quote{font-family:var(--serif);font-size:54px;color:var(--primary-light);line-height:.6;height:30px;}
+  .story p{font-size:13px;line-height:1.9;color:var(--text-sub);text-align:justify;margin-bottom:8px;}
+  .story a{color:var(--primary-dark);font-size:12px;font-weight:500;}
+
+  /* agent entry */
+  .agent{display:flex;align-items:center;gap:14px;margin:14px 22px;padding:18px 20px;
+    background:linear-gradient(135deg,var(--bg-pale),var(--bg));border:1.5px solid var(--primary-light);border-radius:18px;}
+  .agent .ic{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--primary-light),var(--primary));
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .agent .at{font-size:14px;font-weight:500;color:var(--text);}
+  .agent .ad{font-size:11px;color:var(--text-sub);margin-top:3px;}
+  .agent .ab{margin-left:auto;font-size:12px;color:var(--primary-dark);font-weight:600;border:1.5px solid var(--primary);padding:6px 14px;border-radius:18px;}
+
+  /* tabbar */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;height:64px;background:var(--bg-pale);
+    border-top:1px solid var(--divider);display:flex;padding-bottom:env(safe-area-inset-bottom,0);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;}
+  .tab svg{transition:transform .2s;}
+  .tab:active svg{transform:scale(.9);}
+  .tab span{font-size:10px;color:var(--text-sub);}
+  .tab.active span{color:var(--primary);}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="screen">
+    <div class="statusbar">
+      <span>9:41</span>
+      <span class="sig">●●● 5G ▮</span>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="deco"></div>
+      <svg class="yinyang" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#8BA888" stroke-width="4"/>
+        <path d="M50 6 A44 44 0 0 1 50 94 Z" fill="#8BA888"/>
+        <circle cx="50" cy="28" r="9" fill="#FFFBF7"/>
+        <circle cx="50" cy="72" r="9" fill="#8BA888"/>
+      </svg>
+      <div class="brand"><span>橘</span><span>与</span><span>杏</span></div>
+      <div class="divider"></div>
+      <div class="subtitle">中医生活 · 自然疗愈</div>
+      <div class="slogan">源于草本 温润日常</div>
+    </section>
+
+    <!-- SEARCH -->
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8A87C" stroke-width="2">
+        <circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      <input placeholder="搜索草本好物" />
+    </div>
+
+    <!-- CATEGORY -->
+    <div class="cat">
+      <div class="cat-item">
+        <div class="cat-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><path d="M12 3C7 8 4 12 4 16a8 8 0 0 0 16 0c0-4-3-8-8-13z"/><path d="M12 7v9"/></svg>
+        </div>
+        <span class="cat-label">草本</span>
+      </div>
+      <div class="cat-item">
+        <div class="cat-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A87C" stroke-width="1.8"><path d="M8 3v6l-4 8a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-4-8V3"/><path d="M8 3h8"/></svg>
+        </div>
+        <span class="cat-label">个护</span>
+      </div>
+      <div class="cat-item">
+        <div class="cat-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M8 8v13M16 8v13"/><path d="M12 8a4 4 0 0 0 0-5"/></svg>
+        </div>
+        <span class="cat-label">礼盒</span>
+      </div>
+      <div class="cat-item">
+        <div class="cat-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A87C" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18" opacity=".5"/></svg>
+        </div>
+        <span class="cat-label">代理</span>
+      </div>
+      <div class="cat-item">
+        <div class="cat-ic">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><path d="M5 21V9l7-6 7 6v12"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <span class="cat-label">活动</span>
+      </div>
+    </div>
+
+    <!-- BANNER -->
+    <div class="banner">
+      <div class="banner-track">
+        <div class="slide img">
+          <img src="./product-xiaoziping.jpg" alt="小紫瓶" onerror="this.style.display='none'"/>
+          <div>
+            <div class="t1">新品上市</div>
+            <div class="t2">小紫瓶 · 限时尝鲜</div>
+            <span class="cta">立即抢购</span>
+          </div>
+        </div>
+        <div class="slide green">
+          <div>
+            <div class="t1">会员日</div>
+            <div class="t2">专属草本礼遇 进行中</div>
+            <span class="cta">立即查看</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BENEFITS -->
+    <div class="benefits">
+      <div class="ben">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+        <span>顺丰包邮</span>
+      </div>
+      <div class="ben">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span>正品保障</span>
+      </div>
+      <div class="ben">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8BA888" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6"/><path d="M3 4v4h4"/></svg>
+        <span>七天退换</span>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="sec-head">
+      <span class="sec-title">热卖单品</span>
+      <span class="sec-sub">Products</span>
+    </div>
+    <div class="grid">
+      <div class="pcard">
+        <div class="pimg" style="background:linear-gradient(135deg,#F5F0EB,#FAF5F0);">
+          <span class="pbadge">新品</span>
+          <svg class="bottle" width="56" height="84" viewBox="0 0 56 84" fill="none">
+            <rect x="20" y="6" width="16" height="8" rx="2" fill="#8BA888"/>
+            <path d="M18 14h20v8l4 6v50a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V28l4-6z" fill="#E8A87C" opacity=".85"/>
+            <rect x="16" y="40" width="24" height="20" rx="3" fill="#FFFBF7" opacity=".8"/>
+          </svg>
+        </div>
+        <div class="pinfo">
+          <div class="pname">小紫瓶舒缓精华</div>
+          <div class="psub">夜间修护 · 草本配方</div>
+        </div>
+        <div class="prow">
+          <div class="price"><span class="cur">¥</span><span class="num">39</span></div>
+          <div class="addbtn">+</div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pimg" style="background:linear-gradient(135deg,#F5F0EB,#FAF5F0);">
+          <span class="pbadge">热销</span>
+          <svg class="bottle" width="56" height="84" viewBox="0 0 56 84" fill="none">
+            <rect x="20" y="6" width="16" height="8" rx="2" fill="#8BA888"/>
+            <path d="M18 14h20v8l4 6v50a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V28l4-6z" fill="#8BA888" opacity=".85"/>
+            <rect x="16" y="40" width="24" height="20" rx="3" fill="#FFFBF7" opacity=".8"/>
+          </svg>
+        </div>
+        <div class="pinfo">
+          <div class="pname">艾草温润足浴包</div>
+          <div class="psub">驱寒暖身 · 睡前一泡</div>
+        </div>
+        <div class="prow">
+          <div class="price"><span class="cur">¥</span><span class="num">59</span></div>
+          <div class="addbtn">+</div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pimg" style="background:linear-gradient(135deg,#F5F0EB,#FAF5F0);">
+          <span class="pbadge">推荐</span>
+          <svg class="bottle" width="56" height="84" viewBox="0 0 56 84" fill="none">
+            <rect x="20" y="6" width="16" height="8" rx="2" fill="#8BA888"/>
+            <path d="M18 14h20v8l4 6v50a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V28l4-6z" fill="#E0725A" opacity=".8"/>
+            <rect x="16" y="40" width="24" height="20" rx="3" fill="#FFFBF7" opacity=".8"/>
+          </svg>
+        </div>
+        <div class="pinfo">
+          <div class="pname">陈皮理气茶饮</div>
+          <div class="psub">理气健脾 · 日常饮用</div>
+        </div>
+        <div class="prow">
+          <div class="price"><span class="cur">¥</span><span class="num">49</span></div>
+          <div class="addbtn">+</div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pimg" style="background:linear-gradient(135deg,#F5F0EB,#FAF5F0);">
+          <svg class="bottle" width="56" height="84" viewBox="0 0 56 84" fill="none">
+            <rect x="20" y="6" width="16" height="8" rx="2" fill="#8BA888"/>
+            <path d="M18 14h20v8l4 6v50a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4V28l4-6z" fill="#F5D6B8"/>
+            <rect x="16" y="40" width="24" height="20" rx="3" fill="#FFFBF7" opacity=".8"/>
+          </svg>
+        </div>
+        <div class="pinfo">
+          <div class="pname">杏仁润肤身体乳</div>
+          <div class="psub">滋润不黏 · 草本香</div>
+        </div>
+        <div class="prow">
+          <div class="price"><span class="cur">¥</span><span class="num">69</span></div>
+          <div class="addbtn">+</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STORY -->
+    <div class="story">
+      <div class="quote">&ldquo;</div>
+      <p>「橘与杏」取自中医经典——橘皮理气，杏仁润肺。我们相信，草木的力量就藏在日常的细节里。</p>
+      <p>坚持用传统草本智慧，结合现代生活所需，做温和、安全、有效的日用产品。</p>
+      <a href="#">了解更多 →</a>
+    </div>
+
+    <!-- AGENT -->
+    <div class="agent">
+      <div class="ic">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M12 3v18M3 12h18" opacity=".6"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <div>
+        <div class="at">成为橘与杏代理</div>
+        <div class="ad">分享好物 收获一份事业</div>
+      </div>
+      <div class="ab">了解</div>
+    </div>
+  </div>
+
+  <!-- TABBAR -->
+  <div class="tabbar">
+    <div class="tab active">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8A87C" stroke-width="1.8"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+      <span>首页</span>
+    </div>
+    <div class="tab">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7E72" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 4v16"/></svg>
+      <span>分类</span>
+    </div>
+    <div class="tab">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7E72" stroke-width="1.8"><path d="M3 4h2l2 12h12l2-8H6"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+      <span>购物车</span>
+    </div>
+    <div class="tab">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8B7E72" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span>我的</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('active');
+        x.querySelectorAll('svg').forEach(function(s){s.setAttribute('stroke','#8B7E72');});});
+      t.classList.add('active');
+      t.querySelectorAll('svg').forEach(function(s){s.setAttribute('stroke','#E8A87C');});
+    });
+  });
+</script>
+</body>
+</html>

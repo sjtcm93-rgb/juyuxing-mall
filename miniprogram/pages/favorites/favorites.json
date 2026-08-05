@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "我的收藏",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "light",
+  "usingComponents": {
+    "skeleton": "/components/skeleton/skeleton",
+    "empty-state": "/components/empty-state/empty-state",
+    "error-state": "/components/error-state/error-state",
+    "goods-card": "/components/goods-card/goods-card"
+  }
+}

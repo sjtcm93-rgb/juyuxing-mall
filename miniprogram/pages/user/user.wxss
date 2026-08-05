@@ -1,54 +1,122 @@
 .user-header {
-  display:flex; flex-direction:column; align-items:center;
-  padding:80rpx 0 60rpx;
-  background:linear-gradient(180deg,#FDF8F3,#FFFBF7);
+  position: relative;
+  min-height: 380rpx;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+.user-bg-deco {
+  position: absolute;
+  width: 600rpx;
+  height: 600rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  top: -300rpx;
+  right: -200rpx;
+}
+.user-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0 44rpx;
+  z-index: 2;
 }
 .avatar-wrap {
-  width:140rpx; height:140rpx; border-radius:50%;
-  border:4rpx solid #F5D6B8; overflow:hidden; position:relative;
-  margin-bottom:20rpx;
+  position: relative;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255,255,255,0.5);
+  overflow: hidden;
+  background: rgba(255,255,255,0.2);
 }
-.avatar { width:100%; height:100%; }
+.avatar { width: 100%; height: 100%; }
 .avatar-badge {
-  position:absolute; bottom:-4rpx; left:-4rpx; right:-4rpx;
-  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
-  text-align:center; padding:4rpx 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.5);
+  color: #FFFFFF;
+  text-align: center;
+  font-size: 22rpx;
+  padding: 4rpx 0;
 }
-.avatar-badge text {
-  font-size:20rpx; color:#4A3F35; font-weight:500;
+.user-name {
+  margin-top: var(--space-sm);
+  font-size: var(--fs-lg);
+  font-weight: 600;
 }
-.user-name { font-size:34rpx; font-weight:600; color:#4A3F35; }
-.user-desc { font-size:24rpx; color:#B0A59A; margin-top:8rpx; }
-.section {
-  background:#FFFFFF; margin:20rpx; border-radius:20rpx;
-  box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
-  overflow:hidden;
+.user-desc {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+  margin-top: 8rpx;
 }
+
+.section { padding: var(--space-md); margin-bottom: var(--space-sm); }
 .section-header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:28rpx 32rpx 16rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
 }
-.section-title { font-size:30rpx; font-weight:600; color:#4A3F35; }
-.section-more { font-size:24rpx; color:#B0A59A; }
+.section-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+.section-more {
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+}
+
 .order-tabs {
-  display:flex; justify-content:space-around;
-  padding:16rpx 0 28rpx;
+  display: flex;
+  justify-content: space-around;
+  padding: var(--space-sm) 0;
 }
 .order-tab {
-  display:flex; flex-direction:column; align-items:center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  position: relative;
 }
-.tab-icon { font-size:48rpx; margin-bottom:8rpx; }
-.tab-text { font-size:24rpx; color:#4A3F35; }
+.tab-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -16rpx;
+  background: var(--color-danger);
+  color: #FFFFFF;
+  font-size: 20rpx;
+  min-width: 28rpx;
+  height: 28rpx;
+  line-height: 28rpx;
+  text-align: center;
+  border-radius: 14rpx;
+  padding: 0 8rpx;
+}
+.tab-icon-img { width:56rpx; height:56rpx; }
+.tab-text { font-size: var(--fs-xs); color: var(--color-text-sub); }
+
 .menu-item {
-  display:flex; align-items:center; padding:28rpx 32rpx;
-  border-bottom:2rpx solid #F0E8E0;
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 2rpx solid var(--color-divider);
 }
-.menu-item:last-child { border-bottom:none; }
-.menu-icon { font-size:36rpx; margin-right:20rpx; }
-.menu-text { flex:1; font-size:28rpx; color:#4A3F35; }
+.menu-item:last-child { border-bottom: none; }
+.menu-icon-img { width:40rpx; height:40rpx; margin-right: var(--space-sm); flex-shrink:0; }
+.menu-text { flex: 1; font-size: var(--fs-sm); color: var(--color-text); }
 .menu-tag {
-  font-size:22rpx; color:#E8A87C;
-  background:#FFFBF7; padding:4rpx 16rpx; border-radius:8rpx;
-  margin-right:12rpx;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-right: 8rpx;
 }
-.menu-arrow { font-size:32rpx; color:#D4C9C0; }
+.menu-arrow { font-size: 36rpx; color: var(--color-text-muted); }

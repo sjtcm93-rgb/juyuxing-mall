@@ -1,0 +1,34 @@
+<view class="skeleton-wrap">
+  <block wx:if="{{type === 'card'}}">
+    <view class="sk-card" wx:for="{{count}}" wx:key="sk-card-{{index}}">
+      <view class="sk-block sk-image"></view>
+      <view class="sk-block sk-line" style="width: 60%"></view>
+      <view class="sk-block sk-line" style="width: 40%"></view>
+    </view>
+  </block>
+  <block wx:elif="{{type === 'list'}}">
+    <view class="sk-list-row" wx:for="{{rows}}" wx:key="sk-list-{{index}}">
+      <view class="sk-block sk-avatar"></view>
+      <view class="sk-list-content">
+        <view class="sk-block sk-line" style="width: 70%"></view>
+        <view class="sk-block sk-line" style="width: 50%; margin-top: 16rpx"></view>
+      </view>
+    </view>
+  </block>
+  <block wx:elif="{{type === 'banner'}}">
+    <view class="sk-block sk-banner"></view>
+  </block>
+  <block wx:elif="{{type === 'detail'}}">
+    <view class="sk-block sk-banner"></view>
+    <view style="padding: 32rpx">
+      <view class="sk-block sk-line" style="width: 60%; height: 48rpx"></view>
+      <view class="sk-block sk-line" style="width: 90%; margin-top: 24rpx"></view>
+      <view class="sk-block sk-line" style="width: 80%; margin-top: 16rpx"></view>
+      <view class="sk-block sk-line" style="width: 70%; margin-top: 16rpx"></view>
+      <view class="sk-block" style="height: 200rpx; margin-top: 32rpx"></view>
+    </view>
+  </block>
+  <block wx:else>
+    <view class="sk-block sk-line" wx:for="{{rows}}" wx:key="sk-line-{{index}}" style="width: {{index === rows - 1 ? '60%' : '90%'}}"></view>
+  </block>
+</view>

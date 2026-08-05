@@ -1,5 +1,6 @@
 const cloud = require('wx-server-sdk');
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const ENV_ID = 'cloud1-d4gx1jxk675274501';
+cloud.init({ env: ENV_ID });
 const db = cloud.database();
 const _ = db.command;
 
@@ -39,6 +40,24 @@ exports.main = async (event, context) => {
           await db.collection('users').doc(OPENID).update({ data: updateData });
         }
       }
+
+      // ===== 自动设管理员：如果 admin_config 里 openId 为空，自动把当前用户设为管理员 =====
+      try {
+        const adminRes = await db.collection('admin_config').doc('admin').get().catch(() => null);
+        if (!adminRes || !adminRes.data) {
+          console.warn('[login] admin_config 文档不存在，请管理员手动在云数据库中创建并配置 adminOpenIds');
+        } else {
+          const cfg = adminRes.data;
+          const adminOpenIds = cfg.adminOpenIds || [];
+          const legacyOpenId = cfg.openId || '';
+          if (!legacyOpenId && adminOpenIds.length === 0) {
+            console.warn('[login] admin_config 存在但未配置任何管理员 openId，请管理员在云开发控制台手动添加');
+          }
+        }
+      } catch (adminErr) {
+        console.error('[login] 检查 admin_config 失败（不影响登录）:', adminErr);
+      }
+
       return { success: true, openId: OPENID };
     }
 
@@ -96,13 +115,63 @@ exports.main = async (event, context) => {
             .update({ data: { isDefault: false } });
         }
       }
+      // 校验地址所有权
+      const addrCheck = await db.collection('addresses').where({ _id: addrId, userId: OPENID }).count();
+      if (addrCheck.total === 0) {
+        return { success: false, error: '地址不存在或无权限' };
+      }
       await db.collection('addresses').doc(addrId).update({ data: update });
       return { success: true };
     }
 
     case 'deleteAddress': {
+      // 校验地址所有权
+      const addrCheck = await db.collection('addresses').where({ _id: event.id, userId: OPENID }).count();
+      if (addrCheck.total === 0) {
+        return { success: false, error: '地址不存在或无权限' };
+      }
       await db.collection('addresses').doc(event.id).remove();
       return { success: true };
+    }
+
+    case 'getReferralStats': {
+      // 老带新统计：成功邀请人数 + 获得奖励券数量
+      const events = await db.collection('referral_events')
+        .where({ referrerId: OPENID, type: 'first_purchase_reward' })
+        .limit(500)
+        .get();
+      const list = events.data || [];
+      const distinctReferees = [...new Set(list.map(e => e.refereeId))];
+      return {
+        success: true,
+        successCount: distinctReferees.length,
+        rewardCount: list.length
+      };
+    }
+
+    case 'getReferralCode': {
+      // 获取/生成当前用户的推广码
+      const userRes = await db.collection('users').doc(OPENID).get();
+      if (!userRes.data) return { success: false, error: '用户不存在' };
+      let code = userRes.data.referralCode || '';
+      if (!code) {
+        // 生成推广码：JYX + 6位随机字母数字
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let attempts = 0;
+        while (!code && attempts < 10) {
+          const rand = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+          code = 'JYX' + rand;
+          // 检查是否已存在
+          const exist = await db.collection('users').where({ referralCode: code }).count();
+          if (exist.total === 0) {
+            await db.collection('users').doc(OPENID).update({ data: { referralCode: code } });
+          } else {
+            code = ''; // 冲突，重新生成
+          }
+          attempts++;
+        }
+      }
+      return { success: true, code };
     }
 
     default:

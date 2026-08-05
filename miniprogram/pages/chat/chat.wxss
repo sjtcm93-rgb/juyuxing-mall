@@ -1,0 +1,80 @@
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.message-scroll {
+  flex: 1;
+  padding: var(--space-md);
+}
+.empty-hint {
+  text-align: center;
+  padding: 80rpx 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+.message-list { padding-bottom: 20rpx; }
+.msg-row {
+  display: flex;
+  margin-bottom: var(--space-md);
+  align-items: flex-start;
+}
+.msg-other { justify-content: flex-start; }
+.msg-me { justify-content: flex-end; }
+.msg-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: var(--color-bg-soft);
+  flex-shrink: 0;
+}
+.msg-body { max-width: 70%; display: flex; flex-direction: column; gap: 4rpx; }
+.msg-other .msg-body { margin-left: var(--space-sm); align-items: flex-start; }
+.msg-me .msg-body { margin-right: var(--space-sm); align-items: flex-end; }
+.msg-bubble {
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.msg-other .msg-bubble {
+  background: var(--color-card);
+  color: var(--color-text);
+  border-top-left-radius: 4rpx;
+}
+.msg-me .msg-bubble {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  border-top-right-radius: 4rpx;
+}
+.msg-image-bubble { padding: 4rpx; }
+.msg-image { max-width: 400rpx; border-radius: var(--radius-sm); display: block; }
+.msg-time { font-size: var(--fs-xs); color: var(--color-text-muted); }
+.scroll-bottom-padding { height: 40rpx; }
+
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-card);
+  border-top: 2rpx solid var(--color-divider);
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0));
+}
+.input-bar .input-field { flex: 1; }
+.send-btn {
+  background: var(--color-bg-soft);
+  color: var(--color-text-sub);
+  border-radius: var(--radius-pill);
+  padding: 0 32rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  font-size: var(--fs-sm);
+  border: none;
+}
+.send-btn::after { border: none; }
+.send-btn.send-active {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+}

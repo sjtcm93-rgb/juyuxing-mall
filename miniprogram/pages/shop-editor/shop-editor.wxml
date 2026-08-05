@@ -1,0 +1,322 @@
+<view class="page-wrap">
+  <!-- 顶部 Tab -->
+  <view class="editor-tabs">
+    <view class="et-item {{activeTab === 'product' ? 'et-active' : ''}}" bindtap="switchTab" data-tab="product">
+      <text>商品 ({{productStats.total}})</text>
+    </view>
+    <view class="et-item {{activeTab === 'banner' ? 'et-active' : ''}}" bindtap="switchTab" data-tab="banner">
+      <text>轮播图 ({{banners.length}})</text>
+    </view>
+  </view>
+
+  <!-- ============== 商品 Tab ============== -->
+  <block wx:if="{{activeTab === 'product'}}">
+    <!-- 工具栏 -->
+    <view class="toolbar">
+      <view class="search-input-wrap">
+        <image class="si-icon-img" src="/images/icons/search.png" mode="aspectFit"></image>
+        <input class="si-input" placeholder="搜索商品名称" value="{{productKeyword}}" bindinput="onProductKeywordInput" confirm-type="search" />
+        <text wx:if="{{productKeyword}}" class="si-clear" bindtap="clearProductKeyword">✕</text>
+      </view>
+      <picker mode="selector" range="{{productFilterOptions}}" range-key="label" value="{{productFilterIndex}}" bindchange="onProductFilterChange">
+        <view class="filter-pill">
+          <text>{{productFilterOptions[productFilterIndex].label}}</text>
+          <text class="filter-arrow">▾</text>
+        </view>
+      </picker>
+      <view class="toolbar-btn primary" bindtap="showProductForm">
+        <text>+ 新建</text>
+      </view>
+    </view>
+
+    <!-- 批量操作栏 -->
+    <view wx:if="{{selectedProductIds.length > 0}}" class="batch-bar">
+      <text class="batch-count">已选 {{selectedProductIds.length}} 项</text>
+      <view class="batch-actions">
+        <view class="batch-btn" bindtap="batchToggleProduct" data-status="on">批量上架</view>
+        <view class="batch-btn warn" bindtap="batchToggleProduct" data-status="off">批量下架</view>
+        <view class="batch-btn" bindtap="batchCloneProducts">复制</view>
+        <view class="batch-btn" bindtap="showBatchCategoryModal">改分类</view>
+        <view class="batch-btn" bindtap="clearProductSelection">取消</view>
+      </view>
+    </view>
+
+    <!-- 加载 / 空 / 错误 -->
+    <block wx:if="{{productLoading}}">
+      <skeleton type="card" count="{{3}}" />
+    </block>
+    <error-state wx:elif="{{productLoadError}}" text="{{productLoadError}}" bind:retry="loadProducts" />
+    <empty-state wx:elif="{{filteredProducts.length === 0 && !productLoading}}" icon="/images/icons/leaf.png" text="{{productKeyword || productFilterIndex > 0 ? '没有匹配的商品' : '还没有商品，点击右上角新建'}}" />
+
+    <!-- 商品列表 -->
+    <block wx:else>
+      <view class="product-list">
+        <view
+          wx:for="{{filteredProducts}}"
+          wx:key="_id"
+          wx:for-item="p"
+          class="pl-card card {{selectedProductIds.indexOf(p._id) >= 0 ? 'pl-selected' : ''}}"
+          data-id="{{p._id}}"
+          bindlongpress="toggleProductSelection"
+          bindtap="onProductTap"
+        >
+          <view class="pl-check {{selectedProductIds.indexOf(p._id) >= 0 ? 'pl-check-on' : ''}}">
+            <text wx:if="{{selectedProductIds.indexOf(p._id) >= 0}}">✓</text>
+          </view>
+          <image class="pl-image" src="{{p.images[0] || '/images/placeholder.png'}}" mode="aspectFill" lazy-load="{{true}}" />
+          <view class="pl-body">
+            <view class="pl-title-row">
+              <text class="pl-name">{{p.name}}</text>
+              <view class="pl-status {{p.status === 'on' ? 'pl-on' : 'pl-off'}}">
+                <text>{{p.status === 'on' ? '上架' : '下架'}}</text>
+              </view>
+            </view>
+            <view class="pl-badges">
+              <text wx:if="{{p.draft}}" class="pl-badge pl-badge-draft">草稿</text>
+              <text class="pl-badge pl-badge-sort">排序 {{p.sort || 0}}</text>
+              <text wx:if="{{p.category}}" class="pl-badge pl-badge-cat">{{p.category}}</text>
+            </view>
+            <text wx:if="{{p.subtitle}}" class="pl-sub">{{p.subtitle}}</text>
+            <view class="pl-meta">
+              <text class="pl-price">¥{{p.priceText}}</text>
+              <text wx:if="{{p.originalPrice && p.originalPrice > p.price}}" class="pl-original">¥{{p.originalPriceText}}</text>
+              <text class="pl-stock">库存 {{p.stock || 0}}</text>
+              <text wx:if="{{p.sales}}" class="pl-sales">已售 {{p.sales}}</text>
+            </view>
+            <view wx:if="{{selectedProductIds.length === 0}}" class="pl-row-actions" catchtap="noop">
+              <view class="pl-action" catchtap="onProductAction" data-action="clone" data-id="{{p._id}}">复制</view>
+              <view class="pl-action" catchtap="onProductAction" data-action="setSort" data-id="{{p._id}}">排序</view>
+              <view wx:if="{{p.draft}}" class="pl-action" catchtap="onProductAction" data-action="publish" data-id="{{p._id}}">发布</view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="list-foot" wx:if="{{filteredProducts.length > 0}}">长按选中，多选可批量操作</view>
+    </block>
+  </block>
+
+  <!-- ============== 轮播图 Tab ============== -->
+  <block wx:if="{{activeTab === 'banner'}}">
+    <view class="toolbar">
+      <view class="toolbar-btn primary" bindtap="showBannerForm">
+        <text>+ 新增轮播图</text>
+      </view>
+      <view wx:if="{{bannerDirty}}" class="toolbar-btn warn" bindtap="saveBannerSort">
+        <text>保存排序</text>
+      </view>
+      <view class="toolbar-tip">
+        <text>长按拖动 ⠿ 调整顺序</text>
+      </view>
+    </view>
+
+    <block wx:if="{{bannerLoading}}">
+      <skeleton type="card" count="{{2}}" />
+    </block>
+    <error-state wx:elif="{{bannerLoadError}}" text="{{bannerLoadError}}" bind:retry="loadBanners" />
+    <empty-state wx:elif="{{banners.length === 0 && !bannerLoading}}" icon="/images/icons/image.png" text="还没有轮播图，点击右上角新增" />
+
+    <block wx:else>
+      <view class="banner-list">
+        <view
+          wx:for="{{banners}}"
+          wx:key="_id"
+          wx:for-item="bn"
+          class="bn-card card {{bn.status === 'off' ? 'bn-off' : ''}}"
+          data-id="{{bn._id}}"
+          data-index="{{index}}"
+          bindlongpress="onBannerLongPress"
+          bindtouchstart="onBannerTouchStart"
+          bindtouchmove="onBannerTouchMove"
+          bindtouchend="onBannerTouchEnd"
+        >
+          <view class="bn-drag">⠿</view>
+          <image class="bn-image" src="{{bn.imageUrl}}" mode="aspectFill" />
+          <view class="bn-info">
+            <text wx:if="{{bn.title}}" class="bn-title">{{bn.title}}</text>
+            <text wx:if="{{bn.linkUrl}}" class="bn-link">链接：{{bn.linkUrl}}</text>
+            <view class="bn-meta">
+              <text class="bn-sort">排序 {{bn.sort || 0}}</text>
+              <view class="bn-status {{bn.status === 'on' ? 'bn-on' : 'bn-off-pill'}}">
+                <text>{{bn.status === 'on' ? '启用' : '禁用'}}</text>
+              </view>
+            </view>
+          </view>
+          <view class="bn-actions">
+            <view class="bn-action" bindtap="showBannerForm" data-id="{{bn._id}}">编辑</view>
+            <view class="bn-action" bindtap="toggleBanner" data-id="{{bn._id}}">{{bn.status === 'on' ? '禁用' : '启用'}}</view>
+            <view class="bn-action danger" bindtap="deleteBanner" data-id="{{bn._id}}">删除</view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </block>
+
+  <!-- ============== 商品表单弹层 ============== -->
+  <view wx:if="{{showProductForm}}" class="modal-mask" bindtap="hideProductForm">
+    <view class="modal-card" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">{{editingProductId ? '编辑商品' : '新建商品'}}</text>
+        <text class="modal-close" bindtap="hideProductForm">✕</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view class="form-group">
+          <text class="form-label required">商品名称</text>
+          <input class="form-input" placeholder="例如：橘与杏紫草膏" value="{{productForm.name}}" data-field="name" bindinput="onProductFormInput" maxlength="60" />
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">副标题</text>
+          <input class="form-input" placeholder="一句话卖点（选填）" value="{{productForm.subtitle}}" data-field="subtitle" bindinput="onProductFormInput" maxlength="60" />
+        </view>
+
+        <view class="form-row-2">
+          <view class="form-group">
+            <text class="form-label required">售价（元）</text>
+            <input class="form-input" type="digit" placeholder="0.00" value="{{productForm.priceYuan}}" data-field="priceYuan" bindinput="onProductFormInput" />
+          </view>
+          <view class="form-group">
+            <text class="form-label">原价（元）</text>
+            <input class="form-input" type="digit" placeholder="0.00" value="{{productForm.originalPriceYuan}}" data-field="originalPriceYuan" bindinput="onProductFormInput" />
+          </view>
+        </view>
+
+        <view class="form-row-2">
+          <view class="form-group">
+            <text class="form-label">库存</text>
+            <input class="form-input" type="number" placeholder="0" value="{{productForm.stock}}" data-field="stock" bindinput="onProductFormInput" />
+          </view>
+          <view class="form-group">
+            <text class="form-label">分类</text>
+            <input class="form-input" placeholder="例如：护肤品" value="{{productForm.category}}" data-field="category" bindinput="onProductFormInput" />
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">规格</text>
+          <view class="specs-list">
+            <view wx:for="{{productForm.specs}}" wx:key="name" wx:for-item="sp" class="spec-row">
+              <input class="form-input spec-name" placeholder="规格名" value="{{sp.name}}" data-index="{{index}}" data-field="specName" bindinput="onSpecInput" />
+              <input class="form-input spec-stock" type="number" placeholder="库存" value="{{sp.stock}}" data-index="{{index}}" data-field="specStock" bindinput="onSpecInput" />
+              <text class="spec-del" bindtap="removeSpec" data-index="{{index}}">✕</text>
+            </view>
+            <view class="add-spec-btn" bindtap="addSpec">+ 添加规格</view>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">商品图（建议 750×750，长按拖动排序）</text>
+          <view class="image-grid">
+            <view wx:for="{{productForm.images}}" wx:key="*this" wx:for-item="img" class="img-cell">
+              <image src="{{img}}" mode="aspectFill" />
+              <view class="img-del" catchtap="removeProductImage" data-index="{{index}}">✕</view>
+              <view class="img-move-left" wx:if="{{index > 0}}" catchtap="moveProductImage" data-index="{{index}}" data-dir="left">‹</view>
+              <view class="img-move-right" wx:if="{{index < productForm.images.length - 1}}" catchtap="moveProductImage" data-index="{{index}}" data-dir="right">›</view>
+            </view>
+            <view class="img-add" bindtap="chooseProductImages">
+              <text class="img-add-icon">+</text>
+              <text class="img-add-text">{{productForm.images.length}}/9</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">商品描述（富文本）</text>
+          <view class="editor-toolbar">
+            <view class="et-btn" catchtap="formatEditor" data-cmd="bold"><text>B</text></view>
+            <view class="et-btn" catchtap="formatEditor" data-cmd="italic"><text>I</text></view>
+            <view class="et-btn" catchtap="formatEditor" data-cmd="header"><text>H</text></view>
+            <view class="et-btn" catchtap="formatEditor" data-cmd="insertOrderedList"><text>1.</text></view>
+            <view class="et-btn" catchtap="formatEditor" data-cmd="insertUnorderedList"><text>•</text></view>
+            <image class="et-btn-img" src="/images/icons/image.png" mode="aspectFit"></image>
+            <view class="et-btn" catchtap="clearEditor"><text>清空</text></view>
+          </view>
+          <editor
+            id="product-desc-editor"
+            class="form-editor"
+            placeholder="支持富文本，可插入图片..."
+            bindready="onEditorReady"
+            bindinput="onEditorInput"
+          ></editor>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">状态</text>
+          <view class="radio-group">
+            <view class="radio-item {{productForm.status === 'on' ? 'radio-active' : ''}}" bindtap="onProductFormInput" data-field="status" data-value="on">
+              <text>上架</text>
+            </view>
+            <view class="radio-item {{productForm.status === 'off' ? 'radio-active' : ''}}" bindtap="onProductFormInput" data-field="status" data-value="off">
+              <text>下架</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="hideProductForm">取消</view>
+        <view class="modal-btn primary" bindtap="saveProduct">{{productFormSaving ? '保存中...' : (editingProductId ? '保存修改' : '创建商品')}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ============== 轮播图表单弹层 ============== -->
+  <view wx:if="{{showBannerForm}}" class="modal-mask" bindtap="hideBannerForm">
+    <view class="modal-card modal-card-sm" catchtap="noop">
+      <view class="modal-header">
+        <text class="modal-title">{{editingBannerId ? '编辑轮播图' : '新增轮播图'}}</text>
+        <text class="modal-close" bindtap="hideBannerForm">✕</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view class="form-group">
+          <text class="form-label required">轮播图</text>
+          <view class="banner-upload">
+            <block wx:if="{{bannerForm.imageUrl}}">
+              <image class="banner-upload-img" src="{{bannerForm.imageUrl}}" mode="aspectFill" />
+              <view class="banner-upload-overlay">
+                <view class="bu-btn" catchtap="chooseBannerImage">换一张</view>
+                <view class="bu-btn danger" catchtap="clearBannerImage">移除</view>
+              </view>
+            </block>
+            <view wx:else class="banner-upload-add" bindtap="chooseBannerImage">
+              <text class="bua-icon">+</text>
+              <text class="bua-text">点击上传图片</text>
+              <text class="bua-tip">建议 750×400</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">标题（选填）</text>
+          <input class="form-input" placeholder="显示在轮播图上的标题" value="{{bannerForm.title}}" data-field="title" bindinput="onBannerFormInput" maxlength="20" />
+        </view>
+
+        <view class="form-group">
+          <text class="form-label">跳转链接（选填）</text>
+          <input class="form-input" placeholder="例如：/pages/product/product?id=xxx" value="{{bannerForm.linkUrl}}" data-field="linkUrl" bindinput="onBannerFormInput" />
+          <text class="form-hint">点击轮播图跳转的小程序路径</text>
+        </view>
+
+        <view class="form-row-2">
+          <view class="form-group">
+            <text class="form-label">排序</text>
+            <input class="form-input" type="number" placeholder="0" value="{{bannerForm.sort}}" data-field="sort" bindinput="onBannerFormInput" />
+          </view>
+          <view class="form-group">
+            <text class="form-label">状态</text>
+            <view class="radio-group">
+              <view class="radio-item {{bannerForm.status === 'on' ? 'radio-active' : ''}}" bindtap="onBannerFormInput" data-field="status" data-value="on">
+                <text>启用</text>
+              </view>
+              <view class="radio-item {{bannerForm.status === 'off' ? 'radio-active' : ''}}" bindtap="onBannerFormInput" data-field="status" data-value="off">
+                <text>禁用</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="modal-footer">
+        <view class="modal-btn cancel" bindtap="hideBannerForm">取消</view>
+        <view class="modal-btn primary" bindtap="saveBanner">{{bannerFormSaving ? '保存中...' : (editingBannerId ? '保存修改' : '创建')}}</view>
+      </view>
+    </view>
+  </view>
+</view>

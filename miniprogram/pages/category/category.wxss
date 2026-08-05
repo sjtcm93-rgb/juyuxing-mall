@@ -1,0 +1,100 @@
+.cat-wrap { padding-bottom: 0; }
+.cat-layout {
+  display: flex;
+  flex-direction: row;
+  height: calc(100vh - 100rpx);
+  background: var(--color-bg);
+}
+.cat-sidebar {
+  width: 180rpx;
+  background: var(--color-bg-soft);
+  height: 100%;
+}
+.cat-side-item {
+  position: relative;
+  padding: 36rpx 16rpx;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  transition: all 0.2s;
+}
+.cat-side-hover { background: rgba(232, 168, 124, 0.08); }
+.cat-side-active {
+  background: var(--color-bg);
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  font-size: var(--fs-md);
+}
+.cat-side-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 32rpx;
+  bottom: 32rpx;
+  width: 6rpx;
+  background: var(--color-primary);
+  border-radius: 0 4rpx 4rpx 0;
+}
+.cat-side-text { display: block; line-height: 1.4; word-break: keep-all; }
+.cat-side-empty {
+  padding: 48rpx 16rpx;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+}
+.cat-main {
+  flex: 1;
+  padding: var(--space-md);
+  height: 100%;
+}
+.cat-banner {
+  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-bg-pale) 100%);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+  display: flex;
+  flex-direction: column;
+}
+.cat-banner-title {
+  font-size: var(--fs-lg);
+  color: var(--color-text);
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+.cat-banner-sub {
+  font-size: var(--fs-xs);
+  color: var(--color-text-sub);
+}
+.cat-sortbar {
+  display: flex;
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: 12rpx 16rpx;
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+.cat-sort {
+  flex: 1;
+  text-align: center;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  padding: 12rpx 0;
+  border-radius: var(--radius-pill);
+  transition: all 0.2s;
+}
+.cat-sort-active {
+  color: var(--color-primary-dark);
+  background: var(--color-primary-light);
+  font-weight: 600;
+}
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20rpx;
+}
+.cat-loadingmore {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  padding: 32rpx 0;
+}

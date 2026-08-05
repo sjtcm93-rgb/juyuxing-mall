@@ -1,94 +1,95 @@
 <view class="page-wrap">
-  <!-- 代理头部 -->
+  <!-- 头部 -->
   <view class="agent-header">
     <view class="agent-avatar">
-      <image src="{{userInfo.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+      <image src="{{userInfo.avatarUrl || '/images/avatar-placeholder.png'}}" mode="aspectFill"></image>
     </view>
     <text class="agent-name">{{userInfo.nickName || '代理用户'}}</text>
     <text class="agent-level">{{agentInfo.level || '初级代理'}}</text>
   </view>
 
   <!-- 业绩面板 -->
-  <view class="stats-panel">
+  <view class="stats-panel card">
     <view class="stat-item">
-      <text class="stat-value">{{(stats.totalCommission || 0).toFixed(2)}}</text>
-      <text class="stat-label">累计佣金(元)</text>
+      <text class="stat-value">¥{{ stats.totalCommissionText }}</text>
+      <text class="stat-label">累计佣金</text>
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <text class="stat-value">{{(stats.available || 0).toFixed(2)}}</text>
-      <text class="stat-label">可提现(元)</text>
+      <text class="stat-value">¥{{ stats.availableText }}</text>
+      <text class="stat-label">可提现</text>
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <text class="stat-value">{{stats.teamCount || 0}}</text>
+      <text class="stat-value">{{stats.teamCount}}</text>
       <text class="stat-label">团队成员</text>
     </view>
   </view>
 
   <!-- 本月业绩 -->
-  <view class="section">
+  <view class="card section">
     <text class="section-title">本月业绩</text>
     <view class="month-stats">
       <view class="month-item">
-        <text class="month-value">¥{{(stats.monthSales || 0).toFixed(2)}}</text>
+        <text class="month-value">¥{{ stats.monthSalesText }}</text>
         <text class="month-label">本月销售额</text>
       </view>
       <view class="month-item">
-        <text class="month-value">¥{{(stats.monthCommission || 0).toFixed(2)}}</text>
+        <text class="month-value">¥{{ stats.monthCommissionText }}</text>
         <text class="month-label">本月佣金</text>
       </view>
       <view class="month-item">
-        <text class="month-value">{{stats.monthOrders || 0}}</text>
+        <text class="month-value">{{stats.monthOrders}}</text>
         <text class="month-label">本月订单</text>
       </view>
     </view>
   </view>
 
-    </view>
-
-  <!-- 提现管理 -->
-  <view class="section withdraw-section">
+  <!-- 提现 -->
+  <view class="card section withdraw-section">
     <text class="section-title">提现管理</text>
     <view class="withdraw-info">
-      <text class="withdraw-amount">¥{{(stats.available || 0).toFixed(2)}}</text>
+      <text class="withdraw-amount">¥{{ stats.availableText }}</text>
       <text class="withdraw-label">可提现金额</text>
     </view>
     <navigator url="/pages/withdrawal/withdrawal" class="withdraw-btn">申请提现</navigator>
   </view>
 
-  <!-- 推广码 -->
-  <view class="section promo-section">
+  <!-- 推广 -->
+  <view class="card section promo-section">
     <text class="section-title">我的推广</text>
-    <view class="promo-code">
+    <view class="promo-row" bindtap="copyCode">
       <text class="promo-label">推广码</text>
-      <text class="promo-value">{{agentInfo.code || 'JY' + (wx.getStorageSync('openId') || '').substring(0,6).toUpperCase()}}</text>
-      <button class="copy-btn" bindtap="copyCode">复制</button>
+      <text class="promo-value">{{agentInfo.code || agentCode}}</text>
+      <text class="copy-btn">复制</text>
     </view>
-    <button class="share-btn" bindtap="shareApp">分享小程序给好友</button>
+    <view class="promo-row" bindtap="copyLink">
+      <text class="promo-label">推广链接</text>
+      <text class="promo-value">点击复制带参数链接</text>
+      <text class="copy-btn">复制</text>
+    </view>
+    <button class="share-btn" open-type="share">分享小程序给好友</button>
     <text class="promo-hint">好友通过你的分享链接进入商城并下单，你即可获得佣金</text>
   </view>
 
-  <!-- 佣金明细 -->
-  <view class="section">
+  <!-- 佣金记录 -->
+  <view class="card section">
     <view class="section-header">
       <text class="section-title">佣金记录</text>
-      <navigator url="/pages/agent-center/agent-center" class="section-more">全部 ›</navigator>
     </view>
-    <view class="commission-item" wx:for="{{commissions}}" wx:key="_id" wx:for-item="comm">
-      <view class="comm-info">
-        <text class="comm-order">{{comm.orderNo}}</text>
-        <text class="comm-time">{{formatTime(comm.createTime)}}</text>
+    <skeleton wx:if="{{loading}}" type="list" rows="{{3}}" />
+    <empty-state wx:elif="{{commissions.length === 0}}" icon="/images/icons/book.png" text="暂无佣金记录" />
+    <block wx:else>
+      <view class="commission-item" wx:for="{{commissions}}" wx:key="_id">
+        <view class="comm-info">
+          <text class="comm-order">{{item.orderNo}}</text>
+          <text class="comm-time">{{ item.createTimeText }}</text>
+        </view>
+        <view class="comm-amount-area">
+          <text class="comm-amount">+¥{{ item.amountText }}</text>
+          <status-tag status="{{item.status}}" />
+        </view>
       </view>
-      <view class="comm-amount-area">
-        <text class="comm-amount">+¥{{(comm.amount/100).toFixed(2)}}</text>
-        <text class="comm-status {{comm.status === 'settled' ? 'comm-settled' : ''}}">
-          {{comm.status === 'settled' ? '已结算' : '待结算'}}
-        </text>
-      </view>
-    </view>
-    <view class="empty-wrap" wx:if="{{commissions.length === 0}}">
-      <text class="empty-text">暂无佣金记录</text>
-    </view>
+    </block>
   </view>
 </view>

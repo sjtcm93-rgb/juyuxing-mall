@@ -1,72 +1,107 @@
-<view class="page-wrap">
+<view class="page-wrap with-tabbar">
   <!-- 用户头像区 -->
   <view class="user-header">
-    <view class="avatar-wrap" bindtap="loginOrUpdateProfile">
-      <image class="avatar" src="{{userInfo.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
-      <view class="avatar-badge" wx:if="{{!hasUserInfo}}">
-        <text>登录</text>
+    <view class="user-bg-deco"></view>
+    <view class="user-content">
+      <view class="avatar-wrap" bindtap="loginOrUpdateProfile">
+        <image class="avatar" src="{{userInfo.avatarUrl || '/images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+        <view class="avatar-badge" wx:if="{{!hasUserInfo}}">
+          <text>登录</text>
+        </view>
       </view>
+      <text class="user-name" bindtap="loginOrUpdateProfile">
+        {{userInfo.nickName || (isLoggedIn ? '微信用户' : '点击登录')}}
+      </text>
+      <text class="user-desc" wx:if="{{!isLoggedIn}}">登录后解锁完整功能</text>
+      <text class="user-desc" wx:else>橘与杏生活家</text>
     </view>
-    <text class="user-name" bindtap="loginOrUpdateProfile">
-      {{userInfo.nickName || (isLoggedIn ? '微信用户' : '点击登录')}}
-    </text>
-    <text class="user-desc" wx:if="{{!isLoggedIn}}">登录后解锁完整功能</text>
-    <text class="user-desc" wx:else>橘与杏生活家</text>
   </view>
 
   <!-- 订单入口 -->
-  <view class="section">
+  <view class="card section order-section">
     <view class="section-header">
       <text class="section-title">我的订单</text>
       <navigator url="/pages/order/order" class="section-more">全部订单 ›</navigator>
     </view>
     <view class="order-tabs">
       <navigator url="/pages/order/order?status=pending" class="order-tab">
-        <text class="tab-icon">📋</text>
+        <view class="tab-badge" wx:if="{{orderCounts.pending > 0}}">{{orderCounts.pending}}</view>
+        <image class="tab-icon-img" src="/images/icons/list.png" mode="aspectFit"></image>
         <text class="tab-text">待付款</text>
       </navigator>
+      <navigator url="/pages/order/order?status=paid" class="order-tab">
+        <view class="tab-badge" wx:if="{{orderCounts.paid > 0}}">{{orderCounts.paid}}</view>
+        <image class="tab-icon-img" src="/images/icons/package.png" mode="aspectFit"></image>
+        <text class="tab-text">待发货</text>
+      </navigator>
       <navigator url="/pages/order/order?status=shipped" class="order-tab">
-        <text class="tab-icon">📦</text>
+        <view class="tab-badge" wx:if="{{orderCounts.shipped > 0}}">{{orderCounts.shipped}}</view>
+        <image class="tab-icon-img" src="/images/icons/truck.png" mode="aspectFit"></image>
         <text class="tab-text">待收货</text>
       </navigator>
-      <navigator url="/pages/order/order" class="order-tab">
-        <text class="tab-icon">✅</text>
-        <text class="tab-text">已完成</text>
-      </navigator>
       <navigator url="/pages/order/order?status=refunding" class="order-tab">
-        <text class="tab-icon">↩️</text>
+        <view class="tab-badge" wx:if="{{orderCounts.refunding > 0}}">{{orderCounts.refunding}}</view>
+        <image class="tab-icon-img" src="/images/icons/return.png" mode="aspectFit"></image>
         <text class="tab-text">退款/售后</text>
       </navigator>
     </view>
   </view>
 
   <!-- 功能入口 -->
-  <view class="section menu-section">
+  <view class="card section menu-section">
     <navigator url="/pages/address/address" class="menu-item">
-      <text class="menu-icon">📍</text>
+      <image class="menu-icon-img" src="/images/icons/location.png" mode="aspectFit"></image>
       <text class="menu-text">收货地址</text>
       <text class="menu-arrow">›</text>
     </navigator>
+    <navigator url="/pages/favorites/favorites" class="menu-item">
+      <image class="menu-icon-img" src="/images/icons/heart.png" mode="aspectFit"></image>
+      <text class="menu-text">我的收藏</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator url="/pages/coupon-mine/coupon-mine" class="menu-item">
+      <image class="menu-icon-img" src="/images/icons/gift.png" mode="aspectFit"></image>
+      <text class="menu-text">我的优惠券</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator url="/pages/referral/referral" class="menu-item" wx:if="{{isLoggedIn}}">
+      <image class="menu-icon-img" src="/images/icons/money.png" mode="aspectFit"></image>
+      <text class="menu-text">邀请有礼</text>
+      <text class="menu-tag">送5元券</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
+    <navigator url="/pages/chat/chat" class="menu-item">
+      <image class="menu-icon-img" src="/images/icons/chat.png" mode="aspectFit"></image>
+      <text class="menu-text">联系客服</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
     <navigator url="/pages/agent-center/agent-center" class="menu-item" wx:if="{{isAgent}}">
-      <text class="menu-icon">🌟</text>
+      <image class="menu-icon-img" src="/images/icons/star.png" mode="aspectFit"></image>
       <text class="menu-text">代理中心</text>
       <text class="menu-arrow">›</text>
     </navigator>
     <navigator url="/pages/agent-join/agent-join" class="menu-item" wx:else>
-      <text class="menu-icon">🌟</text>
+      <image class="menu-icon-img" src="/images/icons/star.png" mode="aspectFit"></image>
       <text class="menu-text">成为代理</text>
       <text class="menu-tag">分享赚钱</text>
       <text class="menu-arrow">›</text>
     </navigator>
-        <navigator url="/pages/admin/admin" class="menu-item" wx:if="{{isAdmin}}">
-      <text class="menu-icon">⚙️</text>
+    <navigator url="/pages/admin/admin" class="menu-item" wx:if="{{isAdmin}}">
+      <image class="menu-icon-img" src="/images/icons/settings.png" mode="aspectFit"></image>
       <text class="menu-text">管理后台</text>
       <text class="menu-arrow">›</text>
     </navigator>
-<navigator url="/pages/about/about" class="menu-item">
-      <text class="menu-icon">📖</text>
+    <navigator url="/pages/about/about" class="menu-item">
+      <image class="menu-icon-img" src="/images/icons/book.png" mode="aspectFit"></image>
       <text class="menu-text">关于橘与杏</text>
       <text class="menu-arrow">›</text>
     </navigator>
   </view>
+
+  <!-- 隐私授权弹窗 -->
+  <privacy-popup
+    show="{{showPrivacy}}"
+    bind:agree="onPrivacyAgree"
+    bind:disagree="onPrivacyDisagree"
+  />
 </view>

@@ -1,0 +1,6 @@
+<view class="empty-wrap" style="min-height: {{height || 'auto'}}">
+  <image class="empty-icon-img" src="{{icon || '/images/icons/leaf.png'}}" mode="aspectFit" wx:if="{{icon && icon[0] === '/'}}"></image>
+  <view class="empty-icon" wx:else>{{icon || ''}}</view>
+  <text class="empty-text">{{text}}</text>
+  <button wx:if="{{showAction}}" class="empty-action" bindtap="onAction" hover-class="empty-action-hover">{{actionText}}</button>
+</view>

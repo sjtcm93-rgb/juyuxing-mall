@@ -1,94 +1,125 @@
 .agent-header {
-  display:flex; flex-direction:column; align-items:center;
-  padding:60rpx 0 40rpx;
-  background:linear-gradient(180deg,#FDF8F3,#FFFBF7);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  padding: var(--space-xl) 0 var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: var(--space-md);
 }
 .agent-avatar {
-  width:120rpx; height:120rpx; border-radius:50%;
-  border:4rpx solid #F5D6B8; overflow:hidden; margin-bottom:16rpx;
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255,255,255,0.5);
+  overflow: hidden;
+  background: rgba(255,255,255,0.2);
 }
-.agent-avatar image { width:100%; height:100%; }
-.agent-name { font-size:34rpx; font-weight:600; color:#4A3F35; }
+.agent-avatar image { width: 100%; height: 100%; }
+.agent-name { font-size: var(--fs-lg); font-weight: 600; }
 .agent-level {
-  font-size:24rpx; color:#FFFFFF; background:linear-gradient(135deg,#E8A87C,#F5D6B8);
-  padding:4rpx 24rpx; border-radius:20rpx; margin-top:12rpx;
+  background: rgba(255,255,255,0.2);
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
 }
-.stats-panel {
-  display:flex; align-items:center;
-  background:#FFFFFF; margin:0 20rpx 20rpx; padding:32rpx 20rpx;
-  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
-}
-.stat-item { flex:1; text-align:center; }
-.stat-value { font-size:36rpx; font-weight:700; color:#E8A87C; display:block; }
-.stat-label { font-size:22rpx; color:#B0A59A; margin-top:6rpx; display:block; }
-.stat-divider { width:2rpx; height:60rpx; background:#F0E8E0; }
-.section {
-  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
-  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
-}
-.section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16rpx; }
-.section-title { font-size:30rpx; font-weight:600; color:#4A3F35; display:block; margin-bottom:16rpx; }
-.section-more { font-size:24rpx; color:#B0A59A; }
-.month-stats { display:flex; gap:20rpx; }
-.month-item { flex:1; text-align:center; padding:16rpx; background:#FDF8F3; border-radius:14rpx; }
-.month-value { font-size:30rpx; font-weight:600; color:#4A3F35; display:block; }
-.month-label { font-size:22rpx; color:#B0A59A; margin-top:4rpx; display:block; }
-.promo-section { margin-bottom:20rpx; }
-.promo-code {
-  display:flex; align-items:center;
-  padding:16rpx; background:#FDF8F3; border-radius:12rpx; margin-bottom:16rpx;
-}
-.promo-label { font-size:24rpx; color:#8B7E72; margin-right:16rpx; }
-.promo-value { flex:1; font-size:32rpx; font-weight:600; color:#4A3F35; letter-spacing:2rpx; }
-.copy-btn {
-  font-size:24rpx; color:#E8A87C; background:transparent;
-  border:2rpx solid #E8A87C; border-radius:20rpx; height:52rpx; line-height:48rpx;
-  padding:0 24rpx;
-}
-.copy-btn::after { border:none; }
-.share-btn {
-  width:100%; height:80rpx; line-height:80rpx;
-  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
-  color:#4A3F35; border:none; border-radius:40rpx; font-size:30rpx; font-weight:500;
-  margin-bottom:12rpx;
-}
-.share-btn::after { border:none; }
-.promo-hint { font-size:22rpx; color:#B0A59A; display:block; text-align:center; }
-.commission-item {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:16rpx 0; border-bottom:2rpx solid #F0E8E0;
-}
-.commission-item:last-child { border-bottom:none; }
-.comm-order { font-size:26rpx; color:#4A3F35; display:block; }
-.comm-time { font-size:22rpx; color:#B0A59A; display:block; margin-top:4rpx; }
-.comm-amount-area { text-align:right; }
-.comm-amount { font-size:28rpx; color:#E0725A; font-weight:600; display:block; }
-.comm-status { font-size:22rpx; color:#B0A59A; }
-.comm-settled { color:#6ABF69; }
 
-/* 提现管理 */
-.withdraw-section {
-  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
-  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
-  display:flex; flex-direction:column; align-items:center;
+.stats-panel {
+  display: flex;
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
 }
-.withdraw-section .section-title {
-  align-self:flex-start;
-  font-size:30rpx; font-weight:600; color:#4A3F35; display:block; margin-bottom:16rpx;
+.stat-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; }
+.stat-value { font-size: var(--fs-lg); font-weight: 600; color: var(--color-primary-dark); }
+.stat-label { font-size: var(--fs-xs); color: var(--color-text-sub); }
+.stat-divider { width: 2rpx; background: var(--color-divider); }
+
+.section { padding: var(--space-md); margin-bottom: var(--space-sm); }
+.section-title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
 }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-sm); }
+
+.month-stats { display: flex; gap: var(--space-sm); }
+.month-item {
+  flex: 1;
+  background: var(--color-bg-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  text-align: center;
+}
+.month-value { display: block; font-size: var(--fs-md); font-weight: 600; color: var(--color-text); }
+.month-label { font-size: var(--fs-xs); color: var(--color-text-sub); margin-top: 4rpx; display: block; }
+
 .withdraw-info {
-  display:flex; flex-direction:column; align-items:center;
-  margin:20rpx 0;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-sm);
 }
-.withdraw-amount {
-  font-size:60rpx; font-weight:700; color:#E8A87C;
-}
-.withdraw-label {
-  font-size:24rpx; color:#B0A59A; margin-top:8rpx;
-}
+.withdraw-amount { display: block; font-size: var(--fs-xl); font-weight: 700; }
+.withdraw-label { font-size: var(--fs-xs); opacity: 0.9; }
 .withdraw-btn {
-  display:block; width:320rpx; height:72rpx; line-height:72rpx; text-align:center;
-  background:linear-gradient(135deg,#E8A87C,#F5D6B8);
-  color:#4A3F35; border:none; border-radius:36rpx;
-  font-size:28rpx; font-weight:500; margin-top:8rpx;
+  display: block;
+  text-align: center;
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  border: 2rpx solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 20rpx 0;
+  font-size: var(--fs-sm);
 }
+
+.promo-row {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 2rpx solid var(--color-divider);
+}
+.promo-row:last-of-type { border-bottom: none; }
+.promo-label { width: 140rpx; font-size: var(--fs-sm); color: var(--color-text-sub); }
+.promo-value { flex: 1; font-size: var(--fs-sm); color: var(--color-text); }
+.copy-btn {
+  background: var(--color-bg-soft);
+  color: var(--color-primary-dark);
+  padding: 4rpx 16rpx;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+}
+.share-btn {
+  margin-top: var(--space-md);
+  width: 100%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #FFFFFF;
+  border-radius: var(--radius-pill);
+  height: 80rpx;
+  line-height: 80rpx;
+  font-size: var(--fs-sm);
+  border: none;
+}
+.share-btn::after { border: none; }
+.promo-hint {
+  display: block;
+  margin-top: var(--space-sm);
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.commission-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 2rpx solid var(--color-divider);
+}
+.commission-item:last-child { border-bottom: none; }
+.comm-info { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.comm-order { font-size: var(--fs-sm); color: var(--color-text); }
+.comm-time { font-size: var(--fs-xs); color: var(--color-text-muted); }
+.comm-amount-area { display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; }
+.comm-amount { font-size: var(--fs-md); font-weight: 600; color: var(--color-primary-dark); }

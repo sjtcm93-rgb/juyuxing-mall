@@ -131,6 +131,38 @@
   letter-spacing: 8rpx;
 }
 
+/* ===== 轮播图 ===== */
+.banner-section {
+  padding: 24rpx 32rpx 8rpx;
+}
+.banner-swiper {
+  height: 320rpx;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+.banner-item {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.banner-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 20rpx;
+}
+.banner-title {
+  position: absolute;
+  bottom: 24rpx;
+  left: 24rpx;
+  font-size: 28rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.3);
+  background: rgba(74,63,53,0.4);
+  padding: 6rpx 16rpx;
+  border-radius: 10rpx;
+}
+
 /* ===== 分区标题 ===== */
 .section-header {
   padding: 48rpx 40rpx 24rpx;
@@ -151,6 +183,14 @@
   color: #D4C9C0;
   letter-spacing: 2rpx;
   text-transform: uppercase;
+}
+
+/* ===== 产品列表 ===== */
+.product-list {
+  padding-bottom: 20rpx;
+}
+.product-list .product-card {
+  margin-bottom: 24rpx;
 }
 
 /* ===== 产品卡片 ===== */
@@ -348,9 +388,7 @@
   flex-shrink: 0;
 }
 
-.agent-icon-text {
-  font-size: 36rpx;
-}
+.agent-icon-img { width:44rpx; height:44rpx; }
 
 .agent-entry-text {
   flex: 1;

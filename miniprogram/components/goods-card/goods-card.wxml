@@ -1,0 +1,36 @@
+<view wx:if="{{mode === 'grid'}}" class="gc-card" bindtap="onTap" hover-class="gc-hover">
+  <view class="gc-image-wrap">
+    <image class="gc-image" src="{{coverImage}}" mode="aspectFill" lazy-load="{{true}}"></image>
+    <view wx:if="{{showBadge && badgeText}}" class="gc-badge">{{badgeText}}</view>
+  </view>
+  <view class="gc-info">
+    <text class="gc-name">{{goods.name || '商品已下架'}}</text>
+    <text wx:if="{{goods.subtitle}}" class="gc-sub">{{goods.subtitle}}</text>
+    <view class="gc-bottom">
+      <view class="gc-price">
+        <text class="gc-symbol">¥</text>
+        <text class="gc-price-value">{{priceYuan}}</text>
+        <text wx:if="{{originalYuan}}" class="gc-price-original">¥{{originalYuan}}</text>
+      </view>
+      <view wx:if="{{showAction}}" class="gc-action" catchtap="onAction" hover-class="gc-action-hover">＋</view>
+    </view>
+  </view>
+</view>
+<view wx:else class="gc-list" bindtap="onTap" hover-class="gc-hover">
+  <view class="gc-list-img-wrap">
+    <image class="gc-image" src="{{coverImage}}" mode="aspectFill" lazy-load="{{true}}"></image>
+  </view>
+  <view class="gc-list-info">
+    <text class="gc-name">{{goods.name || '商品已下架'}}</text>
+    <text wx:if="{{goods.subtitle}}" class="gc-sub">{{goods.subtitle}}</text>
+    <view class="gc-list-meta">
+      <text class="gc-spec" wx:if="{{specText}}">{{specText}}</text>
+      <text class="gc-sold">{{soldText}}</text>
+    </view>
+    <view class="gc-price">
+      <text class="gc-symbol">¥</text>
+      <text class="gc-price-value">{{priceYuan}}</text>
+      <text wx:if="{{originalYuan}}" class="gc-price-original">¥{{originalYuan}}</text>
+    </view>
+  </view>
+</view>

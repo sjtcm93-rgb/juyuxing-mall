@@ -1,29 +1,33 @@
-<view class="page-wrap">
-  <view class="form-wrap">
-    <view class="form-group">
+<view class="page-wrap with-bottom-bar">
+  <view class="form">
+    <view class="form-row">
       <text class="form-label">收货人</text>
-      <input class="form-input" value="{{name}}" placeholder="请输入收货人姓名" bindinput="onNameInput" />
+      <input class="form-input" placeholder="请输入姓名" value="{{name}}" data-field="name" bindinput="onInput" maxlength="20" />
     </view>
-    <view class="form-group">
+    <view class="form-row">
       <text class="form-label">手机号</text>
-      <input class="form-input" type="phone" value="{{phone}}" placeholder="请输入手机号" bindinput="onPhoneInput" />
+      <input class="form-input" type="number" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" maxlength="11" />
     </view>
-    <view class="form-group">
-      <text class="form-label">所在地区</text>
-      <picker mode="region" value="{{region}}" bindchange="onRegionChange" custom-item="{{['省','市','区']}}">
-        <view class="picker-value">{{regionText}}</view>
-      </picker>
+    <view class="form-row form-row-region">
+      <text class="form-label">省市区</text>
+      <view class="region-picker-trigger" bindtap="onOpenRegion">
+        <text wx:if="{{region[0]}}" class="region-text">{{region[0]}} {{region[1]}} {{region[2]}}</text>
+        <text wx:else class="region-placeholder">请选择省/市/区</text>
+        <text class="region-arrow">›</text>
+      </view>
+      <region-picker id="regionPicker" value="{{region}}" bind:change="onRegionChange" />
     </view>
-    <view class="form-group">
+    <view class="form-row form-row-textarea">
       <text class="form-label">详细地址</text>
-      <input class="form-input" value="{{detail}}" placeholder="街道、门牌号等" bindinput="onDetailInput" />
+      <textarea class="form-textarea" placeholder="街道、楼栋、门牌号等" value="{{detail}}" data-field="detail" bindinput="onInput" maxlength="100" />
     </view>
-    <view class="form-group switch-group">
+    <view class="form-row form-row-default" bindtap="toggleDefault">
       <text class="form-label">设为默认地址</text>
-      <switch checked="{{isDefault}}" color="#E8A87C" bindchange="onDefaultChange" />
+      <switch checked="{{isDefault}}" color="#E8A87C" />
     </view>
   </view>
-  <view class="save-btn-wrap">
-    <button class="save-btn" bindtap="saveAddress">保存地址</button>
+
+  <view class="bottom-bar safe-bottom">
+    <button class="save-btn" bindtap="save" disabled="{{submitting}}">{{submitting ? '保存中...' : '保存'}}</button>
   </view>
 </view>

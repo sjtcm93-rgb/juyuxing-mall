@@ -1,0 +1,31 @@
+{
+  "generated": "2026-07-01T00:00:00+08:00",
+  "sections": [
+    {
+      "id": "mockups",
+      "label": "Mockups",
+      "groups": [
+        {
+          "slug": "juyuxing-redesign",
+          "files": [
+            { "label": "首页", "path": "mockups/juyuxing-redesign/index.html" },
+            { "label": "商品详情", "path": "mockups/juyuxing-redesign/product.html" },
+            { "label": "购物车", "path": "mockups/juyuxing-redesign/cart.html" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "design-systems",
+      "label": "Design Systems",
+      "groups": [
+        {
+          "slug": "juyuxing",
+          "files": [
+            { "label": "Tokens", "path": "design-systems/juyuxing/tokens/colors_and_type.css" }
+          ]
+        }
+      ]
+    }
+  ]
+}

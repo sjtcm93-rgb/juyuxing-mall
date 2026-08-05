@@ -1,0 +1,33 @@
+.fav-wrap { padding: 0 var(--space-md) var(--space-lg); }
+.fav-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 8rpx;
+  border-bottom: 1rpx solid var(--color-divider);
+  margin-bottom: var(--space-sm);
+}
+.fav-toolbar-text { font-size: var(--fs-sm); color: var(--color-text-sub); }
+.fav-toolbar-actions { display: flex; gap: 24rpx; }
+.fav-tool-btn { font-size: var(--fs-sm); color: var(--color-primary-dark); }
+.fav-tool-btn-danger { color: var(--color-danger); }
+.fav-list { display: flex; flex-direction: column; gap: 24rpx; }
+.fav-item { position: relative; }
+.fav-remove {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 12rpx 24rpx;
+  background: var(--color-danger);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  z-index: 2;
+}
+.fav-loadingmore {
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--color-text-muted);
+  padding: 32rpx 0;
+}

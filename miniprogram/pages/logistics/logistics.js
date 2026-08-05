@@ -1,19 +1,33 @@
 const API = require('../../utils/api');
-const { toast } = require('../../utils/util');
+const { toast, formatTime, decorateList } = require('../../utils/util');
 
 Page({
-  data: { order: null, loading: true },
-  onLoad(options) {
-    if (options.id) this.loadOrder(options.id);
-    else this.setData({ loading: false });
+  data: {
+    order: null,
+    tracking: [],
+    loading: true,
+    loadError: ''
   },
+
+  onLoad(options) {
+    if (options.orderId) this.loadOrder(options.orderId);
+  },
+
   async loadOrder(id) {
-    try {
-      const res = await API.getOrderDetail(id);
-      this.setData({ order: res && res.data, loading: false });
-    } catch (err) {
-      this.setData({ loading: false });
-      toast('加载物流信息失败');
+    this.setData({ loading: true, loadError: '' });
+    const res = await API.getOrderDetail(id);
+    if (res && res.success && res.data) {
+      const o = res.data;
+      const tracking = (o.logistics && Array.isArray(o.logistics.traces)) ? o.logistics.traces : [];
+      this.setData({ order: o, tracking: decorateList(tracking), loading: false });
+    } else {
+      this.setData({ loading: false, loadError: (res && res.error) || '暂无物流信息' });
+    }
+  },
+
+  retry() {
+    if (this.data.order && this.data.order._id) {
+      this.loadOrder(this.data.order._id);
     }
   }
 });

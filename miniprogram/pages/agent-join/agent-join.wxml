@@ -1,71 +1,71 @@
 <view class="page-wrap">
-  <!-- 代理介绍 -->
-  <view class="intro-section">
-    <text class="intro-title">成为橘与杏代理</text>
-    <text class="intro-desc">分享好产品，成就一份属于自己的事业</text>
+  <view class="banner card">
+    <image class="banner-icon-img" src="/images/icons/star.png" mode="aspectFit"></image>
+    <text class="banner-title">成为橘与杏代理</text>
+    <text class="banner-desc">分享好物 · 收获一份事业</text>
   </view>
 
-  <!-- 优势 -->
-  <view class="benefits">
-    <view class="benefit-item">
-      <text class="benefit-icon">💰</text>
-      <view class="benefit-text">
-        <text class="benefit-title">高额佣金</text>
-        <text class="benefit-desc">每笔销售可获得10-20%佣金</text>
-      </view>
-    </view>
+  <view class="benefits card">
+    <text class="section-title">代理权益</text>
     <view class="benefit-item">
       <text class="benefit-icon">🔗</text>
-      <view class="benefit-text">
-        <text class="benefit-title">专属链接</text>
-        <text class="benefit-desc">自动生成推广码和分享链接</text>
-      </view>
+      <text class="benefit-label">永久用户绑定</text>
     </view>
     <view class="benefit-item">
-      <text class="benefit-icon">🔄</text>
-      <view class="benefit-text">
-        <text class="benefit-title">永久绑定</text>
-        <text class="benefit-desc">客户后续消费持续享有佣金</text>
-      </view>
+      <text class="benefit-icon">📈</text>
+      <text class="benefit-label">阶梯返利成长</text>
     </view>
     <view class="benefit-item">
-      <text class="benefit-icon">📦</text>
-      <view class="benefit-text">
-        <text class="benefit-title">无需囤货</text>
-        <text class="benefit-desc">我们负责发货，你专注分享</text>
+      <text class="benefit-icon">💰</text>
+      <text class="benefit-label">快速结算到账</text>
+    </view>
+    <view class="benefit-item">
+      <text class="benefit-icon">🎯</text>
+      <text class="benefit-label">专属客服支持</text>
+    </view>
+  </view>
+
+  <view class="how-it-works card">
+    <text class="section-title">如何赚钱</text>
+    <view class="step-item">
+      <text class="step-num">1</text>
+      <view class="step-content">
+        <text class="step-title">分享商品</text>
+        <text class="step-desc">将商品链接分享给好友或朋友圈</text>
+      </view>
+    </view>
+    <view class="step-item">
+      <text class="step-num">2</text>
+      <view class="step-content">
+        <text class="step-title">好友下单</text>
+        <text class="step-desc">用户通过你的链接进入并完成购买</text>
+      </view>
+    </view>
+    <view class="step-item">
+      <text class="step-num">3</text>
+      <view class="step-content">
+        <text class="step-title">获得返利</text>
+        <text class="step-desc">订单完成后，返利自动结算到你的余额</text>
       </view>
     </view>
   </view>
 
-  <!-- 申请表单 -->
-  <view class="form-section" wx:if="{{!applied}}">
-    <text class="form-title">申请信息</text>
-    <view class="form-group">
+  <view class="form card">
+    <view class="form-row">
       <text class="form-label">姓名</text>
-      <input class="form-input" placeholder="请输入真实姓名" bindinput="onNameInput" />
+      <input class="form-input" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
     </view>
-    <view class="form-group">
+    <view class="form-row">
       <text class="form-label">手机号</text>
-      <input class="form-input" type="phone" placeholder="请输入手机号" bindinput="onPhoneInput" />
+      <input class="form-input" type="number" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" maxlength="11" />
     </view>
-    <view class="form-group">
-      <text class="form-label">微信号</text>
-      <input class="form-input" placeholder="请输入微信号" bindinput="onWechatInput" />
-    </view>
-    <view class="form-group">
+    <view class="form-row form-row-textarea">
       <text class="form-label">申请理由</text>
-      <textarea class="form-textarea" placeholder="简单介绍一下你自己（选填）" bindinput="onReasonInput"></textarea>
+      <textarea class="form-textarea" placeholder="请简单说明您的优势、资源或对品牌的理解" value="{{reason}}" data-field="reason" bindinput="onInput" maxlength="300" />
     </view>
-    <button class="submit-btn {{submitting ? 'btn-disabled' : ''}}" bindtap="submitApply" disabled="{{submitting}}">
-      {{submitting ? '提交中...' : '提交申请'}}
-    </button>
   </view>
 
-  <!-- 申请成功 -->
-  <view class="success-section" wx:if="{{applied}}">
-    <text class="success-icon">✅</text>
-    <text class="success-title">申请已提交</text>
-    <text class="success-desc">我们会在1-3个工作日内审核你的申请，请留意微信通知</text>
-    <navigator url="/pages/agent-center/agent-center" class="success-btn">查看代理中心</navigator>
+  <view class="submit-wrap safe-bottom">
+    <button class="submit-btn" bindtap="submit" disabled="{{submitting}}">{{submitting ? '提交中...' : '提交申请'}}</button>
   </view>
 </view>

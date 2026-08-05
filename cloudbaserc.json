@@ -61,6 +61,18 @@
       "timeout": 10,
       "memorySize": 256,
       "triggers": []
+    },
+    {
+      "name": "updateProductDesc",
+      "timeout": 10,
+      "memorySize": 256,
+      "triggers": []
+    },
+    {
+      "name": "uploadProductImage",
+      "timeout": 20,
+      "memorySize": 256,
+      "triggers": []
     }
   ]
 }

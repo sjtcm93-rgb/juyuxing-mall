@@ -1,0 +1,9 @@
+{
+  "name": "updateProductDesc",
+  "version": "1.0.0",
+  "description": "一次性更新小紫瓶商品详情",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

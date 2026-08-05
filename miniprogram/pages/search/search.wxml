@@ -1,0 +1,115 @@
+<view class="page-wrap search-wrap">
+  <!-- 顶部搜索框 -->
+  <view class="search-topbar">
+    <view class="search-input-wrap">
+      <image class="search-input-icon-img" src="/images/icons/search.png" mode="aspectFit"></image>
+      <input
+        class="search-input"
+        type="text"
+        value="{{keyword}}"
+        placeholder="搜索本草好物"
+        confirm-type="search"
+        focus="{{focused}}"
+        bindinput="onInput"
+        bindconfirm="onConfirm"
+        bindfocus="onFocus"
+        bindblur="onBlur"
+      />
+      <text wx:if="{{keyword}}" class="search-input-clear" catchtap="onClearInput">×</text>
+    </view>
+    <view class="search-cancel" bindtap="onCancel">取消</view>
+  </view>
+
+  <!-- 初始态：历史 + 热搜 -->
+  <block wx:if="{{!showResult && !showSuggest}}">
+    <view class="search-section" wx:if="{{history.length > 0}}">
+      <view class="search-section-head">
+        <text class="search-section-title">搜索历史</text>
+        <text class="search-section-action" bindtap="onClearHistory">清除</text>
+      </view>
+      <view class="search-tag-list">
+        <view
+          wx:for="{{history}}"
+          wx:key="*this"
+          class="search-tag"
+          data-word="{{item}}"
+          bindtap="onTapHistory"
+        >
+          <text>{{item}}</text>
+          <text class="search-tag-remove" catchtap="onRemoveHistory" data-word="{{item}}">×</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="search-section">
+      <view class="search-section-head">
+        <text class="search-section-title">热门搜索</text>
+      </view>
+      <view class="search-tag-list">
+        <view
+          wx:for="{{hotKeywords}}"
+          wx:key="*this"
+          class="search-tag search-tag-hot"
+          data-word="{{item}}"
+          bindtap="onTapHot"
+        >{{item}}</view>
+      </view>
+      <view wx:if="{{hotKeywords.length === 0}}" class="search-empty-hint">暂无热搜</view>
+    </view>
+  </block>
+
+  <!-- 联想 -->
+  <block wx:elif="{{showSuggest}}">
+    <view class="search-section">
+      <view class="search-suggest-list">
+        <view
+          wx:for="{{suggest}}"
+          wx:key="_id"
+          class="search-suggest-item"
+          data-word="{{item.name}}"
+          bindtap="onTapSuggest"
+        >
+          <image class="search-suggest-icon-img" src="/images/icons/search.png" mode="aspectFit"></image>
+          <text class="search-suggest-name">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 结果 -->
+  <block wx:elif="{{showResult}}">
+    <view class="search-sortbar">
+      <view
+        wx:for="{{sortOptions}}"
+        wx:key="key"
+        class="search-sort {{item.key === sortBy ? 'search-sort-active' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onChangeSort"
+      >{{item.label}}</view>
+    </view>
+
+    <block wx:if="{{loading}}">
+      <skeleton type="card" count="4" />
+    </block>
+
+    <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+    <block wx:elif="{{products.length === 0}}">
+      <empty-state icon="/images/icons/search.png" text="未找到相关商品" />
+    </block>
+
+    <view wx:else class="search-grid">
+      <goods-card
+        wx:for="{{products}}"
+        wx:key="_id"
+        goods="{{item}}"
+        mode="grid"
+        bind:click="onGoodsClick"
+        bind:action="onGoodsAction"
+      />
+    </view>
+
+    <view wx:if="{{loadingMore}}" class="search-loadingmore">加载中…</view>
+    <view wx:elif="{{!hasMore && products.length > 0}}" class="search-loadingmore">已经到底啦</view>
+  </block>
+</view>

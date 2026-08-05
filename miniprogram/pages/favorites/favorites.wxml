@@ -1,0 +1,29 @@
+<view class="page-wrap fav-wrap">
+  <view class="fav-toolbar" wx:if="{{products.length > 0}}">
+    <text class="fav-toolbar-text">共 {{products.length}} 件商品</text>
+    <view class="fav-toolbar-actions">
+      <view class="fav-tool-btn" bindtap="onToggleEdit">{{editMode ? '完成' : '管理'}}</view>
+      <view wx:if="{{editMode}}" class="fav-tool-btn fav-tool-btn-danger" bindtap="onClearAll">全部移除</view>
+    </view>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <skeleton type="list" rows="3" />
+  </block>
+
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+  <block wx:elif="{{products.length === 0}}">
+    <empty-state icon="/images/icons/heart.png" text="还没有收藏任何商品" show-action="{{true}}" action-text="去逛逛" bind:action="onGoHome" />
+  </block>
+
+  <view wx:else class="fav-list">
+    <view wx:for="{{products}}" wx:key="_id" class="fav-item">
+      <goods-card goods="{{item}}" mode="list" bind:click="onGoodsClick" />
+      <view wx:if="{{editMode}}" class="fav-remove" data-id="{{item._id}}" bindtap="onRemoveOne">移除</view>
+    </view>
+  </view>
+
+  <view wx:if="{{loadingMore}}" class="fav-loadingmore">加载中…</view>
+  <view wx:elif="{{!hasMore && products.length > 0}}" class="fav-loadingmore">已经到底啦</view>
+</view>

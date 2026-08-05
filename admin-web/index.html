@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>橘与杏 管理后台</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://imgcache.qq.com/qcloud/tcbjs/1.7.2/tcb.js"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 登录页 ===== -->
+  <div v-if="!isLoggedIn" class="login-page">
+    <div class="login-card">
+      <div class="login-logo">橘与杏</div>
+      <div class="login-subtitle">中医生活 · 管理后台</div>
+      <div class="login-form">
+        <input
+          v-model="loginPassword"
+          type="password"
+          class="login-input"
+          placeholder="请输入管理员密码"
+          @keyup.enter="doLogin"
+        />
+        <p v-if="loginError" class="login-error">{{ loginError }}</p>
+        <button class="login-btn" @click="doLogin" :disabled="loading">
+          {{ loading ? '登录中...' : '登 录' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 主布局 ===== -->
+  <div v-else class="admin-layout">
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">橘与杏</div>
+      <nav class="sidebar-nav">
+        <a
+          v-for="page in pages"
+          :key="page.id"
+          :class="['nav-item', { active: currentPage === page.id }]"
+          @click="switchPage(page.id)"
+        >
+          <span class="nav-icon">{{ page.icon }}</span>
+          <span class="nav-text">{{ page.name }}</span>
+          <span v-if="page.badge" class="nav-badge">{{ page.badge }}</span>
+        </a>
+      </nav>
+      <button class="logout-btn" @click="logout">退出登录</button>
+    </aside>
+
+    <!-- 内容区 -->
+    <main class="content">
+
+      <!-- ===== 数据看板 ===== -->
+      <div v-if="currentPage === 'dashboard'" class="page-dashboard">
+        <h2 class="page-title">数据看板</h2>
+        <div class="stats-grid">
+          <div class="stat-card stat-orange">
+            <div class="stat-value">{{ stats.totalOrders || 0 }}</div>
+            <div class="stat-label">总订单</div>
+          </div>
+          <div class="stat-card stat-green">
+            <div class="stat-value">{{ stats.paidOrders || 0 }}</div>
+            <div class="stat-label">待发货</div>
+          </div>
+          <div class="stat-card stat-blue">
+            <div class="stat-value">{{ formatPrice(stats.totalSales) }}</div>
+            <div class="stat-label">销售额(元)</div>
+          </div>
+          <div class="stat-card stat-red">
+            <div class="stat-value">{{ stats.pendingRefunds || 0 }}</div>
+            <div class="stat-label">待处理退款</div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-mini">
+            <span class="stat-mini-value">{{ stats.shippedOrders || 0 }}</span>
+            <span class="stat-mini-label">已发货</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-mini-value">{{ stats.pendingAgents || 0 }}</span>
+            <span class="stat-mini-label">待审代理</span>
+          </div>
+          <div class="stat-mini">
+            <span class="stat-mini-value">{{ stats.pendingWithdrawals || 0 }}</span>
+            <span class="stat-mini-label">待处理提现</span>
+          </div>
+        </div>
+
+        <div class="section-card" v-if="recentOrders.length">
+          <h3 class="section-title">最近订单</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>商品</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in recentOrders" :key="order._id">
+                <td class="td-mono">{{ order.orderNo }}</td>
+                <td class="td-products">{{ orderItemsText(order) }}</td>
+                <td class="td-price">{{ formatPrice(order.totalFee) }}</td>
+                <td><span :class="['status-tag', 'status-' + order.status]">{{ statusText(order.status) }}</span></td>
+                <td class="td-time">{{ formatTime(order.createTime) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== 订单管理 ===== -->
+      <div v-if="currentPage === 'orders'" class="page-orders">
+        <h2 class="page-title">订单管理</h2>
+        <div class="filter-tabs">
+          <button
+            v-for="f in orderFilters"
+            :key="f.value"
+            :class="['filter-tab', { active: orderFilter === f.value }]"
+            @click="switchOrderFilter(f.value)"
+          >{{ f.label }}</button>
+        </div>
+
+        <div class="section-card">
+          <table class="data-table" v-if="orders.length">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>商品</th>
+                <th>收货人</th>
+                <th>金额</th>
+                <th>状态</th>
+                <th>时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in orders" :key="order._id">
+                <td class="td-mono">{{ order.orderNo }}</td>
+                <td class="td-products">{{ orderItemsText(order) }}</td>
+                <td>{{ order.address ? order.address.name : '-' }}</td>
+                <td class="td-price">{{ formatPrice(order.totalFee) }}</td>
+                <td><span :class="['status-tag', 'status-' + order.status]">{{ statusText(order.status) }}</span></td>
+                <td class="td-time">{{ formatTime(order.createTime) }}</td>
+                <td class="td-actions">
+                  <button v-if="order.status === 'paid'" class="btn-sm btn-primary" @click="openShipModal(order)">发货</button>
+                  <button class="btn-sm btn-default" @click="viewOrder(order)">详情</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">暂无订单</div>
+        </div>
+      </div>
+
+      <!-- ===== 商品管理 ===== -->
+      <div v-if="currentPage === 'products'" class="page-products">
+        <h2 class="page-title">
+          商品管理
+          <button class="btn-primary float-right" @click="openProductModal()">+ 添加商品</button>
+        </h2>
+        <div class="section-card">
+          <table class="data-table" v-if="products.length">
+            <thead>
+              <tr>
+                <th>图片</th>
+                <th>名称</th>
+                <th>价格</th>
+                <th>库存</th>
+                <th>销量</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in products" :key="p._id">
+                <td><img v-if="p.images && p.images[0]" :src="p.images[0]" class="product-thumb" /></td>
+                <td>{{ p.name }}</td>
+                <td class="td-price">{{ formatPrice(p.price) }}</td>
+                <td>{{ p.stock }}</td>
+                <td>{{ p.sales || 0 }}</td>
+                <td><span :class="['status-tag', p.status === 'on' ? 'status-paid' : 'status-cancelled']">{{ p.status === 'on' ? '已上架' : '已下架' }}</span></td>
+                <td class="td-actions">
+                  <button class="btn-sm btn-default" @click="openProductModal(p)">编辑</button>
+                  <button v-if="p.status === 'on'" class="btn-sm btn-warning" @click="toggleProduct(p, 'off')">下架</button>
+                  <button v-else class="btn-sm btn-success" @click="toggleProduct(p, 'on')">上架</button>
+                  <button class="btn-sm btn-danger" @click="deleteProduct(p)">删除</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">暂无商品</div>
+        </div>
+      </div>
+
+      <!-- ===== 客服消息 ===== -->
+      <div v-if="currentPage === 'messages'" class="page-messages">
+        <h2 class="page-title">客服消息</h2>
+        <div class="chat-layout">
+          <div class="chat-user-list">
+            <div
+              v-for="u in messageUsers"
+              :key="u.userOpenId"
+              :class="['chat-user-item', { active: currentChatUser === u.userOpenId }]"
+              @click="selectChatUser(u)"
+            >
+              <div class="chat-user-avatar">{{ (u.nickName || '用')[0] }}</div>
+              <div class="chat-user-info">
+                <div class="chat-user-name">{{ u.nickName }}</div>
+                <div class="chat-user-last">{{ u.lastContent }}</div>
+              </div>
+              <div v-if="u.unread > 0" class="chat-unread">{{ u.unread }}</div>
+            </div>
+            <div v-if="!messageUsers.length" class="empty-state">暂无消息</div>
+          </div>
+          <div class="chat-window">
+            <div v-if="currentChatUser" class="chat-messages" ref="chatBox">
+              <div
+                v-for="msg in chatMessages"
+                :key="msg._id"
+                :class="['chat-msg', msg.isAdmin ? 'chat-msg-admin' : 'chat-msg-user']"
+              >
+                <div class="chat-msg-content">{{ msg.content }}</div>
+                <div class="chat-msg-time">{{ formatTime(msg.createTime) }}</div>
+              </div>
+            </div>
+            <div v-else class="chat-placeholder">请选择一个用户开始对话</div>
+            <div v-if="currentChatUser" class="chat-input-area">
+              <input
+                v-model="replyText"
+                class="chat-input"
+                placeholder="输入回复内容..."
+                @keyup.enter="sendReply"
+              />
+              <button class="btn-primary" @click="sendReply" :disabled="!replyText.trim()">发送</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 代理管理 ===== -->
+      <div v-if="currentPage === 'agents'" class="page-agents">
+        <h2 class="page-title">代理管理</h2>
+        <div class="filter-tabs">
+          <button
+            v-for="f in agentFilters"
+            :key="f.value"
+            :class="['filter-tab', { active: agentFilter === f.value }]"
+            @click="switchAgentFilter(f.value)"
+          >{{ f.label }}</button>
+        </div>
+        <div class="section-card">
+          <table class="data-table" v-if="agents.length">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>手机</th>
+                <th>代理等级</th>
+                <th>状态</th>
+                <th>申请理由</th>
+                <th>申请时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="agent in agents" :key="agent._id">
+                <td>{{ (agent.agentInfo && agent.agentInfo.name) || agent.nickName || '-' }}</td>
+                <td class="td-mono">{{ (agent.agentInfo && agent.agentInfo.phone) || '-' }}</td>
+                <td>{{ (agent.agentInfo && agent.agentInfo.level) || '-' }}</td>
+                <td><span :class="['status-tag', agentStatusClass(agent.agentInfo && agent.agentInfo.status)]">{{ agentStatusText(agent.agentInfo && agent.agentInfo.status) }}</span></td>
+                <td class="td-products">{{ (agent.agentInfo && agent.agentInfo.reason) || '-' }}</td>
+                <td class="td-time">{{ formatTime(agent.agentInfo && agent.agentInfo.applyTime || agent.createTime) }}</td>
+                <td class="td-actions">
+                  <template v-if="(agent.agentInfo && agent.agentInfo.status) === 'pending'">
+                    <button class="btn-sm btn-success" @click="approveAgent(agent, true)">通过</button>
+                    <button class="btn-sm btn-danger" @click="approveAgent(agent, false)">拒绝</button>
+                  </template>
+                  <span v-else class="td-time">已处理</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">暂无代理申请</div>
+        </div>
+      </div>
+
+      <!-- ===== 提现审批 ===== -->
+      <div v-if="currentPage === 'withdrawals'" class="page-withdrawals">
+        <h2 class="page-title">提现审批</h2>
+        <div class="filter-tabs">
+          <button
+            v-for="f in withdrawalFilters"
+            :key="f.value"
+            :class="['filter-tab', { active: withdrawalFilter === f.value }]"
+            @click="switchWithdrawalFilter(f.value)"
+          >{{ f.label }}</button>
+        </div>
+        <div class="section-card">
+          <table class="data-table" v-if="withdrawals.length">
+            <thead>
+              <tr>
+                <th>代理</th>
+                <th>金额(元)</th>
+                <th>收款方式</th>
+                <th>状态</th>
+                <th>申请时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="wd in withdrawals" :key="wd._id">
+                <td>{{ wd.agentName || wd.agentId.slice(-8) }}</td>
+                <td class="td-price">{{ formatPrice(wd.amount) }}</td>
+                <td class="td-products">{{ withdrawalMethodText(wd) }}</td>
+                <td><span :class="['status-tag', withdrawalStatusClass(wd.status)]">{{ withdrawalStatusText(wd.status) }}</span></td>
+                <td class="td-time">{{ formatTime(wd.createTime) }}</td>
+                <td class="td-actions">
+                  <button v-if="wd.status === 'pending'" class="btn-sm btn-success" @click="openWithdrawalModal(wd, true)">通过</button>
+                  <button v-if="wd.status === 'pending'" class="btn-sm btn-danger" @click="openWithdrawalModal(wd, false)">拒绝</button>
+                  <button v-if="wd.status !== 'pending'" class="btn-sm btn-default" @click="viewWithdrawal(wd)">详情</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">暂无提现申请</div>
+        </div>
+      </div>
+
+      <!-- ===== 退款管理 ===== -->
+      <div v-if="currentPage === 'refunds'" class="page-refunds">
+        <h2 class="page-title">退款管理</h2>
+        <div class="filter-tabs">
+          <button
+            v-for="f in refundFilters"
+            :key="f.value"
+            :class="['filter-tab', { active: refundFilter === f.value }]"
+            @click="switchRefundFilter(f.value)"
+          >{{ f.label }}</button>
+        </div>
+        <div class="section-card">
+          <table class="data-table" v-if="refunds.length">
+            <thead>
+              <tr>
+                <th>订单号</th>
+                <th>商品</th>
+                <th>金额(元)</th>
+                <th>原因</th>
+                <th>状态</th>
+                <th>申请时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="rf in refunds" :key="rf._id">
+                <td class="td-mono">{{ (rf.order && rf.order.orderNo) || rf.orderId }}</td>
+                <td class="td-products">{{ rf.order ? orderItemsText(rf.order) : '-' }}</td>
+                <td class="td-price">{{ formatPrice(rf.order && rf.order.totalFee) }}</td>
+                <td class="td-products">{{ rf.reason || '-' }}</td>
+                <td><span :class="['status-tag', refundStatusClass(rf.status)]">{{ refundStatusText(rf.status) }}</span></td>
+                <td class="td-time">{{ formatTime(rf.createTime) }}</td>
+                <td class="td-actions">
+                  <template v-if="rf.status === 'pending'">
+                    <button class="btn-sm btn-success" @click="openRefundModal(rf, true)">同意</button>
+                    <button class="btn-sm btn-danger" @click="openRefundModal(rf, false)">拒绝</button>
+                  </template>
+                  <button v-else class="btn-sm btn-default" @click="viewRefund(rf)">详情</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">暂无退款申请</div>
+        </div>
+      </div>
+
+      <!-- ===== 设置 ===== -->
+      <div v-if="currentPage === 'settings'" class="page-settings">
+        <h2 class="page-title">系统设置</h2>
+
+        <div class="settings-grid">
+          <div class="section-card">
+            <h3 class="section-title">修改管理密码</h3>
+            <div class="form-group">
+              <label v-if="settings.passwordSet">原密码</label>
+              <input v-if="settings.passwordSet" v-model="pwdForm.oldPassword" type="password" class="form-input" placeholder="原密码" />
+              <label>新密码（至少6位）</label>
+              <input v-model="pwdForm.newPassword" type="password" class="form-input" placeholder="新密码" />
+              <button class="btn-primary" @click="changePassword" :disabled="!pwdForm.newPassword || pwdForm.newPassword.length < 6">保存密码</button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <h3 class="section-title">管理员 OpenID</h3>
+            <p class="settings-hint">小程序端管理后台权限通过 OpenID 控制，添加多个 OpenID 即可支持多管理员。</p>
+            <div class="openid-list">
+              <div v-for="oid in settings.adminOpenIds" :key="oid" class="openid-item">
+                <span class="openid-text">{{ oid }}</span>
+                <button class="btn-sm btn-danger" @click="removeAdminOpenId(oid)">移除</button>
+              </div>
+              <div v-if="!settings.adminOpenIds || !settings.adminOpenIds.length" class="empty-state">暂无管理员</div>
+            </div>
+            <div class="form-inline">
+              <input v-model="newOpenId" class="form-input" placeholder="粘贴用户 OpenID" />
+              <button class="btn-primary" @click="addAdminOpenId" :disabled="!newOpenId.trim()">添加</button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <h3 class="section-title">佣金比例</h3>
+            <div class="form-group">
+              <input v-model.number="settings.commissionRate" type="number" step="0.01" min="0" max="1" class="form-input" />
+              <p class="settings-hint">当前佣金比例：{{ Math.round((settings.commissionRate || 0.15) * 100) }}%</p>
+              <button class="btn-primary" @click="saveCommissionRate" :disabled="settings.commissionRate === undefined || settings.commissionRate === null" style="margin-top: 12px;">保存佣金比例</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ===== 发货弹窗 ===== -->
+  <div v-if="shipModal.show" class="modal-overlay" @click.self="shipModal.show = false">
+    <div class="modal-box">
+      <h3 class="modal-title">订单发货</h3>
+      <p class="modal-order-no">订单号：{{ shipModal.orderNo }}</p>
+      <div class="form-group">
+        <label>快递公司</label>
+        <select v-model="shipModal.company" class="form-input">
+          <option value="">请选择</option>
+          <option>顺丰速运</option>
+          <option>中通快递</option>
+          <option>圆通快递</option>
+          <option>韵达快递</option>
+          <option>申通快递</option>
+          <option>京东物流</option>
+          <option>EMS</option>
+          <option>极兔速递</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>快递单号</label>
+        <input v-model="shipModal.trackingNo" class="form-input" placeholder="请输入快递单号" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-default" @click="shipModal.show = false">取消</button>
+        <button class="btn-primary" @click="confirmShip" :disabled="!shipModal.company || !shipModal.trackingNo">确认发货</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 商品编辑弹窗 ===== -->
+  <div v-if="productModal.show" class="modal-overlay" @click.self="productModal.show = false">
+    <div class="modal-box modal-lg">
+      <h3 class="modal-title">{{ productModal.isEdit ? '编辑商品' : '添加商品' }}</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>商品名称 *</label>
+          <input v-model="productModal.data.name" class="form-input" placeholder="商品名称" />
+        </div>
+        <div class="form-group">
+          <label>副标题</label>
+          <input v-model="productModal.data.subtitle" class="form-input" placeholder="一句话描述" />
+        </div>
+        <div class="form-group">
+          <label>价格 (元) *</label>
+          <input v-model.number="productModal.data.price" type="number" step="0.01" class="form-input" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label>原价 (元)</label>
+          <input v-model.number="productModal.data.originalPrice" type="number" step="0.01" class="form-input" placeholder="0.00" />
+        </div>
+        <div class="form-group">
+          <label>库存</label>
+          <input v-model.number="productModal.data.stock" type="number" class="form-input" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label>分类</label>
+          <input v-model="productModal.data.category" class="form-input" placeholder="如：洗护用品" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>商品图片 (每行一个链接)</label>
+        <textarea v-model="productModal.imagesText" class="form-textarea" rows="3" placeholder="https://..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>商品描述</label>
+        <textarea v-model="productModal.data.description" class="form-textarea" rows="4" placeholder="商品详细描述"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-default" @click="productModal.show = false">取消</button>
+        <button class="btn-primary" @click="saveProduct" :disabled="!productModal.data.name || !productModal.data.price">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 订单详情弹窗 ===== -->
+  <div v-if="orderDetailModal.show" class="modal-overlay" @click.self="orderDetailModal.show = false">
+    <div class="modal-box modal-lg">
+      <h3 class="modal-title">订单详情</h3>
+      <div class="order-detail" v-if="orderDetailModal.data">
+        <div class="detail-row"><span class="detail-label">订单号</span><span class="detail-value td-mono">{{ orderDetailModal.data.orderNo }}</span></div>
+        <div class="detail-row"><span class="detail-label">状态</span><span :class="['status-tag', 'status-' + orderDetailModal.data.status]">{{ statusText(orderDetailModal.data.status) }}</span></div>
+        <div class="detail-row"><span class="detail-label">下单时间</span><span class="detail-value">{{ formatTime(orderDetailModal.data.createTime) }}</span></div>
+        <div class="detail-row" v-if="orderDetailModal.data.shipTime"><span class="detail-label">发货时间</span><span class="detail-value">{{ formatTime(orderDetailModal.data.shipTime) }}</span></div>
+        <div class="detail-row" v-if="orderDetailModal.data.payTime"><span class="detail-label">支付时间</span><span class="detail-value">{{ formatTime(orderDetailModal.data.payTime) }}</span></div>
+        <div class="detail-row"><span class="detail-label">总金额</span><span class="detail-value td-price">{{ formatPrice(orderDetailModal.data.totalFee) }}</span></div>
+        <div class="detail-section" v-if="orderDetailModal.data.address">
+          <div class="detail-section-title">收货信息</div>
+          <div>{{ orderDetailModal.data.address.name }} {{ orderDetailModal.data.address.phone }}</div>
+          <div>{{ orderDetailModal.data.address.province }}{{ orderDetailModal.data.address.city }}{{ orderDetailModal.data.address.district }}{{ orderDetailModal.data.address.detail }}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-section-title">商品明细</div>
+          <div v-for="item in (orderDetailModal.data.items || [])" :key="item.productId" class="detail-item">
+            <span>{{ item.name }}</span>
+            <span class="detail-item-spec" v-if="item.spec">({{ item.spec }})</span>
+            <span> x{{ item.quantity }}</span>
+            <span class="detail-item-price">{{ formatPrice(item.price * item.quantity) }}</span>
+          </div>
+        </div>
+        <div class="detail-section" v-if="orderDetailModal.data.logistics">
+          <div class="detail-section-title">物流信息</div>
+          <div>{{ orderDetailModal.data.logistics.company }}：{{ orderDetailModal.data.logistics.trackingNo }}</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-default" @click="orderDetailModal.show = false">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 提现审批弹窗 ===== -->
+  <div v-if="withdrawalModal.show" class="modal-overlay" @click.self="withdrawalModal.show = false">
+    <div class="modal-box">
+      <h3 class="modal-title">{{ withdrawalModal.approve ? '确认打款' : '拒绝提现' }}</h3>
+      <div class="order-detail" v-if="withdrawalModal.data">
+        <div class="detail-row"><span class="detail-label">代理</span><span class="detail-value">{{ withdrawalModal.data.agentName || withdrawalModal.data.agentId.slice(-8) }}</span></div>
+        <div class="detail-row"><span class="detail-label">金额</span><span class="detail-value td-price">{{ formatPrice(withdrawalModal.data.amount) }} 元</span></div>
+        <div class="detail-row"><span class="detail-label">收款方式</span><span class="detail-value">{{ withdrawalMethodText(withdrawalModal.data) }}</span></div>
+        <div class="detail-row" v-if="withdrawalModal.data.bankInfo">
+          <span class="detail-label">银行信息</span>
+          <span class="detail-value">{{ withdrawalModal.data.bankInfo.bank }} {{ withdrawalModal.data.bankInfo.cardNo }} ({{ withdrawalModal.data.bankInfo.name }})</span>
+        </div>
+        <div class="detail-row" v-if="withdrawalModal.data.alipayInfo">
+          <span class="detail-label">支付宝</span>
+          <span class="detail-value">{{ withdrawalModal.data.alipayInfo.account }} ({{ withdrawalModal.data.alipayInfo.name }})</span>
+        </div>
+      </div>
+      <div class="form-group" v-if="!withdrawalModal.approve">
+        <label>拒绝原因（选填）</label>
+        <input v-model="withdrawalModal.remark" class="form-input" placeholder="如：信息不完整" />
+      </div>
+      <div class="form-group" v-if="withdrawalModal.approve">
+        <label>备注（选填）</label>
+        <input v-model="withdrawalModal.remark" class="form-input" placeholder="如：已银行转账" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-default" @click="withdrawalModal.show = false">取消</button>
+        <button :class="withdrawalModal.approve ? 'btn-primary' : 'btn-danger'" @click="confirmWithdrawal" :disabled="processingAction">
+          {{ processingAction ? '处理中...' : (withdrawalModal.approve ? '确认打款' : '确认拒绝') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 退款处理弹窗 ===== -->
+  <div v-if="refundModal.show" class="modal-overlay" @click.self="refundModal.show = false">
+    <div class="modal-box">
+      <h3 class="modal-title">{{ refundModal.approve ? '同意退款' : '拒绝退款' }}</h3>
+      <div class="order-detail" v-if="refundModal.data">
+        <div class="detail-row"><span class="detail-label">订单号</span><span class="detail-value td-mono">{{ (refundModal.data.order && refundModal.data.order.orderNo) || refundModal.data.orderId }}</span></div>
+        <div class="detail-row"><span class="detail-label">金额</span><span class="detail-value td-price">{{ formatPrice(refundModal.data.order && refundModal.data.order.totalFee) }} 元</span></div>
+        <div class="detail-row"><span class="detail-label">原因</span><span class="detail-value">{{ refundModal.data.reason || '-' }}</span></div>
+        <div class="detail-row" v-if="refundModal.data.description"><span class="detail-label">描述</span><span class="detail-value">{{ refundModal.data.description }}</span></div>
+      </div>
+      <div class="form-group">
+        <label>管理员备注（选填）</label>
+        <input v-model="refundModal.adminNote" class="form-input" placeholder="处理说明" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn-default" @click="refundModal.show = false">取消</button>
+        <button :class="refundModal.approve ? 'btn-primary' : 'btn-danger'" @click="confirmRefund" :disabled="processingAction">
+          {{ processingAction ? '处理中...' : (refundModal.approve ? '确认退款' : '确认拒绝') }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Toast 提示 ===== -->
+  <div v-if="toast.show" class="toast" :class="'toast-' + toast.type">{{ toast.msg }}</div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

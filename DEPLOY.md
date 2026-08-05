@@ -12,7 +12,15 @@
 node scripts/smoke-test.js
 ```
 
-预期输出 `通过: 117 / 失败: 0`。CI 或 git hook 里都可以跑这一步。
+预期输出 `通过: 156 / 失败: 0`。CI 或 git hook 里都可以跑这一步。
+
+如果想再深入一层，跑动态端到端：
+
+```bash
+node scripts/e2e-mock.js
+```
+
+本脚本在内存里 mock 掉 `wx-server-sdk`，把 15 个云函数串起来跑登录 → 加购 → 用券下单 → 支付回调 → 佣金结算 → 提现申请 → 管理员审批 → 佣金拆分 → 退款 → checkAdmin → chat 全链路，预期 61/61 通过。
 
 ---
 
@@ -155,12 +163,17 @@ init → login → product → cart → order → pay → agent → commission �
 
 ---
 
-## 9. 上线前检查
+## 9. 上线前检查（详见 `上线检查清单.md`）
 
-- [ ] 微信支付商户号申请完成 + 接入 `pay` 云函数（替换模拟逻辑）
-- [ ] 商品真实图片替换 `images` 字段（init 函数里的 `images: []`）
-- [ ] 修改 `commission/index.js` 和 `order/index.js` 中的 `COMMISSION_RATE`（如需调整）
-- [ ] 提交代码 → 微信开发者工具 → 上传 → 提交审核
+> 完整、按执行顺序排列的步骤见仓库根目录 **`上线检查清单.md`**，下面为速览。
+
+- [ ] **微信支付商户接入**：商户号 `1114186048` 已在云支付控制台绑定（控制台操作，需本人）
+- [ ] **切换真实支付**：`resolveUseMockPay()` 已改为「商户号已配置即自动走真实支付」，重部署 `pay` 云函数 + 真机小额验证即可（无需手动改数据库字段）
+- [ ] **商品真实图片**：补齐 `products.images`（云存储 fileID 或 CDN URL + downloadFile 域名白名单）
+- [ ] **隐私合规**：后台填《隐私保护指引》+ 代码接 `wx.requirePrivacyAuthorize` 弹窗（`user.js` 用了 `getUserProfile`）
+- [ ] **类目与资质**：选经营类目（电商/美妆个护），按需提交资质
+- [ ] **提审发布**：开发者工具上传 → 填版本号 → 后台提交审核 → 按反馈修改重提
+- [ ] 佣金比例如需调整，改 `admin_config.admin.commissionRate`（已改为动态读取，默认 0.15）
 
 ---
 
@@ -169,24 +182,34 @@ init → login → product → cart → order → pay → agent → commission �
 | 文件 | 修复内容 |
 |------|---------|
 | `cloudfunctions/init/index.js` | 重写：提取 `ensureAdminConfig`，保证任何初始化分支都会创建 admin_config |
+| `cloudfunctions/init/index.js` | `pay_config.default` 写入 `subMchId: '1114186048'` + 显式 `useMockPay: true`（仅文档不存在时） |
+| `cloudfunctions/pay/index.js` | `resolveUseMockPay()` 改为：字段缺失 + 已配 subMchId → 自动真实支付；`true` 强制 mock，`false` 强制真实。切换真实支付只需重部署 `pay` 无需改库 |
 | `cloudfunctions/admin/index.js` | `processWithdrawal` 通过时按时间顺序消费 settled 佣金并标记为 `paid`，防止重复提现 |
 | `cloudfunctions/order/index.js` | `create` 增加入参校验、商品上下架校验、库存校验、服务端重算总价；下单后清空购物车；提取 `COMMISSION_RATE` 常量 |
 | `cloudfunctions/pay/index.js` | 重构：复用 `order.updateStatus` 处理状态变更和佣金创建；增加订单归属校验 |
 | `cloudfunctions/agent/index.js` | `apply` 增加重复申请 / 已是代理 / 待审核的防护 |
 | `miniprogram/pages/agent-join/agent-join.js` | 显示后端返回的错误信息 |
 | `miniprogram/pages/checkout/checkout.js` | 支付异常时改用 `switchTab` 跳订单列表（之前用 `redirectTo` 跳 tabBar 页会失败） |
-| `scripts/smoke-test.js` | 新增：本地静态检查 + 业务规则单元测试，117 项检查 |
+| `scripts/smoke-test.js` | 新增：本地静态检查 + 业务规则单元测试，146 项检查 |
 | `scripts/setup.sh` | 已存在：依赖检查 + 部署指引 |
 
 ---
 
-## 11. 已知遗留问题（不影响 MVP 验证）
+## 11. 已知遗留问题（截至 MVP）
 
-- 购物车多商品时跳结算只取第一个 SKU 进 checkout 页——目前只有 1 个商品无影响，后续多 SKU 时需重构结算页支持多 item
-- `pages/user/user.js` 在每次 `onShow` 都调 `admin` 云函数判权限——返回 `false` 是预期，仅浪费一次调用，后续可改为只在登录后调一次
-- `index.js`、`product.js`、`checkout.js` 都有前端 `DEFAULT_PRODUCT` 降级方案——云环境未启动时会展示假数据但下单会失败，未来可去掉改用纯空状态
-- 售后/退款申请入口尚未添加（订单有 `refunding`/`refunded` 状态但前端无操作按钮）
-- 真实快递查询未对接（logistics 页只展示后端写入的物流信息）
+> 以下条目在早期文档中列为「遗留」，均已在 Phase 1/2 修复，保留记录备查：
+
+| 早期描述 | 现状 |
+|----------|------|
+| 购物车多商品跳结算只取第一个 SKU | ✅ 已修复：结算页改从 `wx.setStorageSync('checkoutItems')` 读取完整已选列表，下单后只删已结算项（见 `checkout.js` / `order.js`） |
+| `user.js` 每次 `onShow` 调 `admin` 判权限 | ✅ 已修复：按 openId 缓存到 storage，登录后只查一次 |
+| 前端 `DEFAULT_PRODUCT` 假数据降级 | ✅ 已清理 |
+| 退款申请入口未添加 | ✅ 已添加：`refund` 页 + `order-detail` 退款详情展示 |
+
+**仍未实现（Phase 4 或后续）：**
+
+- 真实快递查询未对接：`logistics` 页目前只展示后端写入的物流信息，未接入第三方物流 API（接入后需在小程序后台配置 request 合法域名）
+- 代理等级体系、拼团、会员等级、企业微信私域承接：属 Phase 4 规划（见 `私域增长与分销落地规划.md`）
 
 ---
 

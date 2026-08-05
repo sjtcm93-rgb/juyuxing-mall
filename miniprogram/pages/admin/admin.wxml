@@ -16,6 +16,20 @@
       <text>提现</text>
       <text class="tab-badge" wx:if="{{stats.pendingWithdrawals > 0}}">{{stats.pendingWithdrawals}}</text>
     </view>
+    <view class="admin-tab {{tab === 'refunds' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="refunds">
+      <text>退款</text>
+      <text class="tab-badge" wx:if="{{stats.pendingRefunds > 0}}">{{stats.pendingRefunds}}</text>
+    </view>
+    <view class="admin-tab {{tab === 'products' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="products">
+      <text>商品</text>
+    </view>
+    <view class="admin-tab {{tab === 'banners' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="banners">
+      <text>Banner</text>
+    </view>
+    <view class="admin-tab {{tab === 'chat' ? 'tab-active' : ''}}" bindtap="switchTab" data-tab="chat">
+      <text>客服</text>
+      <text class="tab-badge" wx:if="{{chatUnreadCount > 0}}">{{chatUnreadCount}}</text>
+    </view>
   </view>
 
   <!-- 概览 -->
@@ -23,24 +37,51 @@
     <view class="stats-grid">
       <view class="stat-card"><text class="stat-num">{{stats.totalOrders}}</text><text>总订单</text></view>
       <view class="stat-card"><text class="stat-num">{{stats.paidOrders}}</text><text>待发货</text></view>
-      <view class="stat-card"><text class="stat-num">{{(stats.totalSales/100).toFixed(0)}}</text><text>销售额(元)</text></view>
+      <view class="stat-card"><text class="stat-num">{{ stats.totalSalesText }}</text><text>销售额(元)</text></view>
       <view class="stat-card"><text class="stat-num">{{stats.pendingAgents}}</text><text>待审代理</text></view>
+      <view class="stat-card"><text class="stat-num">{{stats.pendingWithdrawals}}</text><text>待处理提现</text></view>
+      <view class="stat-card"><text class="stat-num">{{stats.pendingRefunds}}</text><text>待处理退款</text></view>
     </view>
     <view class="section-title" style="padding:30rpx 32rpx 16rpx">快捷操作</view>
     <view class="quick-actions">
+      <navigator url="/pages/shop-editor/shop-editor" class="quick-action qa-editor">
+        <image class="qa-icon-img" src="/images/icons/edit.png" mode="aspectFit"></image>
+        <text class="qa-text">商城编辑器（商品 + 轮播图）</text>
+        <text class="qa-arrow">›</text>
+      </navigator>
       <view class="quick-action" bindtap="switchTab" data-tab="orders">
-        <text class="qa-icon">📦</text>
+        <image class="qa-icon-img" src="/images/icons/package.png" mode="aspectFit"></image>
         <text class="qa-text">待发货订单 ({{stats.paidOrders}})</text>
         <text class="qa-arrow">›</text>
       </view>
       <view class="quick-action" bindtap="switchTab" data-tab="agents">
-        <text class="qa-icon">👥</text>
+        <image class="qa-icon-img" src="/images/icons/people.png" mode="aspectFit"></image>
         <text class="qa-text">代理审核 ({{stats.pendingAgents}})</text>
         <text class="qa-arrow">›</text>
       </view>
       <view class="quick-action" bindtap="switchTab" data-tab="withdrawals">
-        <text class="qa-icon">💰</text>
+        <image class="qa-icon-img" src="/images/icons/money.png" mode="aspectFit"></image>
         <text class="qa-text">提现处理 ({{stats.pendingWithdrawals}})</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="refunds">
+        <image class="qa-icon-img" src="/images/icons/return.png" mode="aspectFit"></image>
+        <text class="qa-text">退款处理 ({{stats.pendingRefunds}})</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="products">
+        <image class="qa-icon-img" src="/images/icons/shop.png" mode="aspectFit"></image>
+        <text class="qa-text">商品管理</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="banners">
+        <image class="qa-icon-img" src="/images/icons/image.png" mode="aspectFit"></image>
+        <text class="qa-text">轮播图管理</text>
+        <text class="qa-arrow">›</text>
+      </view>
+      <view class="quick-action" bindtap="switchTab" data-tab="chat">
+        <image class="qa-icon-img" src="/images/icons/chat.png" mode="aspectFit"></image>
+        <text class="qa-text">客服消息</text>
         <text class="qa-arrow">›</text>
       </view>
     </view>
@@ -48,11 +89,17 @@
 
   <!-- 订单管理 -->
   <view wx:elif="{{tab === 'orders'}}">
-    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待发货订单</view>
+    <view class="filter-bar">
+      <view class="filter-btn {{orderFilter === 'paid' ? 'filter-active' : ''}}" bindtap="switchOrderFilter" data-filter="paid">待发货</view>
+      <view class="filter-btn {{orderFilter === 'shipped' ? 'filter-active' : ''}}" bindtap="switchOrderFilter" data-filter="shipped">已发货</view>
+      <view class="filter-btn {{orderFilter === 'received' ? 'filter-active' : ''}}" bindtap="switchOrderFilter" data-filter="received">已收货</view>
+      <view class="filter-btn {{orderFilter === 'refunded' ? 'filter-active' : ''}}" bindtap="switchOrderFilter" data-filter="refunded">已退款</view>
+      <view class="filter-btn {{orderFilter === 'all' ? 'filter-active' : ''}}" bindtap="switchOrderFilter" data-filter="all">全部</view>
+    </view>
     <view class="order-item" wx:for="{{orders}}" wx:key="_id" wx:for-item="ord">
       <view class="oi-header">
         <text class="oi-no">{{ord.orderNo}}</text>
-        <text class="oi-status tag-paid">已支付</text>
+        <text class="oi-status {{ord.status === 'paid' ? 'tag-paid' : ord.status === 'shipped' ? 'tag-shipped' : ord.status === 'received' ? 'tag-received' : ord.status === 'refunded' ? 'tag-refunded' : 'tag-pending'}}">{{ ord.statusText }}</text>
       </view>
       <view class="oi-products" wx:for="{{ord.items || []}}" wx:key="productId">
         <text class="oi-product">
@@ -60,7 +107,7 @@
         </text>
       </view>
       <view class="oi-footer">
-        <text class="oi-total">¥{{(ord.totalFee/100).toFixed(2)}}</text>
+        <text class="oi-total">¥{{ ord.totalFeeText }}</text>
         <view class="oi-ship-form" wx:if="{{shipTarget === ord._id}}">
           <input class="ship-input" placeholder="物流公司" data-order-id="{{ord._id}}" bindinput="onCompanyInput" />
           <input class="ship-input" placeholder="运单号" bindinput="onTrackingInput" />
@@ -69,53 +116,279 @@
             <button class="ship-cancel" bindtap="cancelShip">取消</button>
           </view>
         </view>
-        <button class="oi-ship-btn" wx:else bindtap="showShipForm" data-order-id="{{ord._id}}">发货</button>
+        <view wx:elif="{{ord.status === 'paid'}}">
+          <button class="oi-ship-btn" bindtap="showShipForm" data-order-id="{{ord._id}}">发货</button>
+        </view>
+        <view wx:elif="{{ord.status === 'shipped' && ord.logistics}}" class="oi-logistics">
+          <text class="oi-logistics-info">{{ord.logistics.company}} {{ord.logistics.trackingNo}}</text>
+        </view>
       </view>
     </view>
     <view class="empty-wrap" wx:if="{{orders.length === 0}}">
-      <text class="empty-text">没有待发货的订单</text>
+      <text class="empty-text">暂无订单</text>
     </view>
   </view>
 
   <!-- 代理审核 -->
   <view wx:elif="{{tab === 'agents'}}">
-    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待审核代理</view>
+    <view class="filter-bar">
+      <view class="filter-btn {{agentFilter === 'pending' ? 'filter-active' : ''}}" bindtap="switchAgentFilter" data-filter="pending">待审核</view>
+      <view class="filter-btn {{agentFilter === 'active' ? 'filter-active' : ''}}" bindtap="switchAgentFilter" data-filter="active">已通过</view>
+      <view class="filter-btn {{agentFilter === 'rejected' ? 'filter-active' : ''}}" bindtap="switchAgentFilter" data-filter="rejected">已拒绝</view>
+      <view class="filter-btn {{agentFilter === 'all' ? 'filter-active' : ''}}" bindtap="switchAgentFilter" data-filter="all">全部</view>
+    </view>
     <view class="agent-card" wx:for="{{pendingAgents}}" wx:key="_id">
       <view class="ac-top">
         <image class="ac-avatar" src="{{item.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
         <view class="ac-info">
-          <text class="ac-name">{{item.agentInfo?.name || item.nickName || '未知用户'}}</text>
-          <text class="ac-contact">微信：{{item.agentInfo?.wechat || '-'}} | 手机：{{item.agentInfo?.phone || '-'}}</text>
+          <text class="ac-name">{{item.agentName || item.nickName || '未知用户'}}</text>
+          <text class="ac-contact">微信：{{item.agentWechat || '-'}} | 手机：{{item.agentPhone || '-'}}</text>
+          <text class="ac-status-tag {{item.agentStatus === 'pending' ? 'tag-pending' : item.agentStatus === 'active' ? 'tag-paid' : 'tag-rejected'}}">{{item.agentStatus === 'pending' ? '待审核' : item.agentStatus === 'active' ? '已通过' : item.agentStatus === 'rejected' ? '已拒绝' : '-'}}</text>
         </view>
       </view>
-      <text class="ac-reason" wx:if="{{item.agentInfo?.reason}}">申请理由：{{item.agentInfo.reason}}</text>
-      <view class="ac-actions">
-        <button class="ac-approve" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="true">通过</button>
-        <button class="ac-reject" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="false">拒绝</button>
+      <text class="ac-reason" wx:if="{{item.agentReason}}">申请理由：{{item.agentReason}}</text>
+      <view class="ac-actions" wx:if="{{item.agentStatus === 'pending'}}">
+        <button class="ac-approve" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="{{true}}">通过</button>
+        <button class="ac-reject" bindtap="approveAgent" data-user-id="{{item._id}}" data-approve="{{false}}">拒绝</button>
       </view>
     </view>
     <view class="empty-wrap" wx:if="{{pendingAgents.length === 0}}">
-      <text class="empty-text">没有待审核的代理申请</text>
+      <text class="empty-text">暂无代理记录</text>
     </view>
   </view>
 
   <!-- 提现处理 -->
   <view wx:elif="{{tab === 'withdrawals'}}">
-    <view class="section-title" style="padding:24rpx 32rpx 12rpx">待处理提现</view>
+    <view class="filter-bar">
+      <view class="filter-btn {{withdrawalFilter === 'pending' ? 'filter-active' : ''}}" bindtap="switchWithdrawalFilter" data-filter="pending">待处理</view>
+      <view class="filter-btn {{withdrawalFilter === 'approved' ? 'filter-active' : ''}}" bindtap="switchWithdrawalFilter" data-filter="approved">已打款</view>
+      <view class="filter-btn {{withdrawalFilter === 'rejected' ? 'filter-active' : ''}}" bindtap="switchWithdrawalFilter" data-filter="rejected">已拒绝</view>
+      <view class="filter-btn {{withdrawalFilter === 'all' ? 'filter-active' : ''}}" bindtap="switchWithdrawalFilter" data-filter="all">全部</view>
+    </view>
     <view class="wd-card" wx:for="{{pendingWithdrawals}}" wx:key="_id">
       <view class="wd-top">
-        <text class="wd-amount">¥{{(item.amount/100).toFixed(2)}}</text>
-        <text class="wd-status tag-pending">待审核</text>
+        <text class="wd-amount">¥{{ item.amountText }}</text>
+        <text class="oi-status {{item.status === 'pending' ? 'tag-pending' : item.status === 'approved' ? 'tag-paid' : 'tag-rejected'}}">{{item.status === 'pending' ? '待审核' : item.status === 'approved' ? '已打款' : '已拒绝'}}</text>
       </view>
       <text class="wd-info">收款人：{{item.name}} | 账号：{{item.account}}</text>
-      <text class="wd-time">{{formatTime(item.createTime)}}</text>
-      <view class="wd-actions">
-        <button class="ac-approve" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="true">确认打款</button>
-        <button class="ac-reject" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="false">拒绝</button>
+      <text class="wd-time">{{ item.createTimeText }}</text>
+      <view class="wd-actions" wx:if="{{item.status === 'pending'}}">
+        <button class="ac-approve" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="{{true}}">确认打款</button>
+        <button class="ac-reject" bindtap="processWithdrawal" data-wd-id="{{item._id}}" data-approve="{{false}}">拒绝</button>
       </view>
     </view>
     <view class="empty-wrap" wx:if="{{pendingWithdrawals.length === 0}}">
-      <text class="empty-text">没有待处理的提现申请</text>
+      <text class="empty-text">暂无提现记录</text>
+    </view>
+  </view>
+
+  <!-- 退款处理 -->
+  <view wx:elif="{{tab === 'refunds'}}">
+    <view class="filter-bar">
+      <view class="filter-btn {{refundFilter === 'pending' ? 'filter-active' : ''}}" bindtap="switchRefundFilter" data-filter="pending">待处理</view>
+      <view class="filter-btn {{refundFilter === 'approved' ? 'filter-active' : ''}}" bindtap="switchRefundFilter" data-filter="approved">已同意</view>
+      <view class="filter-btn {{refundFilter === 'rejected' ? 'filter-active' : ''}}" bindtap="switchRefundFilter" data-filter="rejected">已拒绝</view>
+      <view class="filter-btn {{refundFilter === 'all' ? 'filter-active' : ''}}" bindtap="switchRefundFilter" data-filter="all">全部</view>
+    </view>
+    <view class="rf-card" wx:for="{{pendingRefunds}}" wx:key="_id" wx:for-item="rf">
+      <view class="rf-header">
+        <text class="rf-order-no">订单号：{{rf.orderNo}}</text>
+        <text class="rf-reason">原因：{{rf.reason}}</text>
+        <text class="oi-status {{rf.status === 'pending' ? 'tag-pending' : rf.status === 'approved' ? 'tag-refunded' : 'tag-rejected'}}">{{rf.status === 'pending' ? '待处理' : rf.status === 'approved' ? '已同意' : '已拒绝'}}</text>
+      </view>
+      <view class="rf-desc" wx:if="{{rf.description}}">
+        <text>描述：{{rf.description}}</text>
+      </view>
+      <view class="rf-order-info" wx:if="{{rf.order}}">
+        <text class="rf-product" wx:for="{{rf.order.items || []}}" wx:key="productId" wx:for-item="prod">
+          {{prod.name}} × {{prod.quantity}}
+        </text>
+        <text class="rf-total">订单金额：¥{{ rf.order.totalFeeText }}</text>
+      </view>
+      <view class="rf-time">
+        <text>申请时间：{{ rf.createTimeText }}</text>
+      </view>
+      <view class="rf-admin-note" wx:if="{{rf.adminNote}}">
+        <text>处理备注：{{rf.adminNote}}</text>
+      </view>
+      <view class="rf-note-input" wx:if="{{rf.status === 'pending'}}">
+        <input class="ship-input" placeholder="处理备注（选填）" bindinput="onRefundNoteInput" data-refund-id="{{rf._id}}" />
+      </view>
+      <view class="rf-actions" wx:if="{{rf.status === 'pending'}}">
+        <button class="ac-approve" bindtap="processRefund" data-refund-id="{{rf._id}}" data-approve="{{true}}">同意退款</button>
+        <button class="ac-reject" bindtap="processRefund" data-refund-id="{{rf._id}}" data-approve="{{false}}">拒绝</button>
+      </view>
+    </view>
+    <view class="empty-wrap" wx:if="{{pendingRefunds.length === 0}}">
+      <text class="empty-text">暂无退款记录</text>
+    </view>
+  </view>
+
+  <!-- 商品管理 -->
+  <view wx:elif="{{tab === 'products'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">商品管理</view>
+    <button class="btn-add-product" bindtap="showProductForm">+ 新增商品</button>
+
+    <view class="product-list" wx:if="{{!showProductForm}}">
+      <view class="prod-card" wx:for="{{products}}" wx:key="_id" wx:for-item="p">
+        <view class="prod-header">
+          <text class="prod-name">{{p.name}}</text>
+          <text class="prod-status {{p.status === 'on' ? 'tag-paid' : 'tag-pending'}}">{{p.status === 'on' ? '上架' : '下架'}}</text>
+        </view>
+        <text class="prod-subtitle" wx:if="{{p.subtitle}}">{{p.subtitle}}</text>
+        <view class="prod-meta">
+          <text class="prod-price">¥{{ p.priceText }}</text>
+          <text class="prod-stock">库存：{{p.stock || 0}}</text>
+        </view>
+        <view class="prod-actions">
+          <button class="ac-edit" bindtap="showProductForm" data-id="{{p._id}}">编辑</button>
+          <button class="ac-toggle" bindtap="toggleProductStatus" data-id="{{p._id}}">{{p.status === 'on' ? '下架' : '上架'}}</button>
+          <button class="ac-reject" bindtap="deleteProduct" data-id="{{p._id}}">删除</button>
+        </view>
+      </view>
+      <view class="empty-wrap" wx:if="{{products.length === 0}}">
+        <text class="empty-text">还没有商品，点击上方新增</text>
+      </view>
+    </view>
+
+    <!-- 商品表单 -->
+    <view class="product-form" wx:if="{{showProductForm}}">
+      <view class="form-section">
+        <view class="form-group">
+          <text class="form-label">商品名称 *</text>
+          <input class="form-input" placeholder="例如：小紫瓶" value="{{productForm.name}}" data-field="name" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">副标题</text>
+          <input class="form-input" placeholder="例如：皮肤舒缓退热凝胶" value="{{productForm.subtitle}}" data-field="subtitle" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">售价（元） *</text>
+          <input class="form-input" type="digit" placeholder="例如：69" value="{{productForm.price}}" data-field="price" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">原价（元）</text>
+          <input class="form-input" type="digit" placeholder="例如：78" value="{{productForm.originalPrice}}" data-field="originalPrice" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">库存</text>
+          <input class="form-input" type="number" placeholder="例如：999" value="{{productForm.stock}}" data-field="stock" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">规格（逗号分隔）</text>
+          <input class="form-input" placeholder="例如：13.5g,27g" value="{{productForm.specs}}" data-field="specs" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">分类</text>
+          <input class="form-input" placeholder="例如：护肤品" value="{{productForm.category}}" data-field="category" bindinput="onProductInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">图片链接（每行一个）</text>
+          <textarea class="form-textarea" placeholder="每行填一个图片链接" value="{{productForm.images}}" data-field="images" bindinput="onProductInput"></textarea>
+        </view>
+        <view class="form-group">
+          <text class="form-label">商品描述</text>
+          <textarea class="form-textarea" placeholder="支持 HTML 标签" value="{{productForm.description}}" data-field="description" bindinput="onProductInput"></textarea>
+        </view>
+        <view class="form-group">
+          <text class="form-label">状态</text>
+          <view class="radio-group">
+            <view class="radio-item {{productForm.status === 'on' ? 'radio-active' : ''}}" bindtap="onProductInput" data-field="status" data-value="on">
+              <text>上架</text>
+            </view>
+            <view class="radio-item {{productForm.status === 'off' ? 'radio-active' : ''}}" bindtap="onProductInput" data-field="status" data-value="off">
+              <text>下架</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="form-actions">
+        <button class="btn-primary form-save" bindtap="saveProduct">{{editingProductId ? '保存修改' : '创建商品'}}</button>
+        <button class="btn-secondary form-cancel" bindtap="hideProductForm">取消</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- Banner 管理 -->
+  <view wx:elif="{{tab === 'banners'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">轮播图管理</view>
+    <button class="btn-add-product" bindtap="showBannerForm">+ 新增轮播图</button>
+
+    <view class="banner-list" wx:if="{{!showBannerForm}}">
+      <view class="bn-card" wx:for="{{banners}}" wx:key="_id" wx:for-item="bn">
+        <image class="bn-image" src="{{bn.imageUrl}}" mode="aspectFill"></image>
+        <view class="bn-info">
+          <text class="bn-title" wx:if="{{bn.title}}">{{bn.title}}</text>
+          <text class="bn-link" wx:if="{{bn.linkUrl}}">链接：{{bn.linkUrl}}</text>
+          <text class="bn-sort">排序：{{bn.sort || 0}} | 状态：{{bn.status === 'on' ? '启用' : '禁用'}}</text>
+        </view>
+        <view class="bn-actions">
+          <button class="ac-edit" bindtap="showBannerForm" data-id="{{bn._id}}">编辑</button>
+          <button class="ac-toggle" bindtap="toggleBanner" data-id="{{bn._id}}">{{bn.status === 'on' ? '禁用' : '启用'}}</button>
+          <button class="ac-reject" bindtap="deleteBanner" data-id="{{bn._id}}">删除</button>
+        </view>
+      </view>
+      <view class="empty-wrap" wx:if="{{banners.length === 0}}">
+        <text class="empty-text">还没有轮播图，点击上方新增</text>
+      </view>
+    </view>
+
+    <!-- Banner 表单 -->
+    <view class="product-form" wx:if="{{showBannerForm}}">
+      <view class="form-section">
+        <view class="form-group">
+          <text class="form-label">图片链接 *</text>
+          <input class="form-input" placeholder="https://example.com/banner.jpg" value="{{bannerForm.imageUrl}}" data-field="imageUrl" bindinput="onBannerInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">跳转链接</text>
+          <input class="form-input" placeholder="/pages/product/product?id=xxx" value="{{bannerForm.linkUrl}}" data-field="linkUrl" bindinput="onBannerInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">标题</text>
+          <input class="form-input" placeholder="例如：新品上市" value="{{bannerForm.title}}" data-field="title" bindinput="onBannerInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">排序（数字越小越靠前）</text>
+          <input class="form-input" type="number" placeholder="0" value="{{bannerForm.sort}}" data-field="sort" bindinput="onBannerInput" />
+        </view>
+        <view class="form-group">
+          <text class="form-label">状态</text>
+          <view class="radio-group">
+            <view class="radio-item {{bannerForm.status === 'on' ? 'radio-active' : ''}}" bindtap="onBannerInput" data-field="status" data-value="on">
+              <text>启用</text>
+            </view>
+            <view class="radio-item {{bannerForm.status === 'off' ? 'radio-active' : ''}}" bindtap="onBannerInput" data-field="status" data-value="off">
+              <text>禁用</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="form-actions">
+        <button class="btn-primary form-save" bindtap="saveBanner">{{editingBannerId ? '保存修改' : '创建轮播图'}}</button>
+        <button class="btn-secondary form-cancel" bindtap="hideBannerForm">取消</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 客服会话 -->
+  <view wx:elif="{{tab === 'chat'}}">
+    <view class="section-title" style="padding:24rpx 32rpx 12rpx">客服会话</view>
+    <view class="chat-conv-list">
+      <view class="chat-conv" wx:for="{{chatConversations}}" wx:key="conversationId" bindtap="enterChat" data-index="{{index}}">
+        <image class="chat-conv-avatar" src="{{item.userInfo.avatarUrl || '../../images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+        <view class="chat-conv-body">
+          <view class="chat-conv-top">
+            <text class="chat-conv-name">{{item.userInfo.nickName}}</text>
+            <text class="chat-conv-time">{{ item.lastMessage.createTimeText }}</text>
+          </view>
+          <text class="chat-conv-last">{{item.lastMessage.content}}</text>
+        </view>
+        <view class="chat-conv-badge" wx:if="{{item.unreadCount > 0}}">{{item.unreadCount}}</view>
+      </view>
+      <view class="empty-wrap" wx:if="{{chatConversations.length === 0}}">
+        <text class="empty-text">暂无客服消息</text>
+      </view>
     </view>
   </view>
 </view>

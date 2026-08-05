@@ -1,0 +1,52 @@
+<view class="page-wrap referral-page">
+  <view class="referral-header">
+    <view class="header-title">邀请好友 共享好礼</view>
+    <view class="header-sub">把好物分享给身边需要的人，双方都有惊喜</view>
+  </view>
+
+  <view class="card rule-card">
+    <view class="rule-title">奖励规则</view>
+    <view class="rule-step">
+      <view class="step-num">1</view>
+      <view class="step-text">点击「立即邀请」，把小程序分享给好友</view>
+    </view>
+    <view class="rule-step">
+      <view class="step-num">2</view>
+      <view class="step-text">好友通过你的链接首次下单并支付成功</view>
+    </view>
+    <view class="rule-step">
+      <view class="step-num">3</view>
+      <view class="step-text">你获得 5 元复购券，好友也能使用新人券</view>
+    </view>
+  </view>
+
+  <view class="card stats-card" wx:if="{{isLoggedIn && !loading}}">
+    <view class="stat-item">
+      <view class="stat-num">{{stats.successCount}}</view>
+      <view class="stat-label">成功邀请</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-num">{{stats.rewardCount}}</view>
+      <view class="stat-label">获得奖励券</view>
+    </view>
+  </view>
+
+  <view class="action-area" wx:if="{{isLoggedIn}}">
+    <button class="btn-primary share-btn" open-type="share">立即邀请好友</button>
+    <button class="btn-secondary" bindtap="copyLink">复制邀请链接</button>
+    <button class="btn-text" bindtap="goCoupons">查看我的优惠券 ›</button>
+  </view>
+
+  <view class="action-area" wx:if="{{!isLoggedIn}}">
+    <view class="login-tip">登录后即可查看专属邀请链接和奖励</view>
+    <button class="btn-primary" bindtap="goLogin">去登录</button>
+  </view>
+
+  <view class="referral-tips">
+    <view class="tip-title">温馨提示</view>
+    <view class="tip-item">· 邀请奖励会在好友完成首单支付后自动到账</view>
+    <view class="tip-item">· 奖励券可在「我的优惠券」中查看，满 78 元可用</view>
+    <view class="tip-item">· 分享时请勿使用夸大或医疗功效描述</view>
+  </view>
+</view>

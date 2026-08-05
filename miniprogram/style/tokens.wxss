@@ -1,0 +1,84 @@
+/* 橘与杏 · 本草志 v2 — 小程序 tokens（rpx 版） */
+page {
+  /* 画布 */
+  --color-bg:         #FAF6F0;
+  --color-bg-pale:    #F5EFE6;
+  --color-bg-soft:    #F0E8DC;
+  --color-card:       #FFFFFF;
+  --color-card-soft:  #FDFBF8;
+
+  /* 文字 */
+  --color-text:        #2A2622;
+  --color-text-sub:    #5C544B;
+  --color-text-muted:  #8B8278;
+  --color-text-faint:  #C4BDB5;
+  --color-text-disabled: #D9D2C8;
+
+  /* 主题色：墨绿 */
+  --color-primary:      #2D4A3E;
+  --color-primary-soft: #5C7868;
+  --color-primary-dark: #1A2E25;
+
+  /* 强调色：朱砂 */
+  --color-accent:       #C8553D;
+  --color-accent-soft:  #E07A5F;
+
+  /* 辅助：杏 / 苔藓 */
+  --color-warm:        #E8A87C;
+  --color-warm-soft:   #F5D6B8;
+  --color-leaf:        #8BA888;
+  --color-leaf-soft:   #B5C9B0;
+
+  /* 语义色 */
+  --color-success:     #6B8E5A;
+  --color-warning:     #D89E4F;
+  --color-danger:      #C8553D;
+  --color-info:        #5B7B9D;
+
+  /* 边框 / 分割 */
+  --color-border:        #E5DDD0;
+  --color-divider:       #EFE7D8;
+  --color-divider-strong:#D4C9B8;
+
+  /* 字体 */
+  --font-sans:  -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-family: var(--font-sans);
+
+  /* 字号（rpx） */
+  --fs-xs: 22rpx;
+  --fs-sm: 26rpx;
+  --fs-md: 30rpx;
+  --fs-lg: 34rpx;
+  --fs-xl: 40rpx;
+  --fs-2xl: 48rpx;
+  --fs-3xl: 56rpx;
+
+  /* 间距（rpx） */
+  --space-2xs: 4rpx;
+  --space-xs:  8rpx;
+  --space-sm:  16rpx;
+  --space-md:  24rpx;
+  --space-lg:  32rpx;
+  --space-xl:  48rpx;
+  --space-2xl: 64rpx;
+
+  /* 圆角 */
+  --radius-xs:  4rpx;
+  --radius-sm:  12rpx;
+  --radius-md:  20rpx;
+  --radius-lg:  28rpx;
+  --radius-xl:  40rpx;
+  --radius-pill: 999rpx;
+
+  /* 阴影（更柔更克制） */
+  --shadow-xs: 0 2rpx 6rpx rgba(42,38,34,.04);
+  --shadow-sm: 0 4rpx 16rpx rgba(42,38,34,.06);
+  --shadow-md: 0 8rpx 32rpx rgba(42,38,34,.08);
+  --shadow-lg: 0 16rpx 48rpx rgba(42,38,34,.12);
+  --shadow-float: 0 12rpx 36rpx rgba(45,74,62,.18);
+
+  /* 旧名兼容 —— 平滑迁移期间保留 */
+  --color-primary-light: var(--color-warm-soft);
+  --color-secondary:     var(--color-leaf);
+}

@@ -1,4 +1,8 @@
 {
-  "usingComponents": {},
-  "navigationBarTitleText": "商品详情"
+  "navigationBarTitleText": "商品详情",
+  "usingComponents": {
+    "skeleton": "/components/skeleton/skeleton",
+    "error-state": "/components/error-state/error-state",
+    "spec-picker": "/components/spec-picker/spec-picker"
+  }
 }

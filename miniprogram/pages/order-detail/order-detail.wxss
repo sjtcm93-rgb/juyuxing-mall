@@ -1,57 +1,274 @@
+/* ====== 调试状态条（上线前移除） ====== */
+.debug-state {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.85);
+  color: #0f0;
+  font-size: 20rpx;
+  padding: 6rpx 16rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-family: monospace;
+}
+.debug-tag {
+  background: #ff0;
+  color: #000;
+  padding: 0 8rpx;
+  border-radius: 4rpx;
+  font-weight: bold;
+}
+
+/* ====== 页面容器 ====== */
+.page-wrap {
+  min-height: 100vh;
+  padding-top: 20rpx;
+  padding-bottom: 30rpx;
+}
+
+/* ====== 顶部状态条 ====== */
 .status-bar {
-  display:flex; align-items:center; padding:40rpx 32rpx;
-  margin:20rpx; border-radius:20rpx;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
+  color: #FFFFFF;
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin: 0 var(--space-md) var(--space-sm);
+  border-radius: var(--radius-md);
 }
-.bg-pending { background:linear-gradient(135deg,#FFF3E0,#FFFBF7); }
-.bg-paid { background:linear-gradient(135deg,#E8F5E9,#F1F8E9); }
-.bg-shipped { background:linear-gradient(135deg,#E3F2FD,#E8F5F5); }
-.bg-received { background:linear-gradient(135deg,#E8F5E9,#F1F8E9); }
-.status-icon { font-size:56rpx; margin-right:24rpx; }
-.status-text { flex:1; }
-.status-title { font-size:34rpx; font-weight:600; color:#4A3F35; display:block; }
-.status-desc { font-size:24rpx; color:#8B7E72; margin-top:4rpx; display:block; }
-.address-card {
-  display:flex; align-items:flex-start;
-  background:#FFFFFF; margin:20rpx; padding:28rpx 32rpx;
-  border-radius:20rpx; box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06);
+.status-icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.address-icon { font-size:36rpx; margin-right:16rpx; margin-top:4rpx; }
-.address-info { flex:1; }
-.address-top { display:flex; gap:16rpx; margin-bottom:6rpx; }
-.address-name { font-size:30rpx; font-weight:500; color:#4A3F35; }
-.address-phone { font-size:28rpx; color:#8B7E72; }
-.address-detail { font-size:26rpx; color:#8B7E72; line-height:1.5; }
-.section {
-  background:#FFFFFF; margin:20rpx; border-radius:20rpx;
-  box-shadow:0 2rpx 12rpx rgba(74,63,53,0.06); overflow:hidden;
+.status-ok {
+  background: rgba(255,255,255,.2);
+  position: relative;
 }
-.section-header {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:28rpx 32rpx 16rpx;
+.status-ok::after {
+  content: '';
+  width: 14rpx;
+  height: 26rpx;
+  border: solid #FFFFFF;
+  border-width: 0 4rpx 4rpx 0;
+  transform: rotate(45deg);
+  margin-top: -4rpx;
 }
-.section-title { font-size:30rpx; font-weight:600; color:#4A3F35; }
-.section-more { font-size:24rpx; color:#B0A59A; }
-.order-product {
-  display:flex; align-items:center; padding:20rpx 32rpx;
-  border-bottom:2rpx solid #F0E8E0;
+.status-return {
+  background: rgba(255,255,255,.2);
+  position: relative;
 }
-.prod-img { width:100rpx; height:100rpx; border-radius:12rpx; background:#F5F0EB; margin-right:20rpx; }
-.prod-info { flex:1; }
-.prod-name { font-size:28rpx; color:#4A3F35; display:block; }
-.prod-spec { font-size:24rpx; color:#B0A59A; display:block; }
-.prod-price-area { text-align:right; }
-.prod-price { font-size:28rpx; color:#E0725A; font-weight:500; display:block; }
-.prod-qty { font-size:24rpx; color:#B0A59A; }
-.order-summary { padding:20rpx 32rpx; }
-.summary-row {
-  display:flex; justify-content:space-between;
-  padding:10rpx 0; font-size:26rpx; color:#8B7E72;
+.status-return::after {
+  content: '';
+  width: 18rpx;
+  height: 18rpx;
+  border: solid #FFFFFF;
+  border-width: 4rpx 4rpx 0 0;
+  transform: rotate(45deg);
+  position: relative;
+  left: -4rpx;
 }
-.logistics-info { padding:0 32rpx 28rpx; font-size:26rpx; color:#8B7E72; display:block; }
+.status-info { flex: 1; }
+.status-title { display: block; font-size: var(--fs-md); font-weight: 600; margin-bottom: 8rpx; }
+.status-desc { font-size: var(--fs-sm); opacity: 0.9; }
+
+/* ====== 卡片区域 ====== */
+.section { padding: var(--space-md); margin-bottom: var(--space-sm); }
+
+/* 地址 */
+.address-card { display: flex; flex-direction: column; gap: 12rpx; }
+.address-name-row { display: flex; gap: var(--space-sm); align-items: center; }
+.address-name { font-size: var(--fs-md); font-weight: 600; color: var(--color-text); }
+.address-phone { font-size: var(--fs-sm); color: var(--color-text-sub); }
+.address-detail { font-size: var(--fs-sm); color: var(--color-text); line-height: 1.6; }
+
+/* 商品行 */
+.prod-row { display: flex; align-items: center; padding: var(--space-sm) 0; }
+.prod-img { width: 140rpx; height: 140rpx; border-radius: var(--radius-sm); background: var(--color-bg-soft); flex-shrink: 0; }
+.prod-info { flex: 1; margin-left: var(--space-sm); display: flex; flex-direction: column; gap: 4rpx; }
+.prod-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  line-height: 1.4;
+}
+.prod-spec { font-size: var(--fs-xs); color: var(--color-text-sub); }
+.prod-price-area { display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; }
+.prod-price { color: var(--color-primary-dark); font-weight: 600; font-size: var(--fs-sm); }
+.prod-qty { color: var(--color-text-muted); font-size: var(--fs-xs); }
+.empty-hint {
+  display: block;
+  text-align: center;
+  padding: 40rpx 0;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+}
+
+/* 金额汇总 */
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+}
+.total-row.total { padding-top: 16rpx; border-top: 2rpx solid var(--color-divider); }
+.total-price { color: var(--color-primary-dark); font-size: var(--fs-lg); font-weight: 600; }
+.discount { color: var(--color-primary-dark); }
+
+/* 物流 */
+.logistics {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md);
+}
+.logistics-label {
+  width: 100rpx;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  flex-shrink: 0;
+}
+.logistics-info { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.logistics-company { font-size: var(--fs-sm); color: var(--color-text); }
+.logistics-no { font-size: var(--fs-xs); color: var(--color-text-muted); }
+.logistics .arrow { font-size: 36rpx; color: var(--color-text-muted); }
+
+/* 订单信息 */
+.order-info { padding: var(--space-md); }
+.info-row { display: flex; padding: 12rpx 0; align-items: center; }
+.info-label { width: 140rpx; color: var(--color-text-sub); font-size: var(--fs-sm); flex-shrink: 0; }
+.info-value { flex: 1; color: var(--color-text); font-size: var(--fs-sm); word-break: break-all; }
+.info-value.mono { font-family: monospace; }
+.copy-btn { color: var(--color-primary-dark); font-size: var(--fs-xs); padding: 4rpx 12rpx; }
+
+/* 时间线 */
+.timeline-section { padding: var(--space-md); }
+.section-title {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--color-text-sub);
+  margin-bottom: var(--space-sm);
+  font-weight: 500;
+}
+.timeline { position: relative; padding-left: 32rpx; }
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8rpx;
+  top: 12rpx;
+  bottom: 12rpx;
+  width: 2rpx;
+  background: var(--color-divider);
+}
+.tl-item { position: relative; padding: 12rpx 0; }
+.tl-dot {
+  position: absolute;
+  left: -28rpx;
+  top: 18rpx;
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: var(--color-divider);
+  border: 2rpx solid var(--color-bg);
+}
+.tl-done .tl-dot { background: var(--color-primary); }
+.tl-content { display: flex; flex-direction: column; gap: 4rpx; }
+.tl-label { font-size: var(--fs-sm); color: var(--color-text); }
+.tl-time { font-size: var(--fs-xs); color: var(--color-text-muted); }
+.tl-pending .tl-label,
+.tl-pending .tl-time { color: var(--color-text-muted); }
+
+/* 退款详情 */
+.refund-detail { padding: var(--space-md); }
+.refund-row {
+  display: flex;
+  padding: 12rpx 0;
+  align-items: flex-start;
+}
+.refund-label {
+  width: 140rpx;
+  color: var(--color-text-sub);
+  font-size: var(--fs-sm);
+  flex-shrink: 0;
+}
+.refund-value {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
+/* ====== 错误状态 ====== */
+.err-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 32rpx;
+  background: var(--color-bg);
+  min-height: 60vh;
+}
+.err-icon { font-size: 96rpx; margin-bottom: 16rpx; }
+.err-text { color: var(--color-text-sub); font-size: var(--fs-sm); margin-bottom: 8rpx; }
+.err-btn {
+  margin-top: 32rpx;
+  padding: 0 48rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  border: none;
+}
+.err-btn::after { border: none; }
+.err-btn-hover { opacity: 0.85; }
+
+/* ====== 底部操作栏 ====== */
 .bottom-actions {
-  display:flex; gap:20rpx;
-  padding:20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom,0));
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-card);
+  border-top: 2rpx solid var(--color-divider);
+  padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0));
+  z-index: 10;
 }
-.bottom-actions .btn-primary { flex:1; height:80rpx; line-height:80rpx; font-size:30rpx; }
-.bottom-actions .btn-secondary { flex:1; height:80rpx; line-height:80rpx; font-size:28rpx; }
-.page-wrap { padding-bottom: 20rpx; }
+.action-btn {
+  flex: 1;
+  height: 72rpx;
+  line-height: 72rpx;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  border: none;
+}
+.action-btn::after { border: none; }
+.action-ghost {
+  background: transparent;
+  color: var(--color-text-sub);
+  border: 2rpx solid var(--color-divider);
+}
+.action-secondary {
+  background: var(--color-card);
+  color: var(--color-primary-dark);
+  border: 2rpx solid var(--color-primary);
+}
+.action-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-soft));
+  color: #FFFFFF;
+}

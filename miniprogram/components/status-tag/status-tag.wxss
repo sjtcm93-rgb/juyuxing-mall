@@ -1,0 +1,8 @@
+.status-tag { display:inline-block; padding:4rpx 16rpx; border-radius:var(--radius-sm); font-size:var(--fs-xs); line-height:1.5; }
+.tag-pending { background:#FFF3E0; color:var(--color-primary-dark); }
+.tag-paid { background:#E3F2FD; color:var(--color-info); }
+.tag-shipped { background:#E0F2F1; color:#00897B; }
+.tag-received, .tag-success { background:#E8F5E9; color:var(--color-success); }
+.tag-refund { background:#FFF0F0; color:var(--color-danger); }
+.tag-cancel, .tag-danger { background:#F5F5F5; color:var(--color-text-muted); }
+.tag-default { background:var(--color-bg-soft); color:var(--color-text-sub); }

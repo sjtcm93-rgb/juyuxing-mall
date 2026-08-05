@@ -1,42 +1,68 @@
-<!-- 购物车页 -->
-<view class="page-wrap">
-  <!-- 空状态 -->
-  <view class="empty-wrap" wx:if="{{cartItems.length === 0 && !loading}}">
-    <text class="empty-icon">🛒</text>
-    <text class="empty-text">购物车还是空的</text>
-    <navigator url="/pages/index/index" open-type="switchTab" class="go-shop-btn">去逛逛</navigator>
-  </view>
+<view class="page-wrap with-tabbar">
+  <!-- 骨架屏 -->
+  <skeleton wx:if="{{loading}}" type="list" rows="{{4}}" />
 
-  <!-- 购物车商品列表 -->
-  <view wx:for="{{cartItems}}" wx:key="productId" wx:for-item="item" class="cart-item">
-    <image class="cart-item-img" src="{{item.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
-    <view class="cart-item-info">
-      <text class="cart-item-name">{{item.name || '小紫瓶'}}</text>
-      <text class="cart-item-spec">{{item.spec || '13.5g'}}</text>
+  <!-- 错误状态 -->
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+  <!-- 空状态 -->
+  <empty-state
+    wx:elif="{{cartItems.length === 0}}"
+    icon="/images/icons/cart.png"
+    text="购物车还是空的"
+    show-action="{{true}}"
+    action-text="去逛逛"
+    bind:action="onEmptyAction"
+  />
+
+  <!-- 购物车列表 -->
+  <block wx:else>
+    <view
+      wx:for="{{cartItems}}"
+      wx:key="productId-{{item.spec}}"
+      wx:for-item="item"
+      wx:for-index="idx"
+      class="cart-item card"
+    >
+      <view class="cart-check" data-id="{{item.productId}}" data-spec="{{item.spec}}" bindtap="toggleItem">
+        <view class="check {{selectedMap[item.productId + '_' + (item.spec || '')] ? 'checked' : ''}}"></view>
+      </view>
+      <image class="cart-img" src="{{item.image || '../../images/product-placeholder.png'}}" mode="aspectFill" lazy-load="{{true}}" />
+      <view class="cart-info">
+        <text class="cart-name">{{item.name || '商品已下架'}}</text>
+        <text class="cart-spec">{{item.spec || ''}}</text>
+        <view class="cart-bottom">
+          <text class="cart-price">¥{{ item.priceText }}</text>
+          <view class="cart-qty">
+            <view class="qty-btn" data-index="{{idx}}" data-delta="-1" bindtap="changeQty">−</view>
+            <text class="qty-val">{{item.quantity}}</text>
+            <view class="qty-btn" data-index="{{idx}}" data-delta="1" bindtap="changeQty">+</view>
+          </view>
+        </view>
+      </view>
+      <view class="cart-del" data-index="{{idx}}" bindtap="deleteItem">×</view>
     </view>
-    <view class="cart-item-right">
-      <text class="cart-item-price">¥{{((item.price || 6900)/100).toFixed(2)}}</text>
-      <view class="cart-qty-control">
-        <view class="qty-mini-btn" data-index="{{index}}" bindtap="decreaseItemQty">−</view>
-        <text class="qty-mini-val">{{item.quantity}}</text>
-        <view class="qty-mini-btn" data-index="{{index}}" bindtap="increaseItemQty">+</view>
+
+    <!-- 底部结算栏 -->
+    <view class="cart-bottom">
+      <view class="cart-bottom-left">
+        <view class="cart-check" bindtap="toggleAll">
+          <view class="check {{allSelected ? 'checked' : ''}}"></view>
+          <text class="check-label">全选</text>
+        </view>
+        <view class="cart-delete" bindtap="deleteSelected">
+          <text>删除选中</text>
+        </view>
+      </view>
+      <view class="cart-bottom-right">
+        <view class="total-area">
+          <text class="total-label">合计：</text>
+          <text class="total-price">¥{{ totalPriceText }}</text>
+        </view>
+        <button class="checkout-btn" bindtap="goCheckout" disabled="{{selectedItemCount === 0}}">
+          结算({{selectedCount}})
+        </button>
       </view>
     </view>
-  </view>
-
-  <!-- 加载状态 -->
-  <view class="loading-wrap" wx:if="{{loading}}">
-    <view class="loading-dot"></view>
-    <view class="loading-dot"></view>
-    <view class="loading-dot"></view>
-  </view>
-
-  <!-- 底部结算栏 -->
-  <view class="cart-bottom" wx:if="{{cartItems.length > 0}}">
-    <view class="total-area">
-      <text class="total-label">合计：</text>
-      <text class="total-price">¥{{(totalPrice/100).toFixed(2)}}</text>
-    </view>
-    <button class="checkout-btn" bindtap="goCheckout">结算</button>
-  </view>
+  </block>
 </view>

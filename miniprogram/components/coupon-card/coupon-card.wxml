@@ -1,0 +1,22 @@
+<view class="coupon-card {{cls}}" bindtap="onTap">
+  <view class="cc-left">
+    <view class="cc-amount">
+      <text wx:if="{{coupon.type === 'percent'}}" class="cc-amount-num">{{amount}}</text>
+      <block wx:else>
+        <text class="cc-symbol">¥</text>
+        <text class="cc-amount-num">{{amount}}</text>
+      </block>
+    </view>
+    <text class="cc-desc">{{desc}}</text>
+  </view>
+  <view class="cc-dotted"></view>
+  <view class="cc-right">
+    <text class="cc-name">{{coupon.name || '优惠券'}}</text>
+    <text class="cc-min" wx:if="{{minSpendText}}">{{minSpendText}}</text>
+    <text class="cc-expiry" wx:if="{{expiryText}}">{{expiryText}}</text>
+    <button wx:if="{{!claimed && !_used && !_expired}}" class="cc-btn" catchtap="onClaim" disabled="{{loading}}">{{loading ? '领取中...' : '立即领取'}}</button>
+    <text wx:elif="{{_used}}" class="cc-state cc-state-used">已使用</text>
+    <text wx:elif="{{_expired}}" class="cc-state cc-state-expired">已过期</text>
+    <text wx:elif="{{claimed}}" class="cc-state cc-state-claimed">已领取</text>
+  </view>
+</view>

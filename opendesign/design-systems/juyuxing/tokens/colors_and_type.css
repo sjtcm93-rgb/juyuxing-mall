@@ -1,0 +1,93 @@
+/* 橘与杏 · 本草志 v2 — Design Tokens
+ * 以墨绿为骨，朱砂为魂，杏色为暖，米白为纸。
+ * 标题走宋体，正文走苹方，印章/分隔线作为东方美学点缀。 */
+:root {
+  /* 画布 */
+  --c-bg:         #FAF6F0;
+  --c-bg-pale:    #F5EFE6;
+  --c-bg-soft:    #F0E8DC;
+  --c-surface:    #FFFFFF;
+  --c-surface-2:  #FDFBF8;
+
+  /* 文字 */
+  --c-ink:        #2A2622;
+  --c-ink-soft:   #5C544B;
+  --c-ink-mute:   #8B8278;
+  --c-ink-faint:  #C4BDB5;
+
+  /* 主题色：墨绿 */
+  --c-primary:    #2D4A3E;
+  --c-primary-2:  #5C7868;
+  --c-primary-3:  #1A2E25;
+
+  /* 强调色：朱砂 */
+  --c-accent:     #C8553D;
+  --c-accent-2:   #E07A5F;
+
+  /* 辅助：杏 / 苔藓 */
+  --c-warm:       #E8A87C;
+  --c-warm-soft:  #F5D6B8;
+  --c-leaf:       #8BA888;
+  --c-leaf-soft:  #B5C9B0;
+
+  /* 语义色 */
+  --c-success:    #6B8E5A;
+  --c-warning:    #D89E4F;
+  --c-danger:     #C8553D;
+  --c-info:       #5B7B9D;
+
+  /* 边框 / 分割 */
+  --c-border:        #E5DDD0;
+  --c-divider:       #EFE7D8;
+  --c-divider-strong:#D4C9B8;
+
+  /* 字体 */
+  --font-sans:  -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-mono:  ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* 字号（比旧版更舒展） */
+  --fs-xs:      11px;
+  --fs-sm:      13px;
+  --fs-md:      15px;
+  --fs-lg:      18px;
+  --fs-xl:      22px;
+  --fs-2xl:     28px;
+  --fs-3xl:     36px;
+  --fs-display: 44px;
+
+  /* 间距 */
+  --s-2xs: 2px;
+  --s-xs:  4px;
+  --s-sm:  8px;
+  --s-md:  16px;
+  --s-lg:  24px;
+  --s-xl:  32px;
+  --s-2xl: 48px;
+  --s-3xl: 64px;
+
+  /* 圆角 */
+  --r-xs:   2px;
+  --r-sm:   6px;
+  --r-md:   12px;
+  --r-lg:   20px;
+  --r-xl:   28px;
+  --r-pill: 999px;
+
+  /* 阴影（更柔更克制） */
+  --shadow-xs:    0 1px 2px rgba(42,38,34,.04);
+  --shadow-sm:    0 2px 8px rgba(42,38,34,.06);
+  --shadow-md:    0 6px 20px rgba(42,38,34,.08);
+  --shadow-lg:    0 12px 32px rgba(42,38,34,.12);
+  --shadow-float: 0 8px 24px rgba(45,74,62,.16);
+
+  /* 缓动 */
+  --ease-out:    cubic-bezier(.16,1,.3,1);
+  --ease-in-out: cubic-bezier(.65,0,.35,1);
+
+  /* 语义别名（保留旧名以便平滑迁移） */
+  --c-text:     var(--c-ink);
+  --c-sub:      var(--c-ink-soft);
+  --c-muted:    var(--c-ink-mute);
+  --shadow-card: var(--shadow-sm);
+}

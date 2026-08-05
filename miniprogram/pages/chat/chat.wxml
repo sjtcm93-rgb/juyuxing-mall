@@ -1,0 +1,33 @@
+<view class="page-wrap chat-page with-bottom-bar">
+  <skeleton wx:if="{{loading && messages.length === 0}}" type="list" rows="{{5}}" />
+  <error-state wx:elif="{{loadError && messages.length === 0}}" text="{{loadError}}" bind:retry="retry" />
+
+  <block wx:else>
+    <scroll-view class="message-scroll" scroll-y="true" scroll-into-view="{{scrollToMsg}}" enable-back-to-top="true">
+      <view class="message-list">
+        <view wx:if="{{messages.length === 0}}" class="empty-hint">
+          <text>{{isAdmin ? '暂无消息，请发送第一条回复' : '如有问题，请随时联系客服'}}</text>
+        </view>
+        <view wx:for="{{messages}}" wx:key="_id" id="{{item._id}}" class="msg-row {{item._isMe ? 'msg-me' : 'msg-other'}}">
+          <image wx:if="{{!item._isMe}}" class="msg-avatar" src="{{isAdmin ? (userInfo.avatarUrl || '/images/avatar-placeholder.png') : '/images/avatar-placeholder.png'}}" mode="aspectFill"></image>
+          <view class="msg-body">
+            <view wx:if="{{item.type === 'text'}}" class="msg-bubble">
+              <text class="msg-text">{{item.content}}</text>
+            </view>
+            <view wx:elif="{{item.type === 'image'}}" class="msg-bubble msg-image-bubble">
+              <image class="msg-image" src="{{item.imageUrl}}" mode="widthFix" lazy-load="{{true}}"></image>
+            </view>
+            <text class="msg-time">{{item._timeStr}}</text>
+          </view>
+          <image wx:if="{{item._isMe}}" class="msg-avatar" src="/images/avatar-placeholder.png" mode="aspectFill"></image>
+        </view>
+      </view>
+      <view class="scroll-bottom-padding"></view>
+    </scroll-view>
+
+    <view class="input-bar safe-bottom">
+      <input class="input-field" placeholder="输入消息..." value="{{inputText}}" bindinput="onInputChange" confirm-type="send" bindconfirm="sendMessage" />
+      <button class="send-btn {{hasInput ? 'send-active' : ''}}" bindtap="sendMessage" disabled="{{sending || !hasInput}}">{{sending ? '发送中' : '发送'}}</button>
+    </view>
+  </block>
+</view>

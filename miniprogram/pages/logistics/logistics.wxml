@@ -1,14 +1,31 @@
 <view class="page-wrap">
-  <view class="loading-wrap" wx:if="{{loading}}">
-    <view class="loading-dot"></view><view class="loading-dot"></view><view class="loading-dot"></view>
-  </view>
-  <view class="order-info" wx:if="{{order}}">
-    <text class="info-label">订单编号：{{order.orderNo}}</text>
-    <text class="info-label" wx:if="{{order.logistics}}">
-      物流公司：{{order.logistics.company}} | 运单号：{{order.logistics.trackingNo}}
-    </text>
-  </view>
-  <view class="empty-wrap" wx:if="{{!loading && (!order || !order.logistics)}}">
-    <text class="empty-text">暂无物流信息</text>
-  </view>
+  <skeleton wx:if="{{loading}}" type="detail" />
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+  <empty-state wx:elif="{{!order || !order.logistics}}" icon="/images/icons/truck.png" text="暂无物流信息" />
+
+  <block wx:else>
+    <view class="card logistics-info">
+      <view class="info-row">
+        <text class="info-label">快递公司</text>
+        <text class="info-value">{{order.logistics.company || '-'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">快递单号</text>
+        <text class="info-value">{{order.logistics.trackingNo || '-'}}</text>
+      </view>
+    </view>
+
+    <view class="card timeline-section" wx:if="{{tracking.length > 0}}">
+      <text class="section-title">物流轨迹</text>
+      <view class="timeline">
+        <view wx:for="{{tracking}}" wx:key="index" class="tl-item {{index === 0 ? 'tl-current' : ''}}">
+          <view class="tl-dot"></view>
+          <view class="tl-content">
+            <text class="tl-text">{{item.desc || item.context || item.status}}</text>
+            <text class="tl-time">{{ item.timeText || item.dateText }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
 </view>

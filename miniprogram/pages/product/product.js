@@ -1,92 +1,114 @@
 const API = require('../../utils/api');
-const { toast } = require('../../utils/util');
-
-// 默认商品数据（API 不可用时的降级方案）
-const DEFAULT_PRODUCT = {
-  _id: 'default',
-  name: '小紫瓶',
-  subtitle: '皮肤舒缓退热凝胶',
-  price: 6900,
-  originalPrice: 7800,
-  sales: 0,
-  specs: [{ name: '13.5g', stock: 999 }],
-  images: [],
-  description: '<p>小紫瓶皮肤舒缓退热凝胶，甄选天然草本精华，温和舒缓肌肤不适。</p><p>适用于日常肌肤护理，帮助缓解燥热、泛红等肌肤问题。</p><p>核心成分：紫草提取物、甘草酸二钾、透明质酸钠</p>'
-};
+const { toast, decorateItem } = require('../../utils/util');
 
 Page({
   data: {
-    product: DEFAULT_PRODUCT,
+    product: null,
+    images: [],
     selectedSpec: 0,
     quantity: 1,
-    loadedFromServer: false
+    specName: '',
+    maxStock: 999,
+    showSpecPicker: false,
+    isFavorited: false,
+    loadedFromServer: false,
+    loading: true,
+    loadError: ''
   },
 
   onLoad(options) {
     if (options.id) {
       this.loadProduct(options.id);
+      this.checkFav(options.id);
+    } else {
+      this.setData({ loading: false, loadError: '缺少商品ID' });
+    }
+  },
+
+  onShow() {
+    // 收藏/取消收藏回来要刷新
+    if (this.data.product && this.data.product._id) {
+      this.checkFav(this.data.product._id);
     }
   },
 
   async loadProduct(id) {
+    const res = await API.getProduct(id);
+    if (!res || !res.success || !res.data) {
+      this.setData({ loading: false, loadError: '商品不存在或已下架' });
+      return;
+    }
+    const p = res.data;
+    const images = (p.images && p.images.length > 0) ? p.images : [];
+    const specs = p.specs || [];
+    const firstStock = (specs[0] && typeof specs[0].stock === 'number') ? specs[0].stock : 999;
+    this.setData({
+      product: decorateItem(p),
+      images: images,
+      selectedSpec: 0,
+      specName: (specs[0] && specs[0].name) || '',
+      maxStock: firstStock,
+      loadedFromServer: true,
+      loading: false
+    });
+  },
+
+  async checkFav(productId) {
     try {
-      const res = await API.getProduct(id);
-      if (res && res.data) {
-        this.setData({ 
-          product: res.data,
-          loadedFromServer: true
-        });
-      } else {
-        // API 返回但无数据，标注入参 ID
-        this.setData({
-          'product._id': id
-        });
+      const res = await API.checkFavorite(productId, { silent: true });
+      if (res && res.success) {
+        this.setData({ isFavorited: !!res.favorited });
       }
-    } catch (err) {
-      console.error('load product error, using default:', err);
-      // 使用本地默认数据，但保留传入的 ID
-      this.setData({
-        'product._id': id
-      });
-    }
+    } catch (e) {}
   },
 
-  selectSpec(e) {
-    const idx = e.currentTarget.dataset.index;
-    this.setData({ selectedSpec: idx, quantity: 1 });
+  openSpecPicker() {
+    if (!this.data.product) return;
+    this.setData({ showSpecPicker: true });
   },
 
-  decreaseQty() {
-    if (this.data.quantity > 1) {
-      this.setData({ quantity: this.data.quantity - 1 });
-    }
+  onSpecClose() {
+    this.setData({ showSpecPicker: false });
   },
 
-  increaseQty() {
-    const maxStock = this.data.product.specs && 
-      this.data.product.specs[this.data.selectedSpec]?.stock || 999;
-    if (this.data.quantity < maxStock) {
-      this.setData({ quantity: this.data.quantity + 1 });
-    } else {
-      toast('已达最大库存');
-    }
+  onSpecConfirm(e) {
+    const { specIndex, specName, quantity } = e.detail;
+    this.setData({
+      selectedSpec: specIndex,
+      specName: specName,
+      quantity: quantity,
+      showSpecPicker: false
+    });
+    this.buyNow();
+  },
+
+  onSpecAddCart(e) {
+    const { specName, quantity } = e.detail;
+    this.setData({ specName: specName, quantity: quantity, showSpecPicker: false });
+    this.addToCart();
   },
 
   async addToCart() {
-    const openId = wx.getStorageSync('openId');
-    if (!openId) {
-      toast('请先登录');
-      return;
-    }
+    if (!wx.getStorageSync('openId')) { toast('请先登录'); return; }
+    const p = this.data.product;
+    if (!p) return;
     try {
-      await API.updateCart([{
-        productId: this.data.product._id || 'default',
-        name: this.data.product.name,
-        spec: this.data.product.specs[this.data.selectedSpec]?.name || '13.5g',
-        price: this.data.product.price,
+      // 取已存在的购物车追加
+      const cur = await API.getCart({ silent: true });
+      const exist = (cur && cur.items) || [];
+      const newItem = {
+        productId: p._id,
+        name: p.name,
+        spec: this.data.specName || (p.specs && p.specs[0] && p.specs[0].name) || '',
+        price: Number(p.price) || 0,
         quantity: this.data.quantity,
-        image: (this.data.product.images && this.data.product.images[0]) || ''
-      }]);
+        image: (p.images && p.images[0]) || ''
+      };
+      // 合并相同规格
+      const idx = exist.findIndex(it => it.productId === newItem.productId && (it.spec || '') === newItem.spec);
+      if (idx >= 0) exist[idx].quantity = (Number(exist[idx].quantity) || 0) + newItem.quantity;
+      else exist.push(newItem);
+      await API.updateCart(exist);
       toast('已加入购物车', 'success');
     } catch (err) {
       toast('添加失败，请重试');
@@ -94,25 +116,43 @@ Page({
   },
 
   buyNow() {
-    const { product, quantity, selectedSpec } = this.data;
-    const openId = wx.getStorageSync('openId');
-    if (!openId) {
-      toast('请先登录');
-      return;
-    }
+    if (!wx.getStorageSync('openId')) { toast('请先登录'); return; }
+    const p = this.data.product;
+    if (!p) return;
     wx.navigateTo({
-      url: `/pages/checkout/checkout?productId=${product._id || 'default'}&quantity=${quantity}&spec=${selectedSpec}`
+      url: `/pages/checkout/checkout?productId=${p._id}&quantity=${this.data.quantity}&specName=${encodeURIComponent(this.data.specName || '')}`
     });
   },
 
+  async toggleFavorite() {
+    if (!wx.getStorageSync('openId')) { toast('请先登录'); return; }
+    const p = this.data.product;
+    if (!p) return;
+    const res = await API.toggleFavorite(p._id);
+    if (res && res.success) {
+      this.setData({ isFavorited: !!res.favorited });
+      toast(res.favorited ? '已收藏' : '已取消收藏', 'success');
+    }
+  },
+
+  retry() {
+    if (this.data.product && this.data.product._id) {
+      this.setData({ loading: true, loadError: '' });
+      this.loadProduct(this.data.product._id);
+    }
+  },
+
+  onSwiperError(e) {
+    console.warn('swiper image error', e);
+  },
+
   onShareAppMessage() {
-    const product = this.data.product;
-    const app = getApp();
-    const ref = app.globalData.openId || wx.getStorageSync('openId');
+    const p = this.data.product || {};
+    const ref = (getApp().globalData && getApp().globalData.openId) || wx.getStorageSync('openId');
     return {
-      title: `${product.name} - ${product.subtitle}`,
-      path: `/pages/product/product?id=${product._id || 'default'}&ref=${ref || ''}`,
-      imageUrl: product.images && product.images[0]
+      title: `${p.name || '好物'} - ${p.subtitle || '橘与杏中医生活'}`,
+      path: `/pages/product/product?id=${p._id || ''}&ref=${ref || ''}`,
+      imageUrl: (p.images && p.images[0]) || '/images/share-banner.png'
     };
   }
 });

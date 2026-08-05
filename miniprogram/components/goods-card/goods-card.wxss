@@ -1,0 +1,20 @@
+.gc-card { background:var(--color-card); border-radius:var(--radius-md); overflow:hidden; box-shadow:var(--shadow-sm); margin-bottom:20rpx; }
+.gc-hover { transform:scale(0.98); opacity:0.95; }
+.gc-image-wrap { position:relative; width:100%; padding-top:100%; background:var(--color-bg-soft); }
+.gc-image { position:absolute; top:0; left:0; width:100%; height:100%; }
+.gc-badge { position:absolute; top:16rpx; left:16rpx; background:var(--color-primary); color:#FFFFFF; font-size:var(--fs-xs); padding:4rpx 12rpx; border-radius:var(--radius-sm); }
+.gc-info { padding:20rpx 24rpx 24rpx; }
+.gc-name { display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; font-size:var(--fs-md); color:var(--color-text); font-weight:500; line-height:1.4; }
+.gc-sub { display:block; font-size:var(--fs-xs); color:var(--color-text-sub); margin-top:4rpx; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.gc-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:16rpx; }
+.gc-price { display:flex; align-items:baseline; color:var(--color-primary-dark); }
+.gc-symbol { font-size:var(--fs-sm); }
+.gc-price-value { font-size:var(--fs-lg); font-weight:600; margin:0 4rpx; }
+.gc-price-original { font-size:var(--fs-xs); color:var(--color-text-muted); text-decoration:line-through; margin-left:8rpx; }
+.gc-action { width:52rpx; height:52rpx; line-height:52rpx; text-align:center; background:var(--color-primary); color:#FFFFFF; border-radius:50%; font-size:36rpx; font-weight:300; }
+.gc-action-hover { opacity:0.8; }
+.gc-list { display:flex; padding:24rpx; background:var(--color-card); border-radius:var(--radius-md); margin-bottom:16rpx; box-shadow:var(--shadow-sm); }
+.gc-list-img-wrap { width:180rpx; height:180rpx; border-radius:var(--radius-sm); overflow:hidden; background:var(--color-bg-soft); flex-shrink:0; }
+.gc-list-info { flex:1; margin-left:24rpx; display:flex; flex-direction:column; justify-content:space-between; }
+.gc-list-meta { display:flex; gap:16rpx; font-size:var(--fs-xs); color:var(--color-text-muted); }
+.gc-spec { color:var(--color-text-sub); }

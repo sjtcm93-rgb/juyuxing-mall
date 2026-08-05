@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/category/category",
     "pages/product/product",
     "pages/cart/cart",
     "pages/checkout/checkout",
@@ -14,7 +15,15 @@
     "pages/logistics/logistics",
     "pages/about/about",
     "pages/withdrawal/withdrawal",
-    "pages/admin/admin"
+    "pages/admin/admin",
+    "pages/refund/refund",
+    "pages/chat/chat",
+    "pages/search/search",
+    "pages/favorites/favorites",
+    "pages/coupon-center/coupon-center",
+    "pages/coupon-mine/coupon-mine",
+    "pages/referral/referral",
+    "pages/shop-editor/shop-editor"
   ],
   "window": {
     "navigationBarBackgroundColor": "#FDF8F3",

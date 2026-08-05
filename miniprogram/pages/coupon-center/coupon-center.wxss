@@ -1,0 +1,21 @@
+.cc-wrap { padding: 0 var(--space-md) var(--space-lg); }
+.cc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+.cc-title {
+  font-size: var(--fs-xl);
+  color: var(--color-text);
+  font-weight: 600;
+}
+.cc-mine {
+  font-size: var(--fs-sm);
+  color: var(--color-primary-dark);
+}
+.cc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}

@@ -1,84 +1,69 @@
-const { toast, showLoading, hideLoading } = require('../../utils/util');
+const API = require('../../utils/api');
+const { toast, formatTime, decorateList, decorateYuanItem } = require('../../utils/util');
 
 Page({
   data: {
     available: 0,
     pendingAmount: 0,
     pendingCount: 0,
-    amount: 0,
-    quickAmount: 0,
+    amount: '',
     name: '',
     account: '',
-    submitting: false
+    records: [],
+    submitting: false,
+    loading: true
   },
 
-  onShow() {
-    this.loadBalance();
-  },
+  onShow() { this.loadData(); },
 
-  async loadBalance() {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'withdrawal',
-        data: { action: 'info' }
-      });
-      if (res.result && res.result.success) {
-        this.setData({
-          available: res.result.available,
-          pendingAmount: res.result.pendingAmount,
-          pendingCount: res.result.pendingCount
-        });
-      }
-    } catch (err) {
-      console.error('load balance error:', err);
+  async loadData() {
+    this.setData({ loading: true });
+    const [infoRes, listRes] = await Promise.all([
+      API.getWithdrawalInfo({ silent: true }),
+      API.getWithdrawalList({ pageSize: 20 }, { silent: true })
+    ]);
+    if (infoRes && infoRes.success) {
+      this.setData(decorateYuanItem({
+        available: (infoRes.available || 0) / 100,
+        pendingAmount: (infoRes.pendingAmount || 0) / 100,
+        pendingCount: infoRes.pendingCount || 0
+      }));
     }
+    this.setData({
+      records: decorateList((listRes && listRes.data) || []),
+      loading: false
+    });
   },
 
-  onAmountInput(e) {
-    const val = parseFloat(e.detail.value) || 0;
-    this.setData({ amount: Math.round(val * 100), quickAmount: 0 });
+  onAmount(e) { this.setData({ amount: e.detail.value }); },
+  onName(e) { this.setData({ name: e.detail.value }); },
+  onAccount(e) { this.setData({ account: e.detail.value }); },
+
+  fullAmount() {
+    this.setData({ amount: this.data.available.toFixed(2) });
   },
 
-  setQuickAmount(e) {
-    const val = e.currentTarget.dataset.amount;
-    if (val === 'all') {
-      this.setData({ 
-        amount: this.data.available - this.data.pendingAmount,
-        quickAmount: 'all'
-      });
-    } else {
-      this.setData({ amount: parseInt(val), quickAmount: parseInt(val) });
-    }
-  },
-
-  onNameInput(e) { this.setData({ name: e.detail.value }); },
-  onAccountInput(e) { this.setData({ account: e.detail.value }); },
-
-  async submitWithdrawal() {
-    const { amount, name, account } = this.data;
-    if (amount < 1000) { toast('提现金额不能低于10元'); return; }
-    if (!name) { toast('请输入收款人姓名'); return; }
-    if (!account) { toast('请输入收款账号'); return; }
+  async submit() {
+    if (this.data.submitting) return;
+    const amount = Number(this.data.amount);
+    if (isNaN(amount) || amount <= 0) { toast('请输入有效金额'); return; }
+    if (amount < 10) { toast('最低提现金额为10元'); return; }
+    if (amount > this.data.available) { toast('可提现余额不足'); return; }
+    if (!this.data.name.trim() || !this.data.account.trim()) { toast('请填写收款信息'); return; }
 
     this.setData({ submitting: true });
-    showLoading('提交中...');
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'withdrawal',
-        data: { action: 'apply', amount, name, account }
-      });
-      hideLoading();
-      if (res.result && res.result.success) {
-        toast('提现申请已提交', 'success');
-        setTimeout(() => wx.navigateBack(), 1500);
-      } else {
-        toast(res.result?.error || '提现申请失败');
-        this.setData({ submitting: false });
-      }
-    } catch (err) {
-      hideLoading();
-      toast('提现申请失败，请重试');
-      this.setData({ submitting: false });
+    const res = await API.applyWithdrawal({
+      amount: Math.round(amount * 100),
+      name: this.data.name.trim(),
+      account: this.data.account.trim()
+    });
+    this.setData({ submitting: false });
+    if (res && res.success) {
+      toast('申请已提交，等待审核', 'success');
+      this.setData({ amount: '' });
+      this.loadData();
+    } else {
+      toast((res && res.error) || '提交失败');
     }
   }
 });

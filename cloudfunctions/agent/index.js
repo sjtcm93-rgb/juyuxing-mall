@@ -1,5 +1,5 @@
 const cloud = require('wx-server-sdk');
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
 const _ = db.command;
 
@@ -10,7 +10,7 @@ exports.main = async (event, context) => {
     case 'apply': {
       // 先看当前用户是否已申请 / 已是代理 / 已被拒绝
       const userRes = await db.collection('users').doc(OPENID).get().catch(() => null);
-      const user = userRes?.data;
+      const user = userRes && userRes.data;
       if (!user) {
         return { success: false, error: '请先登录后再申请' };
       }
@@ -53,9 +53,9 @@ exports.main = async (event, context) => {
       return {
         success: true,
         isAgent: user.isAgent || false,
-        level: user.agentInfo?.level || '',
-        code: user.agentInfo?.code || '',
-        status: user.agentInfo?.status || ''
+        level: (user.agentInfo && user.agentInfo.level) || '',
+        code: (user.agentInfo && user.agentInfo.code) || '',
+        status: (user.agentInfo && user.agentInfo.status) || ''
       };
     }
     case 'performance': {

@@ -1,0 +1,6 @@
+<view class="err-wrap">
+  <image class="err-icon-img" src="{{icon || '/images/icons/leaf.png'}}" mode="aspectFit" wx:if="{{icon && icon.indexOf('/') > -1}}"></image>
+  <view class="err-icon" wx:else>{{icon || ''}}</view>
+  <text class="err-text">{{text}}</text>
+  <button wx:if="{{showRetry}}" class="err-btn" bindtap="onRetry" hover-class="err-btn-hover">重新加载</button>
+</view>

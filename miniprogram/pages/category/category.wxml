@@ -1,0 +1,61 @@
+<view class="page-wrap with-tabbar cat-wrap">
+  <view class="cat-layout">
+    <scroll-view class="cat-sidebar" scroll-y="true" enhanced="true">
+      <view
+        wx:for="{{categories}}"
+        wx:key="_id"
+        class="cat-side-item {{item._id === activeId ? 'cat-side-active' : ''}}"
+        data-id="{{item._id}}"
+        data-name="{{item.name}}"
+        bindtap="onSelectCategory"
+        hover-class="cat-side-hover"
+      >
+        <text class="cat-side-text">{{item.name}}</text>
+      </view>
+      <view wx:if="{{!loading && categories.length === 0}}" class="cat-side-empty">
+        <text>暂无分类</text>
+      </view>
+    </scroll-view>
+
+    <scroll-view class="cat-main" scroll-y="true" bindscrolltolower="onReachBottom" lower-threshold="100">
+      <view class="cat-banner" wx:if="{{activeName}}">
+        <text class="cat-banner-title">{{activeName}}</text>
+        <text class="cat-banner-sub">甄选本草 · 自然疗愈</text>
+      </view>
+
+      <view class="cat-sortbar">
+        <view
+          wx:for="{{sortOptions}}"
+          wx:key="key"
+          class="cat-sort {{item.key === sortBy ? 'cat-sort-active' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onChangeSort"
+        >{{item.label}}</view>
+      </view>
+
+      <block wx:if="{{loading}}">
+        <skeleton type="card" count="4" />
+      </block>
+
+      <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+      <block wx:elif="{{products.length === 0}}">
+        <empty-state icon="/images/icons/leaf.png" text="该分类暂无商品" show-action="{{true}}" action-text="返回首页" bind:action="onGoHome" />
+      </block>
+
+      <view wx:else class="cat-grid">
+        <goods-card
+          wx:for="{{products}}"
+          wx:key="_id"
+          goods="{{item}}"
+          mode="grid"
+          bind:click="onGoodsClick"
+          bind:action="onGoodsAction"
+        />
+      </view>
+
+      <view wx:if="{{loadingMore}}" class="cat-loadingmore">加载中…</view>
+      <view wx:elif="{{!hasMore && products.length > 0}}" class="cat-loadingmore">已经到底啦</view>
+    </scroll-view>
+  </view>
+</view>

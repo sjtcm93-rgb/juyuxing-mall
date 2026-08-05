@@ -207,9 +207,7 @@
   padding: 8rpx 16rpx;
 }
 
-.action-icon {
-  font-size: 40rpx;
-}
+.action-icon-img { width:40rpx; height:40rpx; }
 
 .action-text {
   font-size: 20rpx;

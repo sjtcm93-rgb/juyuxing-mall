@@ -1,13 +1,11 @@
-<view class="home-wrap">
-  
+<view class="page-wrap with-tabbar home-wrap">
   <!-- 品牌头图 -->
   <view class="hero-section">
     <view class="hero-deco-circle"></view>
     <view class="hero-deco-circle-2"></view>
-    <view class="hero-deco-herb"></view>
     <view class="hero-content">
       <view class="hero-brand-wrap">
-        <text class="hero-brand-char" wx:for="{{['橘','与','杏']}}" wx:key="index" style="animation-delay:{{index * 0.15}}s">{{item}}</text>
+        <text class="hero-brand-char" wx:for="{{brandChars}}" wx:key="index" style="animation-delay:{{index * 0.15}}s">{{item}}</text>
       </view>
       <view class="hero-divider"></view>
       <text class="hero-subtitle">中医生活 · 自然疗愈</text>
@@ -15,48 +13,55 @@
     </view>
   </view>
 
+  <!-- 轮播图 -->
+  <view class="banner-section" wx:if="{{banners.length > 0}}">
+    <swiper class="banner-swiper" autoplay="{{true}}" interval="{{4000}}" duration="{{500}}" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8A87C">
+      <swiper-item wx:for="{{banners}}" wx:key="_id">
+        <view class="banner-item" data-link="{{item.linkUrl}}" bindtap="onBannerTap">
+          <image class="banner-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load="{{true}}"></image>
+          <text class="banner-title" wx:if="{{item.title}}">{{item.title}}</text>
+        </view>
+      </swiper-item>
+    </swiper>
+  </view>
+
   <!-- 产品展示区 -->
   <view class="product-section" id="product">
     <view class="section-header">
       <text class="section-title">热卖单品</text>
-      <text class="section-subtitle">Hot</text>
+      <text class="section-subtitle">Products</text>
     </view>
 
-    <view class="product-card" wx:if="{{product}}" data-id="{{product._id}}" bindtap="goToProduct">
-      <view class="product-image-wrap">
-        <image class="product-image" src="{{product.images && product.images[0] || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
-        <view class="product-badge">新品</view>
+    <block wx:if="{{loading}}">
+      <skeleton type="card" count="{{3}}" />
+    </block>
+
+    <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+    <block wx:elif="{{products.length === 0}}">
+      <empty-state icon="/images/icons/leaf.png" text="商品即将上架" />
+    </block>
+
+    <block wx:else>
+      <view class="product-grid">
+        <goods-card
+          wx:for="{{products}}"
+          wx:key="_id"
+          wx:for-item="p"
+          goods="{{p}}"
+          mode="grid"
+          show-badge="{{index < 3}}"
+          badge-text="{{index === 0 ? '新品' : (index === 1 ? '热销' : '推荐')}}"
+          bind:click="onGoodsClick"
+          bind:action="onGoodsAction"
+        />
       </view>
-      <view class="product-info">
-        <text class="product-name">{{product.name}}</text>
-        <text class="product-subtitle">{{product.subtitle}}</text>
-        <view class="product-meta">
-          <text class="product-spec">{{product.specs && product.specs[0].name}}</text>
-          <text class="product-sales">已售 {{product.sales || 0}} 件</text>
-          <text class="product-rating">★ {{product.rating || 5.0}}</text>
-        </view>
-        <view class="product-price-row">
-          <view class="product-price">
-            <text class="price-symbol">¥</text>
-            <text class="price-value">{{(product.price/100).toFixed(2)}}</text>
-          </view>
-          <text class="product-original-price">¥{{(product.originalPrice/100).toFixed(2)}}</text>
-          <button class="buy-btn" bindtap="buyNow" data-id="{{product._id}}">立即购买</button>
-        </view>
+
+      <view class="loading-more" wx:if="{{loadingMore}}">
+        <view class="loading-dot"></view><view class="loading-dot"></view><view class="loading-dot"></view>
       </view>
-    </view>
-
-    <view class="loading-wrap" wx:elif="{{loading}}">
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
-      <view class="loading-dot"></view>
-      <text style="margin-top:20rpx;color:#B0A59A;font-size:26rpx">加载中...</text>
-    </view>
-
-    <view class="empty-wrap" wx:else>
-      <text class="empty-icon">🌿</text>
-      <text class="empty-text" style="margin-top:16rpx">商品即将上架</text>
-    </view>
+      <view class="loading-end" wx:elif="{{!hasMore && products.length > 0}}">- 已经到底了 -</view>
+    </block>
   </view>
 
   <!-- 品牌故事 -->
@@ -68,21 +73,19 @@
     <view class="story-content card">
       <view class="story-quote-mark">"</view>
       <text class="story-text">
-        「橘与杏」取自中医经典——橘皮理气，杏仁润肺。我们相信，草木的力量就藏在日常的细节里。
+        「橘与杏」取自中医"杏林、橘井"的雅称。深耕中医临床多年的医学博士，以纯天然草本配方，做全家安心的肌肤日常防护。
       </text>
       <text class="story-text">
-        坚持用传统草本智慧，结合现代生活所需，做温和、安全、有效的日用产品。让每一个日常，都有自然相伴。
+        拒绝激素、拒绝刺激性化学药品添加——温和有度、起效有据、安全终身。
       </text>
-      <navigator url="/pages/about/about" class="story-link">
-        了解更多 →
-      </navigator>
+      <navigator url="/pages/about/about" class="story-link">了解更多 →</navigator>
     </view>
   </view>
 
   <!-- 代理入口 -->
   <view class="agent-entry card">
     <view class="agent-icon-wrap">
-      <text class="agent-icon-text">🤝</text>
+      <image class="agent-icon-img" src="/images/icons/handshake.png" mode="aspectFit"></image>
     </view>
     <view class="agent-entry-text">
       <text class="agent-entry-title">成为橘与杏代理</text>
@@ -90,6 +93,4 @@
     </view>
     <navigator url="/pages/agent-join/agent-join" class="agent-entry-btn">了解更多</navigator>
   </view>
-
-  <view class="footer-space"></view>
 </view>

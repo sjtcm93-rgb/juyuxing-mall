@@ -1,64 +1,87 @@
 const API = require('../../utils/api');
-const { toast, showLoading, hideLoading } = require('../../utils/util');
+const { toast } = require('../../utils/util');
 
 Page({
   data: {
-    addressId: '',
+    id: '',
     name: '',
     phone: '',
-    region: [],
-    regionText: '请选择省/市/区',
+    region: ['', '', ''],
     detail: '',
-    isDefault: false
+    isDefault: false,
+    submitting: false
   },
+
   onLoad(options) {
     if (options.id) {
-      this.setData({ addressId: options.id });
+      wx.setNavigationBarTitle({ title: '编辑地址' });
       this.loadAddress(options.id);
     }
   },
+
   async loadAddress(id) {
-    try {
-      const res = await API.getAddressList();
-      const addr = (res.data || []).find(a => a._id === id);
-      if (addr) {
+    const res = await API.getAddressList({ silent: true });
+    if (res && res.success) {
+      const item = (res.data || []).find(a => a._id === id);
+      if (item) {
         this.setData({
-          name: addr.name, phone: addr.phone,
-          region: addr.region || [],
-          regionText: addr.region ? addr.region.join(' ') : '请选择省/市/区',
-          detail: addr.detail, isDefault: addr.isDefault
+          id: item._id,
+          name: item.name || '',
+          phone: item.phone || '',
+          region: Array.isArray(item.region) && item.region.length === 3 ? item.region : ['', '', ''],
+          detail: item.detail || '',
+          isDefault: !!item.isDefault
         });
       }
-    } catch (err) { toast('加载地址失败'); }
+    }
   },
-  onNameInput(e) { this.setData({ name: e.detail.value }); },
-  onPhoneInput(e) { this.setData({ phone: e.detail.value }); },
+
+  onInput(e) {
+    const field = e.currentTarget.dataset.field;
+    this.setData({ [field]: e.detail.value });
+  },
+
+  onOpenRegion() { this.selectComponent("#regionPicker").show(); },
+
   onRegionChange(e) {
-    const val = e.detail.value;
-    this.setData({ region: val, regionText: val.join(' ') });
+    this.setData({ region: e.detail.value });
   },
-  onDetailInput(e) { this.setData({ detail: e.detail.value }); },
-  onDefaultChange(e) { this.setData({ isDefault: e.detail.value }); },
-  async saveAddress() {
-    const { name, phone, region, detail } = this.data;
-    if (!name) { toast('请输入收货人'); return; }
-    if (!phone) { toast('请输入手机号'); return; }
-    if (!region.length) { toast('请选择所在地区'); return; }
-    if (!detail) { toast('请输入详细地址'); return; }
-    showLoading('保存中...');
-    try {
-      const data = { name, phone, region, detail, isDefault: this.data.isDefault };
-      if (this.data.addressId) {
-        await API.updateAddress(this.data.addressId, data);
-      } else {
-        await API.addAddress(data);
-      }
-      hideLoading();
-      toast('保存成功','success');
-      wx.navigateBack();
-    } catch (err) {
-      hideLoading();
-      toast('保存失败');
+
+  toggleDefault() {
+    this.setData({ isDefault: !this.data.isDefault });
+  },
+
+  validate() {
+    if (!this.data.name.trim()) { toast('请输入收货人姓名'); return false; }
+    if (!/^1\d{10}$/.test(this.data.phone)) { toast('请输入正确的手机号'); return false; }
+    if (!this.data.region[0] || !this.data.region[1] || !this.data.region[2]) { toast('请选择省市区'); return false; }
+    if (!this.data.detail.trim()) { toast('请输入详细地址'); return false; }
+    return true;
+  },
+
+  async save() {
+    if (this.data.submitting) return;
+    if (!this.validate()) return;
+    this.setData({ submitting: true });
+    const payload = {
+      name: this.data.name.trim(),
+      phone: this.data.phone.trim(),
+      region: this.data.region,
+      detail: this.data.detail.trim(),
+      isDefault: this.data.isDefault
+    };
+    let res;
+    if (this.data.id) {
+      res = await API.updateAddress(this.data.id, payload);
+    } else {
+      res = await API.addAddress(payload);
+    }
+    this.setData({ submitting: false });
+    if (res && res.success) {
+      toast('保存成功', 'success');
+      setTimeout(() => wx.navigateBack(), 600);
+    } else {
+      toast((res && res.error) || '保存失败');
     }
   }
 });

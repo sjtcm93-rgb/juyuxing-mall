@@ -1,0 +1,27 @@
+<view class="page-wrap cc-wrap">
+  <view class="cc-header">
+    <text class="cc-title">领券中心</text>
+    <view class="cc-mine" bindtap="goMine">我的优惠券 ›</view>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <skeleton type="card" count="3" />
+  </block>
+
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+  <block wx:elif="{{coupons.length === 0}}">
+    <empty-state icon="/images/icons/gift.png" text="暂无可领取的优惠券" />
+  </block>
+
+  <view wx:else class="cc-list">
+    <coupon-card
+      wx:for="{{coupons}}"
+      wx:key="_id"
+      coupon="{{item}}"
+      claimed="{{item.myClaimed > 0}}"
+      loading="{{claiming === item._id}}"
+      bind:claim="onClaim"
+    />
+  </view>
+</view>

@@ -1,0 +1,31 @@
+<view class="page-wrap cm-wrap">
+  <view class="cm-tabs">
+    <view
+      wx:for="{{tabs}}"
+      wx:key="key"
+      class="cm-tab {{item.key === activeTab ? 'cm-tab-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onChangeTab"
+    >{{item.label}}</view>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <skeleton type="card" count="3" />
+  </block>
+
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+
+  <block wx:elif="{{coupons.length === 0}}">
+    <empty-state icon="/images/icons/gift.png" text="暂无相关优惠券" />
+  </block>
+
+  <view wx:else class="cm-list">
+    <coupon-card
+      wx:for="{{coupons}}"
+      wx:key="_id"
+      coupon="{{item.coupon}}"
+      claimed="{{true}}"
+      status="{{item.status}}"
+    />
+  </view>
+</view>

@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "我的优惠券",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "light",
+  "usingComponents": {
+    "skeleton": "/components/skeleton/skeleton",
+    "empty-state": "/components/empty-state/empty-state",
+    "error-state": "/components/error-state/error-state",
+    "coupon-card": "/components/coupon-card/coupon-card"
+  }
+}

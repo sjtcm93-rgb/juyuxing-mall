@@ -1,24 +1,38 @@
-<view class="page-wrap">
-  <view class="empty-wrap" wx:if="{{addresses.length === 0}}">
-    <text class="empty-text">暂无收货地址</text>
-  </view>
-  <view wx:for="{{addresses}}" wx:key="_id" class="address-card" data-id="{{item._id}}" bindtap="selectAddr">
-    <view class="addr-top">
-      <text class="addr-name">{{item.name}}</text>
-      <text class="addr-phone">{{item.phone}}</text>
-      <text class="addr-default" wx:if="{{item.isDefault}}">默认</text>
-    </view>
-    <text class="addr-detail">{{item.region ? item.region.join(' ') : ''}} {{item.detail}}</text>
-    <view class="addr-actions">
-      <view class="addr-action" bindtap="setDefault" data-id="{{item._id}}" data-default="{{!item.isDefault}}">
-        <text wx:if="{{item.isDefault}}">✅ 默认地址</text>
-        <text wx:else>○ 设为默认</text>
+<view class="page-wrap with-tabbar">
+  <skeleton wx:if="{{loading}}" type="list" rows="{{3}}" />
+  <error-state wx:elif="{{loadError}}" text="{{loadError}}" bind:retry="retry" />
+  <empty-state
+    wx:elif="{{addresses.length === 0}}"
+    icon="/images/icons/location.png"
+    text="还没有收货地址"
+    show-action="{{true}}"
+    action-text="添加地址"
+    bind:action="onEmptyAction"
+  />
+
+  <block wx:else>
+    <view
+      wx:for="{{addresses}}"
+      wx:key="_id"
+      class="address-card card"
+      data-id="{{item._id}}"
+      bindtap="{{selectMode ? 'pickAddress' : ''}}"
+    >
+      <view class="address-top">
+        <text class="address-name">{{item.name}}</text>
+        <text class="address-phone">{{item.phone}}</text>
+        <text wx:if="{{item.isDefault}}" class="default-tag">默认</text>
       </view>
-      <view class="addr-action" bindtap="editAddr" data-id="{{item._id}}">✏️ 编辑</view>
-      <view class="addr-action" bindtap="deleteAddr" data-id="{{item._id}}">🗑️ 删除</view>
+      <text class="address-detail">{{item.regionText}} {{item.detail}}</text>
+      <view class="address-actions" wx:if="{{!selectMode}}">
+        <view wx:if="{{!item.isDefault}}" class="addr-action" data-id="{{item._id}}" catchtap="setDefault">设为默认</view>
+        <view class="addr-action" data-id="{{item._id}}" catchtap="editAddress">编辑</view>
+        <view class="addr-action addr-action-danger" data-id="{{item._id}}" catchtap="deleteAddress">删除</view>
+      </view>
     </view>
-  </view>
-  <view class="add-btn-wrap">
-    <navigator url="/pages/address-edit/address-edit" class="add-btn">+ 添加新地址</navigator>
-  </view>
+
+    <view wx:if="{{!selectMode}}" class="add-btn-wrap safe-bottom">
+      <button class="add-btn" bindtap="addAddress">+ 新增收货地址</button>
+    </view>
+  </block>
 </view>

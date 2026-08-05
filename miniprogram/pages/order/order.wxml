@@ -1,43 +1,69 @@
 <view class="page-wrap">
-  <!-- 订单状态Tab -->
+  <!-- 调试状态条（上线前移除） -->
+  <view class="debug-bar" wx:if="{{debugInfo}}">{{debugInfo}}</view>
+
+  <!-- Tabs -->
   <scroll-view scroll-x class="order-tabs">
     <view class="tab-list">
       <view class="tab-item {{currentTab === 'all' ? 'tab-active' : ''}}" data-tab="all" bindtap="switchTab">全部</view>
       <view class="tab-item {{currentTab === 'pending' ? 'tab-active' : ''}}" data-tab="pending" bindtap="switchTab">待付款</view>
-      <view class="tab-item {{currentTab === 'paid' ? 'tab-active' : ''}}" data-tab="paid" bindtap="switchTab">已支付</view>
+      <view class="tab-item {{currentTab === 'paid' ? 'tab-active' : ''}}" data-tab="paid" bindtap="switchTab">待发货</view>
       <view class="tab-item {{currentTab === 'shipped' ? 'tab-active' : ''}}" data-tab="shipped" bindtap="switchTab">待收货</view>
       <view class="tab-item {{currentTab === 'received' ? 'tab-active' : ''}}" data-tab="received" bindtap="switchTab">已完成</view>
+      <view class="tab-item {{currentTab === 'refunding' ? 'tab-active' : ''}}" data-tab="refunding" bindtap="switchTab">退款/售后</view>
     </view>
   </scroll-view>
 
+  <!-- 加载中 -->
+  <view class="order-loading" wx:if="{{loading && orders.length === 0}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载订单…</text>
+  </view>
+
+  <!-- 错误状态 -->
+  <view class="order-error" wx:elif="{{loadError}}">
+    <view class="error-icon">⚠️</view>
+    <text class="error-text">{{loadError}}</text>
+    <view class="error-btn" bindtap="retry">重新加载</view>
+  </view>
+
   <!-- 空状态 -->
-  <view class="empty-wrap" wx:if="{{orders.length === 0 && !loading}}">
+  <view class="order-empty" wx:elif="{{orders.length === 0}}">
+    <image class="empty-icon" src="/images/icons/package.png" mode="aspectFit"></image>
     <text class="empty-text">暂无订单</text>
-    <navigator url="/pages/index/index" open-type="switchTab" class="go-shop-btn">去逛逛</navigator>
+    <view class="empty-btn" bindtap="goIndex">去逛逛</view>
   </view>
 
   <!-- 订单列表 -->
-  <view wx:for="{{orders}}" wx:key="_id" class="order-card" data-id="{{item._id}}" bindtap="goDetail">
-    <view class="order-header">
-      <text class="order-no">订单号：{{item.orderNo}}</text>
-      <text class="order-status {{'tag-' + item.status}}">{{statusText(item.status)}}</text>
-    </view>
-    <view class="order-product" wx:for="{{item.items}}" wx:key="productId" wx:for-item="prod">
-      <image class="prod-img" src="{{prod.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
-      <view class="prod-info">
-        <text class="prod-name">{{prod.name}}</text>
-        <text class="prod-spec">{{prod.spec || '13.5g'}} × {{prod.quantity}}</text>
+  <block wx:else>
+    <view wx:for="{{orders}}" wx:key="_id" class="order-card" data-id="{{item._id}}" bindtap="goDetail">
+      <view class="order-header">
+        <text class="order-no">订单号：{{item.orderNo}}</text>
+        <view class="order-status {{item.status}}">{{item.statusText}}</view>
       </view>
-      <text class="prod-price">¥{{(prod.price * prod.quantity / 100).toFixed(2)}}</text>
+      <view class="order-product" wx:for="{{item.items}}" wx:key="productId" wx:for-item="prod">
+        <image class="prod-img" src="{{prod.image || '/images/product-placeholder.png'}}" mode="aspectFill" lazy-load="{{true}}"></image>
+        <view class="prod-info">
+          <text class="prod-name">{{prod.name}}</text>
+          <text wx:if="{{prod.spec}}" class="prod-spec">{{prod.spec}}</text>
+          <text wx:else class="prod-spec">× {{prod.quantity}}</text>
+        </view>
+        <text class="prod-price">¥{{ prod.itemPriceText }}</text>
+      </view>
+      <view class="order-footer">
+        <text class="order-time">{{ item.createTimeText }}</text>
+        <text class="order-total">合计：<text class="order-total-price">¥{{ item.totalFeeText }}</text></text>
+      </view>
+      <view class="order-actions" wx:if="{{item.status === 'pending'}}">
+        <button class="order-action-btn order-action-primary" data-id="{{item._id}}" catchtap="payOrder">去支付</button>
+      </view>
     </view>
-    <view class="order-footer">
-      <text class="order-time">{{formatTime(item.createTime)}}</text>
-      <text class="order-total">合计：<text class="order-total-price">¥{{(item.totalFee/100).toFixed(2)}}</text></text>
-    </view>
-  </view>
 
-  <!-- 加载状态 -->
-  <view class="loading-wrap" wx:if="{{loading}}">
-    <view class="loading-dot"></view><view class="loading-dot"></view><view class="loading-dot"></view>
-  </view>
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loadingMore}}">
+      <view class="loading-spinner-sm"></view>
+      <text class="loading-more-text">加载中…</text>
+    </view>
+    <view class="loading-end" wx:elif="{{!hasMore && orders.length > 0}}">- 已经到底了 -</view>
+  </block>
 </view>

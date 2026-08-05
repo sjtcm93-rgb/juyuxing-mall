@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "客服消息",
+  "usingComponents": {
+    "skeleton": "/components/skeleton/skeleton",
+    "error-state": "/components/error-state/error-state"
+  }
+}

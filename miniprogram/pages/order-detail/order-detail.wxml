@@ -1,61 +1,169 @@
-<view class="page-wrap">
-  <!-- 状态区 -->
-  <view class="status-bar {{'bg-' + (order.status || 'pending')}}">
-    <text class="status-icon">
-      {{order.status === 'pending' ? '⏳' : order.status === 'paid' ? '✅' : order.status === 'shipped' ? '📦' : order.status === 'received' ? '🎉' : '↩️'}}
-    </text>
-    <view class="status-text">
-      <text class="status-title">{{statusText(order.status)}}</text>
-      <text class="status-desc">{{statusDesc(order.status)}}</text>
-    </view>
-  </view>
+<!-- 调试状态条 —— 可观察页面是否渲染、处于什么状态 -->
+<view class="debug-state" wx:if="{{true}}">
+  <text class="debug-tag">调试</text>
+  <text wx:if="{{loading}}">状态: 加载中…</text>
+  <text wx:elif="{{loadError}}">状态: 错误 - {{loadError}}</text>
+  <text wx:elif="{{!order}}">状态: order=null</text>
+  <text wx:else>状态: 已加载 / {{order.status}} / {{order.orderNo}}</text>
+</view>
 
-  <!-- 地址 -->
-  <view class="address-card" wx:if="{{order.address}}">
-    <text class="address-icon">📍</text>
-    <view class="address-info">
-      <view class="address-top">
+<view class="page-wrap">
+  <!-- 加载中骨架 -->
+  <block wx:if="{{loading}}">
+    <view class="loading-wrap">
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <view class="loading-dot"></view>
+      <text style="margin-top:24rpx;color:#8B8278;font-size:26rpx;">正在加载订单...</text>
+    </view>
+  </block>
+
+  <!-- 加载出错 -->
+  <block wx:elif="{{loadError}}">
+    <view class="err-wrap">
+      <view class="err-icon">⚠️</view>
+      <text class="err-text">{{loadError}}</text>
+      <button class="err-btn" bindtap="retry" hover-class="err-btn-hover">重新加载</button>
+    </view>
+  </block>
+
+  <!-- 订单数据为空 -->
+  <block wx:elif="{{!order}}">
+    <view class="err-wrap">
+      <view class="err-icon">📋</view>
+      <text class="err-text">订单数据加载异常</text>
+      <button class="err-btn" bindtap="retry" hover-class="err-btn-hover">重新加载</button>
+    </view>
+  </block>
+
+  <!-- 正常订单内容 -->
+  <block wx:else>
+    <!-- 顶部状态条 -->
+    <view class="status-bar">
+      <view class="status-icon {{order.status === 'refunded' || order.status === 'refunding' ? 'status-return' : 'status-ok'}}"></view>
+      <view class="status-info">
+        <view class="status-title">
+          <status-tag status="{{order.status}}" />
+        </view>
+        <text class="status-desc">{{statusDesc}}</text>
+      </view>
+    </view>
+
+    <!-- 收货地址 -->
+    <view class="card section address-card" wx:if="{{order.address}}">
+      <view class="address-name-row">
         <text class="address-name">{{order.address.name}}</text>
         <text class="address-phone">{{order.address.phone}}</text>
       </view>
-      <text class="address-detail">{{order.address.region ? order.address.region.join(' ') : ''}} {{order.address.detail}}</text>
+      <text class="address-detail">{{addressRegionText}} {{order.address.detail}}</text>
     </view>
-  </view>
 
-  <!-- 商品清单 -->
-  <view class="section">
-    <view class="order-product" wx:for="{{order.items || []}}" wx:key="productId" wx:for-item="prod">
-      <image class="prod-img" src="{{prod.image || '../../images/product-placeholder.png'}}" mode="aspectFill"></image>
-      <view class="prod-info">
-        <text class="prod-name">{{prod.name}}</text>
-        <text class="prod-spec">{{prod.spec || '13.5g'}}</text>
+    <!-- 商品列表 -->
+    <view class="card section">
+      <block wx:if="{{order.items && order.items.length > 0}}">
+        <view wx:for="{{order.items}}" wx:key="productId" wx:for-item="item" class="prod-row">
+          <image class="prod-img" src="{{item.image || '/images/product-placeholder.png'}}" mode="aspectFill" />
+          <view class="prod-info">
+            <text class="prod-name">{{item.name}}</text>
+            <text wx:if="{{item.spec}}" class="prod-spec">{{item.spec}}</text>
+          </view>
+          <view class="prod-price-area">
+            <text class="prod-price">¥{{item.priceText || ''}}</text>
+            <text class="prod-qty">×{{item.quantity}}</text>
+          </view>
+        </view>
+      </block>
+      <block wx:else>
+        <text class="empty-hint">暂无商品信息</text>
+      </block>
+      <view class="divider"></view>
+      <view class="total-row">
+        <text>商品总额</text>
+        <text>¥{{hasDiscount ? originalTotalFeeText : totalFeeText}}</text>
       </view>
-      <view class="prod-price-area">
-        <text class="prod-price">¥{{(prod.price/100).toFixed(2)}}</text>
-        <text class="prod-qty">×{{prod.quantity}}</text>
+      <view class="total-row" wx:if="{{hasDiscount}}">
+        <text>优惠券</text>
+        <text class="discount">-¥{{couponDiscountText}}</text>
+      </view>
+      <view class="total-row total">
+        <text>实付</text>
+        <text class="total-price">¥{{totalFeeText}}</text>
       </view>
     </view>
-    <view class="order-summary">
-      <view class="summary-row"><text>订单编号</text><text>{{order.orderNo}}</text></view>
-      <view class="summary-row"><text>下单时间</text><text>{{formatTime(order.createTime)}}</text></view>
-      <view class="summary-row" wx:if="{{order.remark}}"><text>备注</text><text>{{order.remark}}</text></view>
-    </view>
-  </view>
 
-  <!-- 物流信息 -->
-  <view class="section" wx:if="{{order.logistics && order.logistics.trackingNo}}">
-    <view class="section-header">
-      <text class="section-title">物流信息</text>
-      <navigator url="/pages/logistics/logistics?id={{order._id}}" class="section-more">查看详情 ›</navigator>
+    <!-- 物流 -->
+    <view class="card section logistics" wx:if="{{order.logistics && order.logistics.trackingNo}}" bindtap="viewLogistics">
+      <text class="logistics-label">物流</text>
+      <view class="logistics-info">
+        <text class="logistics-company">{{order.logistics.company}}</text>
+        <text class="logistics-no">{{order.logistics.trackingNo}}</text>
+      </view>
+      <text class="arrow">›</text>
     </view>
-    <text class="logistics-info">{{order.logistics.company}}：{{order.logistics.trackingNo}}</text>
-  </view>
 
-  <!-- 底部按钮 -->
-  <view class="bottom-actions">
-    <button wx:if="{{order.status === 'pending'}}" class="btn-primary" bindtap="payOrder">立即支付</button>
-    <button wx:if="{{order.status === 'pending'}}" class="btn-secondary" bindtap="cancelOrder">取消订单</button>
-    <button wx:if="{{order.status === 'shipped'}}" class="btn-primary" bindtap="confirmReceive">确认收货</button>
-    <button wx:if="{{order.status === 'received'}}" class="btn-secondary" bindtap="contactService">联系客服</button>
-  </view>
+    <!-- 退款详情 -->
+    <view class="card section refund-detail" wx:if="{{refundDetail}}">
+      <text class="section-title">退款详情（{{refundDetail.statusText}}）</text>
+      <view class="refund-row"><text class="refund-label">退款原因</text><text class="refund-value">{{refundDetail.reason}}</text></view>
+      <view class="refund-row" wx:if="{{refundDetail.description}}"><text class="refund-label">说明</text><text class="refund-value">{{refundDetail.description}}</text></view>
+      <view class="refund-row" wx:if="{{refundDetail.adminNote}}"><text class="refund-label">处理备注</text><text class="refund-value">{{refundDetail.adminNote}}</text></view>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="card section order-info">
+      <view class="info-row">
+        <text class="info-label">订单号</text>
+        <text class="info-value mono">{{order.orderNo || '-'}}</text>
+        <text class="copy-btn" catchtap="copyOrderNo">复制</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">下单时间</text>
+        <text class="info-value">{{order.createTimeText || '-'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{order.payTime}}">
+        <text class="info-label">支付时间</text>
+        <text class="info-value">{{order.payTimeText || '-'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{order.remark}}">
+        <text class="info-label">备注</text>
+        <text class="info-value">{{order.remark}}</text>
+      </view>
+    </view>
+
+    <!-- 时间线 -->
+    <view class="card section timeline-section" wx:if="{{timeline.length > 0}}">
+      <text class="section-title">订单进度</text>
+      <view class="timeline">
+        <view wx:for="{{timeline}}" wx:key="label" class="tl-item {{item.done ? 'tl-done' : 'tl-pending'}}">
+          <view class="tl-dot"></view>
+          <view class="tl-content">
+            <text class="tl-label">{{item.label}}</text>
+            <text class="tl-time">{{item.timeText || '等待中'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部操作栏 -->
+    <view class="bottom-actions safe-bottom">
+      <button class="action-btn action-ghost" bindtap="contactService">联系客服</button>
+      <block wx:if="{{order.status === 'pending'}}">
+        <button class="action-btn action-secondary" bindtap="cancelOrder">取消订单</button>
+        <button class="action-btn action-primary" bindtap="payOrder" disabled="{{submitting}}">{{submitting ? '处理中...' : '立即支付'}}</button>
+      </block>
+      <block wx:elif="{{order.status === 'paid'}}">
+        <button class="action-btn action-secondary" bindtap="requestRefund">申请退款</button>
+      </block>
+      <block wx:elif="{{order.status === 'shipped'}}">
+        <button class="action-btn action-secondary" bindtap="requestRefund">申请退款</button>
+        <button class="action-btn action-primary" bindtap="confirmReceive">确认收货</button>
+      </block>
+      <block wx:elif="{{order.status === 'received'}}">
+        <button class="action-btn action-secondary" bindtap="requestRefund">申请售后</button>
+      </block>
+    </view>
+
+    <!-- 底部留白（给固定操作栏让位） -->
+    <view style="height:140rpx;"></view>
+  </block>
 </view>

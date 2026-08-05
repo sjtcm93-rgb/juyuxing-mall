@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>橘与杏小程序上线指南</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #FDF8F3; color: #4A3F35; line-height: 1.8; }
+  .container { max-width: 800px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 32px; text-align: center; margin-bottom: 8px; color: #4A3F35; }
+  .subtitle { text-align: center; color: #8B7E72; font-size: 15px; margin-bottom: 40px; }
+  .step-card { background: #fff; border-radius: 16px; padding: 28px 32px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(74,63,53,0.06); }
+  .step-num { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #E8A87C, #F5D6B8); color: #fff; font-size: 18px; font-weight: 700; margin-right: 12px; vertical-align: middle; }
+  .step-title { font-size: 20px; font-weight: 600; color: #4A3F35; display: flex; align-items: center; margin-bottom: 16px; }
+  .step-body { padding-left: 48px; }
+  .step-body p { margin-bottom: 12px; font-size: 15px; }
+  .step-body ol { padding-left: 20px; margin-bottom: 12px; }
+  .step-body ol li { margin-bottom: 8px; font-size: 15px; }
+  .warn { background: #FFF8E1; border-left: 4px solid #E8A87C; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+  .danger { background: #FFF0F0; border-left: 4px solid #E0725A; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+  .success { background: #E8F5E9; border-left: 4px solid #8BA888; padding: 12px 16px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+  .tag { display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; margin-left: 6px; }
+  .tag-must { background: #E0725A; color: #fff; }
+  .tag-optional { background: #8BA888; color: #fff; }
+  code { background: #F5F0EB; padding: 2px 8px; border-radius: 4px; font-size: 14px; color: #E0725A; }
+  .fn-list { background: #F8F5F0; border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+  .fn-list table { width: 100%; border-collapse: collapse; }
+  .fn-list th { text-align: left; padding: 8px 12px; font-size: 13px; color: #8B7E72; border-bottom: 2px solid #E8E0D8; }
+  .fn-list td { padding: 8px 12px; font-size: 14px; border-bottom: 1px solid #F0E8E0; }
+  .fn-list td:first-child { font-family: monospace; color: #E8A87C; }
+  .fn-list .modified { color: #E0725A; font-weight: 600; }
+  .summary { background: linear-gradient(135deg, #E8A87C11, #F5D6B811); border: 2px solid #E8A87C33; border-radius: 16px; padding: 24px 28px; margin: 24px 0; }
+  .summary h3 { font-size: 18px; margin-bottom: 12px; color: #4A3F35; }
+  .summary ul { padding-left: 20px; }
+  .summary ul li { margin-bottom: 6px; font-size: 14px; }
+  .divider { height: 1px; background: #F0E8E0; margin: 24px 0; }
+  .countdown { text-align: center; font-size: 14px; color: #8B7E72; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>橘与杏小程序上线指南</h1>
+  <p class="subtitle">从代码上传到审核发布，一共 4 步</p>
+
+  <div class="summary">
+    <h3>本次代码修改清单</h3>
+    <ul>
+      <li><strong>新增</strong>：admin.js 补了 deleteBanner 函数（之前模板有按钮但 JS 缺函数）</li>
+      <li><strong>新增</strong>：admin.wxml 退款区补了处理备注输入框</li>
+      <li><strong>修复</strong>：6 个云函数 envId 从 DYNAMIC_CURRENT_ENV 改为硬编码（withdrawal/product/cart/commission/order/agent）</li>
+      <li><strong>之前已修复</strong>：admin/chat 云函数、退款逻辑、筛选栏、data-approve 布尔值</li>
+    </ul>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step-card">
+    <div class="step-title">
+      <span class="step-num">1</span>
+      上传全部 12 个云函数
+      <span class="tag tag-must">必须</span>
+    </div>
+    <div class="step-body">
+      <p>在微信开发者工具左侧文件树，找到 <code>cloudfunctions</code> 文件夹，对下面 <strong>每一个</strong> 子文件夹右键 →「上传并部署：云端安装依赖（不上传 node_modules）」：</p>
+      <div class="fn-list">
+        <table>
+          <tr><th>云函数名</th><th>状态</th><th>说明</th></tr>
+          <tr><td class="modified">admin</td><td class="modified">已修改</td><td>退款逻辑+筛选+deleteBanner 等</td></tr>
+          <tr><td class="modified">chat</td><td class="modified">已修改</td><td>管理员识别修复</td></tr>
+          <tr><td class="modified">order</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">pay</td><td>已修改</td><td>支付参数透传</td></tr>
+          <tr><td class="modified">payNotify</td><td>已修改</td><td>佣金结算逻辑</td></tr>
+          <tr><td class="modified">login</td><td>已修改</td><td>自动设管理员</td></tr>
+          <tr><td class="modified">init</td><td>已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">withdrawal</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">product</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">cart</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">commission</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+          <tr><td class="modified">agent</td><td class="modified">已修改</td><td>envId 硬编码</td></tr>
+        </table>
+      </div>
+      <div class="warn">⚠️ 全部 12 个都要上传！这次改了 6 个云函数的 envId，如果不重新上传，线上环境还是旧的 DYNAMIC_CURRENT_ENV，可能导致部分功能在正式版中报错。</div>
+      <p>每个上传成功后右下角会提示"上传成功"，等全部 12 个都传完再进行下一步。</p>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step-card">
+    <div class="step-title">
+      <span class="step-num">2</span>
+      编译测试
+      <span class="tag tag-must">必须</span>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>点击开发者工具顶部的「编译」按钮（或 Ctrl+B / Cmd+B）</li>
+        <li>在模拟器中走一遍核心流程：浏览商品 → 加购 → 下单 → 支付</li>
+        <li>进入管理后台，确认筛选栏、退款处理、客服消息都正常</li>
+        <li>点击「预览」生成二维码，手机扫码在真机上再测一遍</li>
+      </ol>
+      <div class="success">✅ 确认所有功能正常后再进入下一步。如果发现问题，先修复再上传。</div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step-card">
+    <div class="step-title">
+      <span class="step-num">3</span>
+      上传小程序代码
+      <span class="tag tag-must">必须</span>
+    </div>
+    <div class="step-body">
+      <ol>
+        <li>点击开发者工具顶部的「上传」按钮</li>
+        <li>填写版本号：<code>1.0.0</code>（首次上线）</li>
+        <li>填写备注：<code>首次上线</code></li>
+        <li>点击确定，等待上传完成</li>
+      </ol>
+      <div class="warn">⚠️ 上传前确保「不校验合法域名」已关闭（详情 → 本地设置），否则审核可能被拒。</div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step-card">
+    <div class="step-title">
+      <span class="step-num">4</span>
+      提交审核 & 发布
+      <span class="tag tag-must">必须</span>
+    </div>
+    <div class="step-body">
+      <p>打开浏览器，登录 <code>mp.weixin.qq.com</code>（微信公众平台）：</p>
+      <ol>
+        <li><strong>设置服务类目</strong>（如果还没设置）：<br>
+          管理 → 基本设置 → 服务类目 → 添加类目<br>
+          建议选择：电商平台 / 综合电商（需要有相关资质）</li>
+        <li><strong>配置隐私协议</strong>（审核必须）：<br>
+          设置 → 用户隐私保护指引 → 新增/更新<br>
+          勾选：微信昵称、头像、手机号（如有）、地址<br>
+          填写收集目的（如"用于订单配送""用于客服沟通"）</li>
+        <li><strong>提交审核</strong>：<br>
+          管理 → 版本管理 → 找到刚上传的 1.0.0 版本<br>
+          点击「提交审核」→ 填写审核信息 → 提交</li>
+        <li><strong>发布上线</strong>：<br>
+          审核通过后（通常 1-3 天），回到版本管理<br>
+          点击「发布」→ 小程序正式上线！</li>
+      </ol>
+      <div class="danger">⚠️ 审核常见被拒原因：服务类目与实际业务不符、缺少隐私协议、测试账号未提供。建议在提交审核时备注一个测试账号。</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="step-card">
+    <div class="step-title">
+      🔍 审核注意事项
+    </div>
+    <div class="step-body">
+      <ol>
+        <li><strong>测试账号</strong>：提交审核时填写一个可测试的账号（你的微信号），方便审核人员体验</li>
+        <li><strong>支付功能</strong>：由于涉及微信支付，确保商户号已关联小程序 AppID，否则支付类目审核会卡住</li>
+        <li><strong>客服功能</strong>：小程序后台 → 客服 → 添加客服人员（你的微信号），不然审核可能提示无客服入口</li>
+        <li><strong>首页不能为空</strong>：确保云数据库中已初始化商品数据（init 云函数已跑过）</li>
+        <li><strong>域名配置</strong>：如果商品图片用了外部 URL，需要在 mp.weixin.qq.com → 开发 → 开发设置 → 服务器域名中添加</li>
+      </ol>
+    </div>
+  </div>
+
+  <p class="countdown">审核通过后小程序就能正式使用了 🎉</p>
+</div>
+</body>
+</html>

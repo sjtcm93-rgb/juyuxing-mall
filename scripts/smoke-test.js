@@ -125,8 +125,10 @@ if (projectConfig.appid && cloudbaserc.envId && envIdMatch &&
 console.log('▶ 关键业务规则');
 
 const orderSrc = read('cloudfunctions/order/index.js');
+// 佣金比例：支持硬编码常量（COMMISSION_RATE = 0.15）或动态读取（getCommissionRate 默认 0.15）
 const COMMISSION_RATE_MATCH = orderSrc.match(/COMMISSION_RATE\s*=\s*([\d.]+)/);
-const rate = COMMISSION_RATE_MATCH ? parseFloat(COMMISSION_RATE_MATCH[1]) : null;
+const DYNAMIC_RATE_MATCH = orderSrc.match(/commissionRate[^\d]*([\d.]+)/);
+const rate = COMMISSION_RATE_MATCH ? parseFloat(COMMISSION_RATE_MATCH[1]) : (DYNAMIC_RATE_MATCH ? parseFloat(DYNAMIC_RATE_MATCH[1]) : null);
 if (rate === 0.15) ok('佣金比例 = 15%');
 else fail('佣金比例', '应为 0.15，实际 ' + rate);
 
@@ -159,12 +161,15 @@ if (adminSrc.includes("status: 'paid'") &&
 }
 
 const paySrc = read('cloudfunctions/pay/index.js');
-if (paySrc.includes("cloud.callFunction({") &&
-    paySrc.includes("name: 'order'") &&
-    paySrc.includes("updateStatus")) {
-  ok('pay.requestPayment 通过 order 云函数更新状态（避免佣金逻辑分散）');
+// 新设计: pay 不再直改订单状态,真实支付由 payNotify 回调做"落 paid + 写佣金",mock 模式则不落状态等待回调
+const payNotifySrc = read('cloudfunctions/payNotify/index.js');
+if (paySrc.includes('cloud.cloudPay.unifiedOrder') &&
+    paySrc.includes('functionName:') &&
+    payNotifySrc.includes('commissions') &&
+    payNotifySrc.includes("status: 'paid'")) {
+  ok('pay 走云支付下单,payNotify 回调负责落 paid/佣金（链路分离）');
 } else {
-  fail('pay.requestPayment', '未走 order 云函数统一处理');
+  fail('pay/payNotify', '未走新的 "pay 统一下单 + payNotify 回调" 设计');
 }
 
 // ---------- 4. 关键业务方法单元验证 ----------
@@ -219,14 +224,49 @@ if (!paySrc.match(/const\s+rate\s*=\s*0\.15/) && !paySrc.match(/rate:\s*0\.15/))
   fail('pay 硬编码', 'pay 中仍存在写死的 0.15，应改用常量或通过 order 统一处理');
 }
 
-// 验证 order.updateStatus 中使用 COMMISSION_RATE
-if (orderSrc.includes('COMMISSION_RATE') && orderSrc.match(/if\s*\(newStatus\s*===\s*['"]paid['"]\)/)) {
-  ok('order.updateStatus 佣金创建使用统一常量');
+// 验证 order.updateStatus 中使用佣金比例（常量或动态读取）
+if ((orderSrc.includes('COMMISSION_RATE') || orderSrc.includes('getCommissionRate')) && orderSrc.match(/if\s*\(newStatus\s*===\s*['"]paid['"]\)/)) {
+  ok('order.updateStatus 佣金创建使用统一比例');
 }
 
 // 验证 agent.apply 重复申请防护
 if (agentSrc.includes("agentInfo?.status") && agentSrc.includes("'pending'")) {
   ok('agent.apply 已防止重复申请');
+}
+
+// ---------- 6. WXS 依赖扫描(避免再次踩 IDE 老编译器坑) ----------
+console.log('▶ WXS 静态扫描');
+
+// 扫所有 .wxml,不允许再出现 <wxs> 标签或 f.price() / f.formatTime() / f.statusText() 调用
+const pagesDir = path.join(ROOT, 'miniprogram');
+const componentsDir = path.join(ROOT, 'miniprogram/components');
+const allWxml = [];
+function walk(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const f of fs.readdirSync(dir)) {
+    const fp = path.join(dir, f);
+    const st = fs.statSync(fp);
+    if (st.isDirectory()) walk(fp);
+    else if (f.endsWith('.wxml')) allWxml.push(fp);
+  }
+}
+walk(pagesDir);
+walk(componentsDir);
+
+let wxsViolation = 0;
+for (const fp of allWxml) {
+  const src = fs.readFileSync(fp, 'utf8');
+  if (/<wxs[\s>]/.test(src)) { fail('wxs 残留: ' + path.relative(ROOT, fp), '不应再使用 <wxs> 标签(WXML 内置表达式已够用)'); wxsViolation++; }
+  if (/f\.(price|priceYuan|statusText|formatTime|formatHourMin)\s*\(/.test(src)) { fail('wxs filter 调用: ' + path.relative(ROOT, fp), '不应再调用 f.* 滤镜'); wxsViolation++; }
+}
+if (wxsViolation === 0) ok('无 <wxs> 标签 / 无 f.* 调用 (兼容老 IDE)');
+
+// utils 下不应有 .wxs 文件
+const utilsDir = path.join(ROOT, 'miniprogram/utils');
+if (fs.existsSync(utilsDir)) {
+  const wxsFiles = fs.readdirSync(utilsDir).filter(f => f.endsWith('.wxs'));
+  if (wxsFiles.length === 0) ok('utils 下无 .wxs 文件');
+  else wxsFiles.forEach(f => fail('wxs 文件: miniprogram/utils/' + f, '应迁移到 utils/*.js'));
 }
 
 // ---------- 输出 ----------
@@ -245,3 +285,4 @@ if (failures.length > 0) {
   console.log('✅ 全部通过');
   process.exit(0);
 }
+

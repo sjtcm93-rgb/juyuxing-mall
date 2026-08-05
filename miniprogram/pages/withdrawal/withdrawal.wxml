@@ -1,50 +1,42 @@
 <view class="page-wrap">
-  <!-- 可提现金额 -->
-  <view class="balance-section">
-    <text class="balance-label">可提现金额</text>
-    <text class="balance-value">¥{{(available/100).toFixed(2)}}</text>
-    <text class="balance-hint" wx:if="{{pendingAmount > 0}}">
-      处理中：¥{{(pendingAmount/100).toFixed(2)}}（{{pendingCount}}笔）
-    </text>
+  <view class="balance-card card">
+    <text class="balance-label">可提现金额（元）</text>
+    <text class="balance-num">¥{{ availableText }}</text>
+    <text wx:if="{{pendingCount > 0}}" class="balance-pending">处理中：¥{{ pendingAmountText }}（{{pendingCount}}笔）</text>
   </view>
 
-  <!-- 提现表单 -->
-  <view class="form-section">
-    <view class="form-group">
+  <view class="card form">
+    <view class="form-row">
       <text class="form-label">提现金额</text>
       <view class="amount-input-wrap">
         <text class="amount-symbol">¥</text>
-        <input class="amount-input" type="digit" placeholder="最低10元" bindinput="onAmountInput" />
+        <input class="amount-input" type="digit" placeholder="0.00" value="{{amount}}" bindinput="onAmount" />
+        <view class="full-btn" bindtap="fullAmount">全部</view>
       </view>
     </view>
-    <view class="quick-amounts">
-      <view class="quick-amount {{quickAmount === 3000 ? 'quick-active' : ''}}" bindtap="setQuickAmount" data-amount="3000">30元</view>
-      <view class="quick-amount {{quickAmount === 5000 ? 'quick-active' : ''}}" bindtap="setQuickAmount" data-amount="5000">50元</view>
-      <view class="quick-amount {{quickAmount === 10000 ? 'quick-active' : ''}}" bindtap="setQuickAmount" data-amount="10000">100元</view>
-      <view class="quick-amount {{quickAmount === 20000 ? 'quick-active' : ''}}" bindtap="setQuickAmount" data-amount="20000">200元</view>
-      <view class="quick-amount {{quickAmount === 'all' ? 'quick-active' : ''}}" bindtap="setQuickAmount" data-amount="all">全部提现</view>
+    <view class="form-row">
+      <text class="form-label">收款人</text>
+      <input class="form-input" placeholder="真实姓名" value="{{name}}" bindinput="onName" />
     </view>
-
-    <view class="form-group">
-      <text class="form-label">收款人姓名</text>
-      <input class="form-input" placeholder="请输入银行卡/支付宝持有者姓名" bindinput="onNameInput" />
-    </view>
-    <view class="form-group">
+    <view class="form-row">
       <text class="form-label">收款账号</text>
-      <input class="form-input" placeholder="请输入银行卡号/支付宝账号" bindinput="onAccountInput" />
+      <input class="form-input" placeholder="微信号/支付宝/银行卡号" value="{{account}}" bindinput="onAccount" />
     </view>
+    <text class="form-tip">最低提现金额 10 元，提现申请会在 1-3 个工作日内审核</text>
   </view>
 
-  <view class="tips-section">
-    <text class="tips-title">提现说明</text>
-    <text class="tips-text">• 最低提现金额为10元</text>
-    <text class="tips-text">• 提现申请提交后将在1-3个工作日内处理</text>
-    <text class="tips-text">• 提现会从可提现金额中扣除</text>
+  <view class="submit-wrap safe-bottom">
+    <button class="submit-btn" bindtap="submit" disabled="{{submitting}}">{{submitting ? '提交中...' : '提交申请'}}</button>
   </view>
 
-  <view class="submit-wrap">
-    <button class="submit-btn {{submitting ? 'btn-disabled' : ''}}" bindtap="submitWithdrawal" disabled="{{submitting}}">
-      {{submitting ? '提交中...' : '确认提现'}}
-    </button>
+  <view class="card records" wx:if="{{records.length > 0}}">
+    <text class="section-title">提现记录</text>
+    <view class="record-item" wx:for="{{records}}" wx:key="_id">
+      <view class="record-info">
+        <text class="record-amount">-¥{{ item.amountText }}</text>
+        <text class="record-time">{{ item.createTimeText }}</text>
+      </view>
+      <status-tag status="{{item.status === 'success' ? 'settled' : (item.status === 'rejected' ? 'rejected' : 'pending')}}" />
+    </view>
   </view>
 </view>
