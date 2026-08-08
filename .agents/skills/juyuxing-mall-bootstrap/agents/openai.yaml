@@ -1,0 +1,6 @@
+interface:
+  display_name: "Juyuxing Mall Bootstrap"
+  short_description: "Prepare this Mini Program for local debugging"
+  default_prompt: "Use $juyuxing-mall-bootstrap to check this Mini Program environment is ready for local debugging."
+policy:
+  allow_implicit_invocation: true
