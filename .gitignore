@@ -15,6 +15,10 @@ Thumbs.db
 # WeChat Dev
 miniprogram_npm/
 cloudfunctions/**/node_modules/
+project.private.config.json
+
+# Local agent workflow records
+docs/baymax/
 
 # Env
 .env
