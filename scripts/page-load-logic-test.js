@@ -41,7 +41,7 @@ function loadPage(relativePath, api, storage, wxOverrides) {
     setStorageSync: (key, value) => { storage[key] = value; },
     stopPullDownRefresh: () => {}, navigateTo: () => {}, showModal: () => {}
   }, wxOverrides || {});
-  global.getApp = () => ({ getReferrer: () => '' });
+  global.getApp = () => ({ globalData: {}, getReferrer: () => '' });
   delete require.cache[pagePath];
   require(pagePath);
   if (cachedApi) require.cache[apiPath] = cachedApi;
@@ -145,8 +145,61 @@ async function testSearchHotKeywords() {
   assert.deepEqual(search.data.hotKeywords, ['热词一']);
 }
 
+async function testUserCenterCache() {
+  const realNow = Date.now;
+  let now = 1000000;
+  Date.now = () => now;
+  try {
+    const storage = {
+      openId: 'user-1',
+      userInfo: { nickName: '用户一', avatarUrl: '/avatar.png' }
+    };
+    const calls = { agent: 0, counts: 0, oldOrderList: 0, admin: 0 };
+    const api = {
+      getAgentInfo: async () => {
+        calls.agent++;
+        return { success: true, isAgent: true };
+      },
+      getOrderCounts: async () => {
+        calls.counts++;
+        return { success: true, data: { pending: 1, paid: 2, shipped: 3, refunding: 4 } };
+      },
+      getOrderList: async () => {
+        calls.oldOrderList++;
+        return { success: true, total: 99 };
+      }
+    };
+    const user = loadPage('miniprogram/pages/user/user.js', api, storage, {
+      cloud: {
+        callFunction: async () => {
+          calls.admin++;
+          return { result: { success: true } };
+        }
+      }
+    });
+
+    await Promise.all([user.loadUserInfo(), user.loadOrderCounts()]);
+    assert.equal(calls.agent, 1, 'user center loads agent info once on cold entry');
+    assert.equal(calls.counts, 1, 'user center uses aggregate order counts on cold entry');
+    assert.equal(calls.oldOrderList, 0, 'user center no longer fans out to order:list for counts');
+    assert.deepEqual(user.data.orderCounts, { pending: 1, paid: 2, shipped: 3, refunding: 4 });
+
+    await Promise.all([user.loadUserInfo(), user.loadOrderCounts()]);
+    assert.equal(calls.agent, 1, 'agent info is reused from cache inside ttl');
+    assert.equal(calls.counts, 1, 'order counts are reused from 30s cache');
+
+    now += 31000;
+    await user.loadOrderCounts();
+    assert.equal(calls.counts, 2, 'order counts refresh after 30s cache expires');
+    assert.equal(calls.agent, 1, 'agent info cache is independent from order count refresh');
+  } finally {
+    Date.now = realNow;
+  }
+}
+
 Promise.resolve()
   .then(testHomeBannerCache)
   .then(testSearchHotKeywords)
+  .then(testUserCenterCache)
   .then(() => console.log('page load logic tests passed'))
   .catch(err => { console.error(err.stack || err); process.exitCode = 1; });

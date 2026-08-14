@@ -164,6 +164,7 @@ if (adminSrc.includes("status: 'paid'") &&
 
 const bannerSrc = read('cloudfunctions/banner/index.js');
 const homePageSrc = read('miniprogram/pages/index/index.js');
+const userPageSrc = read('miniprogram/pages/user/user.js');
 const apiSrc = read('miniprogram/utils/api.js');
 const searchSrc = read('miniprogram/pages/search/search.js');
 const skeletonSrc = read('miniprogram/components/skeleton/skeleton.wxml');
@@ -202,6 +203,13 @@ if (!/wx:key="[^"]*\{\{/.test(skeletonSrc) && (skeletonSrc.match(/wx:key="index"
   ok('骨架屏 wx:key 合法');
 } else {
   fail('骨架屏 wx:key', '三处静态占位循环必须使用合法 key');
+}
+if (orderSrc.includes("case 'counts'") && apiSrc.includes("getOrderCounts: (options) => call('order', { action: 'counts' }") &&
+    userPageSrc.includes('ORDER_COUNTS_CACHE_TTL = 30 * 1000') && userPageSrc.includes('API.getOrderCounts') &&
+    !userPageSrc.includes("API.getOrderList({ status: 'pending'")) {
+  ok('我的页订单角标走聚合计数和 30 秒缓存');
+} else {
+  fail('我的页订单角标', '应使用 order:counts 聚合接口和 30 秒本地缓存，不再四次调用 order:list');
 }
 
 const paySrc = read('cloudfunctions/pay/index.js');

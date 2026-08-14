@@ -357,6 +357,11 @@ async function main() {
   // mock 模式下订单已变为 paid
   const orderAfterPay = db._store.orders.find(o => o._id === orderId);
   step('订单已 paid（mock 直接落 paid）', orderAfterPay.status === 'paid', '实际=' + orderAfterPay.status);
+  const orderCounts = (await call('order', { action: 'counts' })).result;
+  step('我的页订单状态计数聚合', orderCounts.success &&
+    orderCounts.data && orderCounts.data.pending === 0 && orderCounts.data.paid === 1 &&
+    orderCounts.data.shipped === 0 && orderCounts.data.refunding === 0,
+  'counts=' + JSON.stringify(orderCounts.data || {}));
   // 记住 wdId 以便后续断言拆分后产生的 paid 佣金
   let _wdIdForCheck = '';
   // payNotify 回调验证幂等性（重复回调应被忽略）
