@@ -18,7 +18,7 @@
     <swiper class="banner-swiper" autoplay="{{true}}" interval="{{4000}}" duration="{{500}}" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8A87C">
       <swiper-item wx:for="{{banners}}" wx:key="_id">
         <view class="banner-item" data-link="{{item.linkUrl}}" bindtap="onBannerTap">
-          <image class="banner-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load="{{true}}"></image>
+          <image class="banner-image" src="{{item.imageUrl}}" mode="aspectFit" data-index="{{index}}" binderror="onBannerImageError"></image>
           <text class="banner-title" wx:if="{{item.title}}">{{item.title}}</text>
         </view>
       </swiper-item>

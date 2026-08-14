@@ -12,6 +12,7 @@
 
 const path = require('path');
 const Module = require('module');
+const fs = require('fs');
 const ROOT = path.resolve(__dirname, '..');
 const CF = path.join(ROOT, 'cloudfunctions');
 
@@ -198,6 +199,14 @@ const cloud = {
   init() {},
   getWXContext() { return { OPENID: currentOpenId }; },
   database() { return db; },
+  async getTempFileURL({ fileList }) {
+    return {
+      fileList: (fileList || []).map(fileID => ({
+        fileID,
+        tempFileURL: 'https://temp.example.test/' + encodeURIComponent(fileID)
+      }))
+    };
+  },
   async callFunction({ name, data }) {
     const mod = loadCloudFunction(name);
     return { result: await mod.main(data || {}, {}) };
@@ -252,6 +261,33 @@ async function main() {
   step('6 个分类', cats.data && cats.data.length >= 6, '实际=' + (cats.data && cats.data.length));
   const coupons = (await call('coupon', { action: 'center' })).result;
   step('3 张券 seed', coupons.data && coupons.data.length >= 3, '实际=' + (coupons.data && coupons.data.length));
+
+  header('Step 1.5: 首页公开 Banner 读取');
+  db._store.banners = [
+    { _id: 'banner-off', status: 'off', sort: 0, imageUrl: 'https://example.test/off.png', secret: 'hidden' },
+    { _id: 'banner-late', status: 'on', sort: 20, imageUrl: 'https://example.test/late.png', title: '晚', linkUrl: '/pages/category/category', secret: 'hidden' },
+    { _id: 'banner-first', status: 'on', sort: 10, imageUrl: 'cloud://env/banner-first.png', title: '先', linkUrl: '/pages/search/search', secret: 'hidden' }
+  ];
+  const bannerList = (await call('banner', { action: 'list' })).result;
+  step('公开 Banner 读取成功', bannerList.success);
+  step('公开 Banner 只返回上架项且按 sort 排序', bannerList.data && bannerList.data.length === 2 && bannerList.data[0]._id === 'banner-first');
+  step('公开 Banner 字段白名单', bannerList.data && bannerList.data.every(b => Object.keys(b).every(k => ['_id', 'imageUrl', 'title', 'linkUrl'].includes(k))));
+  step('公开 Banner 云文件转临时图片地址', bannerList.data && bannerList.data[0].imageUrl.indexOf('https://temp.example.test/') === 0);
+  const badBannerAction = (await call('banner', { action: 'unknown' })).result;
+  step('公开 Banner 未知 action 拒绝', !badBannerAction.success);
+  const bannerSrc = fs.readFileSync(path.join(CF, 'banner', 'index.js'), 'utf8');
+  step('公开 Banner 读取不依赖 where/orderBy 索引',
+    !bannerSrc.includes('.where(') && !bannerSrc.includes('.orderBy('));
+
+  const originalCollection = db.collection;
+  db.collection = (name) => {
+    const query = originalCollection(name);
+    if (name === 'banners') query.get = async () => { throw new Error('banner unavailable'); };
+    return query;
+  };
+  const bannerFailure = (await call('banner', { action: 'list' })).result;
+  db.collection = originalCollection;
+  step('公开 Banner 查询失败返回通用失败', !bannerFailure.success && bannerFailure.error === 'Banner 暂不可用');
 
   header('Step 2: 模拟代理推广——A 邀请 B');
   // A 登录（自动设管理员），B 登录
