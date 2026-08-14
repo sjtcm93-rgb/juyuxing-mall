@@ -39,7 +39,8 @@ function loadPage(relativePath, api, storage, wxOverrides) {
   global.wx = Object.assign({
     getStorageSync: key => storage[key],
     setStorageSync: (key, value) => { storage[key] = value; },
-    stopPullDownRefresh: () => {}, navigateTo: () => {}, showModal: () => {}
+    removeStorageSync: key => { delete storage[key]; },
+    stopPullDownRefresh: () => {}, navigateTo: () => {}, showModal: () => {}, showToast: () => {}
   }, wxOverrides || {});
   global.getApp = () => ({ globalData: {}, getReferrer: () => '' });
   delete require.cache[pagePath];
@@ -197,9 +198,64 @@ async function testUserCenterCache() {
   }
 }
 
+async function testCartPageCache() {
+  const realNow = Date.now;
+  let now = 2000000;
+  Date.now = () => now;
+  try {
+    const storage = { openId: 'user-cart-1' };
+    let stopRefreshCount = 0;
+    const responses = [
+      { success: true, items: [{ productId: 'p1', name: '商品一', spec: '默认', price: 1200, quantity: 1, image: '' }] },
+      { success: true, items: [{ productId: 'p1', name: '商品一更新', spec: '默认', price: 1300, quantity: 1, image: '' }] },
+      { success: true, items: [{ productId: 'p2', name: '商品二', spec: '', price: 900, quantity: 2, image: '' }] },
+      { success: true, items: [{ productId: 'p2', name: '商品二刷新', spec: '', price: 900, quantity: 2, image: '' }] }
+    ];
+    const calls = { getCart: 0, updateCart: 0 };
+    const api = {
+      getCart: async () => {
+        calls.getCart++;
+        return responses.shift();
+      },
+      updateCart: async () => {
+        calls.updateCart++;
+        return { success: true };
+      }
+    };
+    const cart = loadPage('miniprogram/pages/cart/cart.js', api, storage, {
+      stopPullDownRefresh: () => { stopRefreshCount++; }
+    });
+
+    await cart.loadCart();
+    assert.equal(calls.getCart, 1, 'cart cold load fetches cloud once');
+    assert.equal(cart.data.cartItems[0].name, '商品一');
+
+    await cart.loadCart();
+    assert.equal(calls.getCart, 2, 'cart warm load displays cache and refreshes in background');
+    assert.equal(cart.data.cartItems[0].name, '商品一更新', 'cart warm refresh updates visible data');
+
+    now += 31000;
+    await cart.loadCart();
+    assert.equal(calls.getCart, 3, 'cart cache expires after 30s');
+    assert.equal(cart.data.cartItems[0].productId, 'p2');
+
+    await cart.onPullDownRefresh();
+    await flushAsync();
+    assert.equal(stopRefreshCount, 1, 'cart pull refresh settles');
+
+    cart.data.cartItems = [{ productId: 'p3', name: '本地商品', spec: '', price: 500, quantity: 1, image: '' }];
+    await cart.deleteItem({ currentTarget: { dataset: { index: 0 } } });
+    assert.equal(calls.updateCart, 1, 'cart mutation syncs cloud');
+    assert.equal(storage['cartCache_user-cart-1'].items.length, 0, 'cart mutation updates local cache');
+  } finally {
+    Date.now = realNow;
+  }
+}
+
 Promise.resolve()
   .then(testHomeBannerCache)
   .then(testSearchHotKeywords)
   .then(testUserCenterCache)
+  .then(testCartPageCache)
   .then(() => console.log('page load logic tests passed'))
   .catch(err => { console.error(err.stack || err); process.exitCode = 1; });

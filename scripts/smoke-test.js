@@ -165,6 +165,8 @@ if (adminSrc.includes("status: 'paid'") &&
 const bannerSrc = read('cloudfunctions/banner/index.js');
 const homePageSrc = read('miniprogram/pages/index/index.js');
 const userPageSrc = read('miniprogram/pages/user/user.js');
+const cartPageSrc = read('miniprogram/pages/cart/cart.js');
+const cartFunctionSrc = read('cloudfunctions/cart/index.js');
 const apiSrc = read('miniprogram/utils/api.js');
 const searchSrc = read('miniprogram/pages/search/search.js');
 const skeletonSrc = read('miniprogram/components/skeleton/skeleton.wxml');
@@ -210,6 +212,20 @@ if (orderSrc.includes("case 'counts'") && apiSrc.includes("getOrderCounts: (opti
   ok('我的页订单角标走聚合计数和 30 秒缓存');
 } else {
   fail('我的页订单角标', '应使用 order:counts 聚合接口和 30 秒本地缓存，不再四次调用 order:list');
+}
+if (cartPageSrc.includes('CART_CACHE_TTL = 30 * 1000') &&
+    cartPageSrc.includes('readCartCache') && cartPageSrc.includes('writeCartCache') &&
+    cartPageSrc.includes('silent: true') && cartPageSrc.includes('force: true')) {
+  ok('购物车页使用 30 秒缓存和静默刷新');
+} else {
+  fail('购物车页缓存', '应使用 30 秒缓存、静默刷新，且下拉刷新强制云端');
+}
+if (cartFunctionSrc.includes("_.in(productIds)") &&
+    !cartFunctionSrc.includes('Promise.all(items.map(async (item)') &&
+    cartFunctionSrc.includes('productMap')) {
+  ok('cart:get 批量补齐商品信息，避免 N+1 查询');
+} else {
+  fail('cart:get 商品查询', '应批量查询 products，避免按购物车 item 逐条 doc().get()');
 }
 
 const paySrc = read('cloudfunctions/pay/index.js');

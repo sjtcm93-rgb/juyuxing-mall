@@ -1,6 +1,13 @@
 const API = require('../../utils/api');
-const request = require('../../utils/request');
-const { toast, decorateItem, decorateList } = require('../../utils/util');
+const { toast, decorateList } = require('../../utils/util');
+
+const CART_CACHE_TTL = 30 * 1000;
+
+function getCartCacheKey() {
+  let openId = '';
+  try { openId = wx.getStorageSync('openId') || ''; } catch (e) {}
+  return 'cartCache_' + (openId || 'guest');
+}
 
 Page({
   data: {
@@ -18,25 +25,64 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadCart().then(() => wx.stopPullDownRefresh());
+    this.loadCart({ force: true }).then(() => wx.stopPullDownRefresh());
   },
 
-  async loadCart() {
-    this.setData({ loading: true, loadError: '' });
-    const res = await API.getCart();
+  readCartCache() {
+    try {
+      const cache = wx.getStorageSync(getCartCacheKey());
+      if (!cache || !Array.isArray(cache.items)) return null;
+      if (Date.now() - Number(cache.timestamp || 0) > CART_CACHE_TTL) return null;
+      return cache.items;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  writeCartCache(items) {
+    try {
+      wx.setStorageSync(getCartCacheKey(), {
+        timestamp: Date.now(),
+        items: Array.isArray(items) ? items : []
+      });
+    } catch (e) {}
+  },
+
+  applyCartItems(items) {
+    items = Array.isArray(items) ? items : [];
+    const selectedMap = {};
+    items.forEach(it => { selectedMap[it.productId + '_' + (it.spec || '')] = true; });
+    this.setData({
+      cartItems: decorateList(items),
+      selectedMap: selectedMap,
+      loading: false,
+      loadError: ''
+    });
+    this.recalcTotal();
+  },
+
+  async loadCart(options) {
+    options = options || {};
+    const cachedItems = options.force ? null : this.readCartCache();
+    if (cachedItems) {
+      this.applyCartItems(cachedItems);
+      return this.refreshCart({ silent: true });
+    }
+    return this.refreshCart({ silent: false });
+  },
+
+  async refreshCart(options) {
+    options = options || {};
+    if (!options.silent) this.setData({ loading: true, loadError: '' });
+    const res = await API.getCart({ silent: !!options.silent });
     if (res && res.success) {
       const items = res.items || [];
-      // 默认全选
-      const selectedMap = {};
-      items.forEach(it => { selectedMap[it.productId + '_' + (it.spec || '')] = true; });
-      this.setData({
-        cartItems: decorateList(items),
-        selectedMap: selectedMap,
-        loading: false
-      });
-      this.recalcTotal();
+      this.writeCartCache(items);
+      this.applyCartItems(items);
     } else {
-      this.setData({ loading: false, loadError: (res && res.error) || '加载失败' });
+      if (!options.silent) {
+        this.setData({ loading: false, loadError: (res && res.error) || '加载失败' });
+      }
     }
   },
 
@@ -91,8 +137,10 @@ Page({
     } else {
       items[idx] = Object.assign({}, items[idx], { quantity: next });
     }
-    this.setData({ cartItems: decorateList(items) });
+    const nextItems = decorateList(items);
+    this.setData({ cartItems: nextItems });
     this.recalcTotal();
+    this.writeCartCache(nextItems);
     await this.syncCart(items);
   },
 
@@ -100,8 +148,10 @@ Page({
     const idx = e.currentTarget.dataset.index;
     const items = [...this.data.cartItems];
     items.splice(idx, 1);
-    this.setData({ cartItems: decorateList(items) });
+    const nextItems = decorateList(items);
+    this.setData({ cartItems: nextItems });
     this.recalcTotal();
+    this.writeCartCache(nextItems);
     await this.syncCart(items);
     toast('已删除', 'success');
   },
@@ -111,8 +161,10 @@ Page({
     const map = this.data.selectedMap || {};
     const remaining = items.filter(it => !map[it.productId + '_' + (it.spec || '')]);
     if (remaining.length === items.length) { toast('请先选中要删除的商品'); return; }
-    this.setData({ cartItems: decorateList(remaining) });
+    const nextItems = decorateList(remaining);
+    this.setData({ cartItems: nextItems });
     this.recalcTotal();
+    this.writeCartCache(nextItems);
     await this.syncCart(remaining);
     toast('已删除选中商品', 'success');
   },

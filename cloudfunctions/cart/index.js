@@ -14,26 +14,34 @@ exports.main = async (event, context) => {
       }
       const cart = res.data[0];
       const items = cart.items || [];
+      const productIds = Array.from(new Set(items.map(item => item.productId).filter(Boolean)));
+      let productMap = {};
       
       // 从 products 集合获取最新商品信息来填充价格/图片
-      const enrichedItems = await Promise.all(items.map(async (item) => {
-        try {
-          const prodRes = await db.collection('products').doc(item.productId).get();
-          const prod = prodRes.data;
-          if (prod) {
-            return {
-              ...item,
-              name: prod.name || item.name,
-              price: prod.price || item.price,
-              image: (prod.images && prod.images[0]) || item.image || '',
-              spec: item.spec || (prod.specs && prod.specs[0] && prod.specs[0].name) || ''
-            };
-          }
-        } catch (e) {
-          // 如果商品不存在于 products 集合，返回原始数据
+      try {
+        if (productIds.length > 0) {
+          const prodRes = await db.collection('products').where({
+            _id: _.in(productIds)
+          }).get();
+          productMap = (prodRes.data || []).reduce((map, prod) => {
+            map[prod._id] = prod;
+            return map;
+          }, {});
         }
-        return item;
-      }));
+      } catch (e) {
+        // 如果商品批量查询失败，返回购物车快照数据
+      }
+      const enrichedItems = items.map((item) => {
+        const prod = productMap[item.productId];
+        if (!prod) return item;
+        return {
+          ...item,
+          name: prod.name || item.name,
+          price: prod.price || item.price,
+          image: (prod.images && prod.images[0]) || item.image || '',
+          spec: item.spec || (prod.specs && prod.specs[0] && prod.specs[0].name) || ''
+        };
+      });
       
       return { success: true, items: enrichedItems };
     }
