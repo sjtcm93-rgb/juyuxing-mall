@@ -14,6 +14,9 @@ const API = {
   getProductList: (params, options) => call('product', Object.assign({ action: 'list' }, params || {}), options),
   searchProducts: (params, options) => call('product', Object.assign({ action: 'search' }, params || {}), options),
 
+  // Banner（公开只读）
+  getBannerList: (options) => call('banner', { action: 'list' }, options),
+
   // 购物车
   getCart: (options) => call('cart', { action: 'get' }, options),
   updateCart: (items, options) => call('cart', { action: 'update', items }, options),
@@ -22,6 +25,7 @@ const API = {
   // 订单
   createOrder: (data, options) => call('order', Object.assign({ action: 'create' }, data || {}), options),
   getOrderList: (params, options) => call('order', Object.assign({ action: 'list' }, params || {}), options),
+  getOrderCounts: (options) => call('order', { action: 'counts' }, options),
   getOrderDetail: (id, options) => call('order', { action: 'detail', id }, options),
   updateOrderStatus: (id, status, options) => call('order', { action: 'updateStatus', id, status }, options),
   cancelOrder: (id, options) => call('order', { action: 'cancel', id }, options),
@@ -58,9 +62,6 @@ const API = {
   getRefundList: (options) => call('admin', { action: 'refundList' }, options),
   processRefund: (refundId, approve, adminNote, options) => call('admin', { action: 'processRefund', refundId, approve, adminNote }, options),
 
-  // 轮播图
-  getBannerList: (options) => call('admin', { action: 'bannerList' }, options),
-
   // 聊天
   sendChatMessage: (data, options) => call('chat', Object.assign({ action: 'sendMessage' }, data || {}), options),
   getChatMessages: (conversationId, page, options) => call('chat', { action: 'getMessages', conversationId, page }, options),
@@ -70,6 +71,7 @@ const API = {
 
   // 分类
   getCategoryList: (options) => call('category', { action: 'list' }, options),
+  getHotKeywords: (options) => call('category', { action: 'hotKeywords' }, options),
   getCategoryDetail: (id, options) => call('category', { action: 'detail', id }, options),
   getCategoryProducts: (params, options) => call('category', Object.assign({ action: 'products' }, params || {}), options),
 

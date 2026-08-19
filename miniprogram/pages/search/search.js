@@ -45,16 +45,15 @@ Page({
   },
 
   async loadHot() {
-    const res = await API.getCategoryList({ silent: true }).catch(() => null);
-    // 复用 category 的 hotKeywords action
-    const hotRes = await wx.cloud
-      ? wx.cloud.callFunction({ name: 'category', data: { action: 'hotKeywords' } })
-      : Promise.resolve({ result: { success: false } });
-    if (hotRes && hotRes.result && hotRes.result.success && Array.isArray(hotRes.result.data)) {
-      this.setData({ hotKeywords: hotRes.result.data });
-    } else if (res && res.success) {
-      // 兜底：用分类名作为热搜
-      this.setData({ hotKeywords: (res.data || []).slice(0, 6).map(c => c.name) });
+    const categoryPromise = API.getCategoryList({ silent: true }).catch(() => null);
+    const hotKeywordPromise = API.getHotKeywords({ silent: true }).catch(() => null);
+    const [categoryRes, hotRes] = await Promise.all([categoryPromise, hotKeywordPromise]);
+    if (hotRes && hotRes.success && Array.isArray(hotRes.data)) {
+      this.setData({ hotKeywords: hotRes.data });
+    } else if (categoryRes && categoryRes.success) {
+      this.setData({ hotKeywords: (categoryRes.data || []).slice(0, 6).map(c => c.name) });
+    } else {
+      this.setData({ hotKeywords: [] });
     }
   },
 

@@ -139,6 +139,7 @@
   height: 320rpx;
   border-radius: 20rpx;
   overflow: hidden;
+  background: #F5F0EB;
 }
 .banner-item {
   position: relative;

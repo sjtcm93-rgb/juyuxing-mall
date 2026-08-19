@@ -143,6 +143,19 @@ exports.main = async (event, context) => {
       return { success: true, data: res.data, total: countRes.total || 0 };
     }
 
+    case 'counts': {
+      const statuses = ['pending', 'paid', 'shipped', 'refunding'];
+      const data = { pending: 0, paid: 0, shipped: 0, refunding: 0 };
+      await Promise.all(statuses.map(async status => {
+        const res = await db.collection('orders')
+          .where({ userId: OPENID, status })
+          .count()
+          .catch(() => ({ total: 0 }));
+        data[status] = res.total || 0;
+      }));
+      return { success: true, data };
+    }
+
     case 'detail': {
       if (!event.id) {
         return { success: false, error: '缺少订单ID' };

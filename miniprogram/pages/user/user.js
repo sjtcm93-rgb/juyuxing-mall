@@ -1,6 +1,31 @@
 const API = require('../../utils/api');
 const { toast } = require('../../utils/util');
 
+const AGENT_CACHE_TTL = 5 * 60 * 1000;
+const ORDER_COUNTS_CACHE_TTL = 30 * 1000;
+const EMPTY_ORDER_COUNTS = { pending: 0, paid: 0, shipped: 0, refunding: 0 };
+
+function isValidOrderCounts(counts) {
+  return !!(counts && ['pending', 'paid', 'shipped', 'refunding']
+    .every(key => Number.isFinite(counts[key]) && counts[key] >= 0));
+}
+
+function readTimedCache(key, ttl) {
+  try {
+    const cache = wx.getStorageSync(key);
+    if (!cache || !Number.isFinite(cache.timestamp) || Date.now() - cache.timestamp >= ttl) return null;
+    return cache.data || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function writeTimedCache(key, data) {
+  try {
+    wx.setStorageSync(key, { timestamp: Date.now(), data });
+  } catch (e) {}
+}
+
 Page({
   data: {
     userInfo: {},
@@ -9,19 +34,18 @@ Page({
     isLoggedIn: false,
     hasUserInfo: false,
     showPrivacy: false,
-    orderCounts: { pending: 0, paid: 0, shipped: 0, refunding: 0 }
+    orderCounts: EMPTY_ORDER_COUNTS
   },
 
   onShow() {
-    this.loadUserInfo();
-    this.loadOrderCounts();
+    return Promise.all([this.loadUserInfo(), this.loadOrderCounts()]);
   },
 
   async loadUserInfo() {
     const openId = wx.getStorageSync('openId');
     const savedInfo = wx.getStorageSync('userInfo');
     if (!openId) {
-      this.setData({ isLoggedIn: false, hasUserInfo: false, isAdmin: false, isAgent: false, userInfo: {} });
+      this.setData({ isLoggedIn: false, hasUserInfo: false, isAdmin: false, isAgent: false, userInfo: {}, orderCounts: EMPTY_ORDER_COUNTS });
       return;
     }
     getApp().globalData.openId = openId;
@@ -30,13 +54,20 @@ Page({
       userInfo: savedInfo || {},
       hasUserInfo: !!(savedInfo && savedInfo.nickName)
     });
-    try {
+
+    const agentCacheKey = 'userAgentInfo_' + openId;
+    const cachedAgent = readTimedCache(agentCacheKey, AGENT_CACHE_TTL);
+    if (cachedAgent && typeof cachedAgent.isAgent === 'boolean') {
+      this.setData({ isAgent: cachedAgent.isAgent });
+      getApp().globalData.isAgent = cachedAgent.isAgent;
+    } else try {
       const agentRes = await API.getAgentInfo({ silent: true });
-      if (agentRes && agentRes.isAgent) {
-        this.setData({ isAgent: true });
-        getApp().globalData.isAgent = true;
-      }
+      const isAgent = !!(agentRes && agentRes.isAgent);
+      this.setData({ isAgent });
+      getApp().globalData.isAgent = isAgent;
+      writeTimedCache(agentCacheKey, { isAgent });
     } catch (e) {}
+
     // 管理员权限：登录后只校验一次并缓存（按 openId 隔离），避免每次 onShow 浪费云函数调用
     const adminCacheKey = 'isAdmin_' + openId;
     const cachedAdmin = wx.getStorageSync(adminCacheKey);
@@ -53,24 +84,21 @@ Page({
   },
 
   async loadOrderCounts() {
-    if (!wx.getStorageSync('openId')) return;
-    // 统一走 getOrderList，不依赖 myRefunds 新接口
-    const promises = [
-      API.getOrderList({ status: 'pending', pageSize: 1 }, { silent: true }),
-      API.getOrderList({ status: 'paid', pageSize: 1 }, { silent: true }),
-      API.getOrderList({ status: 'shipped', pageSize: 1 }, { silent: true }),
-      API.getOrderList({ status: 'refunding', pageSize: 1 }, { silent: true })
-    ];
+    const openId = wx.getStorageSync('openId');
+    if (!openId) return;
+
+    const cacheKey = 'userOrderCounts_' + openId;
+    const cachedCounts = readTimedCache(cacheKey, ORDER_COUNTS_CACHE_TTL);
+    if (isValidOrderCounts(cachedCounts)) {
+      this.setData({ orderCounts: cachedCounts });
+      return;
+    }
+
     try {
-      const results = await Promise.all(promises);
-      this.setData({
-        orderCounts: {
-          pending: (results[0] && results[0].total) || 0,
-          paid: (results[1] && results[1].total) || 0,
-          shipped: (results[2] && results[2].total) || 0,
-          refunding: (results[3] && results[3].total) || 0
-        }
-      });
+      const res = await API.getOrderCounts({ silent: true });
+      if (!res || !res.success || !isValidOrderCounts(res.data)) return;
+      this.setData({ orderCounts: res.data });
+      writeTimedCache(cacheKey, res.data);
     } catch (e) {}
   },
 
@@ -96,6 +124,7 @@ Page({
             this.setData({ userInfo: { nickName, avatarUrl }, isLoggedIn: true, hasUserInfo: true });
             toast('登录成功', 'success');
             this.loadUserInfo();
+            this.loadOrderCounts();
           }
         } catch (err) {
           toast('登录失败');
@@ -134,6 +163,7 @@ Page({
         wx.removeStorageSync('pendingReferrer');
         getApp().globalData.openId = res.openId;
         this.setData({ isLoggedIn: true });
+        this.loadOrderCounts();
       }
     } catch (e) {}
   },

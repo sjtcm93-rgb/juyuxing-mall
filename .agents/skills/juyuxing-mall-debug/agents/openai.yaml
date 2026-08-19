@@ -1,0 +1,6 @@
+interface:
+  display_name: "Juyuxing Mall Debug"
+  short_description: "Diagnose this Mini Program safely"
+  default_prompt: "Use $juyuxing-mall-debug to investigate this Mini Program build, UI, or cloud-call symptom."
+policy:
+  allow_implicit_invocation: true

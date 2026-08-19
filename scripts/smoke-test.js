@@ -40,6 +40,8 @@ const required = [
   'cloudfunctions/commission/index.js',
   'cloudfunctions/withdrawal/index.js',
   'cloudfunctions/admin/index.js',
+  'cloudfunctions/banner/index.js',
+  'cloudfunctions/banner/package.json',
   // 前端页面
   'miniprogram/app.js',
   'miniprogram/app.json',
@@ -158,6 +160,72 @@ if (adminSrc.includes("status: 'paid'") &&
   ok('admin.processWithdrawal 会消耗 settled 佣金（防重复提现）');
 } else {
   fail('admin.processWithdrawal', '未发现消耗 settled 佣金的逻辑');
+}
+
+const bannerSrc = read('cloudfunctions/banner/index.js');
+const homePageSrc = read('miniprogram/pages/index/index.js');
+const userPageSrc = read('miniprogram/pages/user/user.js');
+const cartPageSrc = read('miniprogram/pages/cart/cart.js');
+const cartFunctionSrc = read('cloudfunctions/cart/index.js');
+const apiSrc = read('miniprogram/utils/api.js');
+const searchSrc = read('miniprogram/pages/search/search.js');
+const skeletonSrc = read('miniprogram/components/skeleton/skeleton.wxml');
+if (!bannerSrc.includes('admin_config') && !bannerSrc.includes("collection('admin") &&
+    bannerSrc.includes("event.action !== 'list'") && bannerSrc.includes("banner.status === 'on'") &&
+    bannerSrc.includes('Number(a.sort)') && bannerSrc.includes('.slice(0, 20)')) {
+  ok('banner:list 为公开的上架排序读取（无索引依赖）');
+} else {
+  fail('banner:list 公共边界', '不得读取管理员配置，且必须限制 action/状态并在服务端排序');
+}
+if (bannerSrc.includes('_id: banner._id') && bannerSrc.includes('imageUrl:') && bannerSrc.includes('title:') && bannerSrc.includes('linkUrl:')) {
+  ok('banner:list Banner 字段白名单');
+} else {
+  fail('banner:list Banner 字段', '必须仅映射公开字段');
+}
+if (bannerSrc.includes('cloud.getTempFileURL') && bannerSrc.includes("imageUrl.indexOf('cloud://') === 0")) {
+  ok('banner:list 云文件图片转临时 URL');
+} else {
+  fail('banner:list 云文件图片', 'cloud:// 图片必须在云函数返回前转成可渲染 URL');
+}
+if (apiSrc.includes("getBannerList: (options) => call('banner', { action: 'list' }") &&
+    !apiSrc.includes('getHomeFeed:') && homePageSrc.includes('API.getProductList') &&
+    homePageSrc.includes('API.getBannerList') && homePageSrc.includes('BANNER_CACHE_TTL')) {
+  ok('首页使用独立商品和公开 Banner 缓存');
+} else {
+  fail('首页独立 Banner 缓存', '首页必须独立加载商品和公开 Banner，不得使用 home/admin 聚合接口');
+}
+if (apiSrc.includes("getHotKeywords: (options) => call('category', { action: 'hotKeywords' }") &&
+    searchSrc.includes('Promise.all([categoryPromise, hotKeywordPromise])') &&
+    !searchSrc.includes('wx.cloud.callFunction')) {
+  ok('搜索热词走 API 并发加载');
+} else {
+  fail('搜索热词加载', '应通过 API 并发加载分类和热词');
+}
+if (!/wx:key="[^"]*\{\{/.test(skeletonSrc) && (skeletonSrc.match(/wx:key="index"/g) || []).length === 3) {
+  ok('骨架屏 wx:key 合法');
+} else {
+  fail('骨架屏 wx:key', '三处静态占位循环必须使用合法 key');
+}
+if (orderSrc.includes("case 'counts'") && apiSrc.includes("getOrderCounts: (options) => call('order', { action: 'counts' }") &&
+    userPageSrc.includes('ORDER_COUNTS_CACHE_TTL = 30 * 1000') && userPageSrc.includes('API.getOrderCounts') &&
+    !userPageSrc.includes("API.getOrderList({ status: 'pending'")) {
+  ok('我的页订单角标走聚合计数和 30 秒缓存');
+} else {
+  fail('我的页订单角标', '应使用 order:counts 聚合接口和 30 秒本地缓存，不再四次调用 order:list');
+}
+if (cartPageSrc.includes('CART_CACHE_TTL = 30 * 1000') &&
+    cartPageSrc.includes('readCartCache') && cartPageSrc.includes('writeCartCache') &&
+    cartPageSrc.includes('silent: true') && cartPageSrc.includes('force: true')) {
+  ok('购物车页使用 30 秒缓存和静默刷新');
+} else {
+  fail('购物车页缓存', '应使用 30 秒缓存、静默刷新，且下拉刷新强制云端');
+}
+if (cartFunctionSrc.includes("_.in(productIds)") &&
+    !cartFunctionSrc.includes('Promise.all(items.map(async (item)') &&
+    cartFunctionSrc.includes('productMap')) {
+  ok('cart:get 批量补齐商品信息，避免 N+1 查询');
+} else {
+  fail('cart:get 商品查询', '应批量查询 products，避免按购物车 item 逐条 doc().get()');
 }
 
 const paySrc = read('cloudfunctions/pay/index.js');
@@ -285,4 +353,3 @@ if (failures.length > 0) {
   console.log('✅ 全部通过');
   process.exit(0);
 }
-
