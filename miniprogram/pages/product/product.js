@@ -17,6 +17,11 @@ Page({
   },
 
   onLoad(options) {
+    if (options.ref) {
+      const ref = String(options.ref).trim().toUpperCase();
+      wx.setStorageSync('pendingReferrer', ref);
+      if (wx.getStorageSync('openId')) API.login({ action: 'login', ref }, { silent: true }).catch(() => {});
+    }
     if (options.id) {
       this.loadProduct(options.id);
       this.checkFav(options.id);
@@ -148,10 +153,9 @@ Page({
 
   onShareAppMessage() {
     const p = this.data.product || {};
-    const ref = (getApp().globalData && getApp().globalData.openId) || wx.getStorageSync('openId');
     return {
       title: `${p.name || '好物'} - ${p.subtitle || '橘与杏中医生活'}`,
-      path: `/pages/product/product?id=${p._id || ''}&ref=${ref || ''}`,
+      path: `/pages/product/product?id=${p._id || ''}`,
       imageUrl: (p.images && p.images[0]) || '/images/share-banner.png'
     };
   }

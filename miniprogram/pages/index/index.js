@@ -4,6 +4,16 @@ const { toast } = require('../../utils/util');
 const BANNER_CACHE_KEY = 'homeBannerCache';
 const BANNER_CACHE_TTL = 5 * 60 * 1000;
 
+function parseAdminQrScene(value) {
+  let scene = String(value || '').trim();
+  try {
+    scene = decodeURIComponent(scene);
+  } catch (err) {
+    // Keep the original value when it is not valid URI encoded text.
+  }
+  return /^q=[A-Za-z0-9_-]{12,32}$/.test(scene) ? scene : '';
+}
+
 function isValidBanner(banner) {
   return !!(banner && typeof banner === 'object' && typeof banner._id === 'string' &&
     typeof banner.imageUrl === 'string' && typeof banner.title === 'string' &&
@@ -105,9 +115,11 @@ function resolveBannerImages(banners) {
 
 Page({
   data: {
-    brandChars: ['橘', '与', '杏'],
     products: [],
     banners: [],
+    couponDesc: '领券下单更划算',
+    promotionDesc: '敬请期待',
+    _promotionRules: [],
     loading: true,
     loadError: '',
     page: 1,
@@ -116,21 +128,36 @@ Page({
     _diag: ''  // 诊断信息（开发用）
   },
 
-  onLoad() {
+  onLoad(options) {
     console.log('[index] onLoad 开始加载...');
+    if (this.redirectAdminQrLogin(options || {})) return;
     const t0 = Date.now();
     
     const loadPromise = this._loadWithDiag('products', () => this.loadProducts());
     this.loadBanners();
-    this.handleReferrer();
+    this.loadPromoInfo();
+    this.handleReferrer(options || {});
     
     console.log('[index] onLoad 发起调用耗时:', Date.now() - t0, 'ms');
     return loadPromise;
   },
 
+  redirectAdminQrLogin(options) {
+    const app = getApp();
+    const scene = typeof app.consumeAdminQrScene === 'function'
+      ? app.consumeAdminQrScene(options && options.scene)
+      : parseAdminQrScene(options && options.scene);
+    if (!scene) return false;
+    const publicId = scene.slice(2);
+    wx.redirectTo({
+      url: `/subpackages/admin-auth/confirm/confirm?publicId=${encodeURIComponent(publicId)}`
+    });
+    return true;
+  },
+
   onPullDownRefresh() {
     this.setData({ page: 1, hasMore: true, loadingMore: false });
-    return Promise.all([this.loadProducts(true), this.loadBanners(true)])
+    return Promise.all([this.loadProducts(true), this.loadBanners(true), Promise.resolve(this.loadPromoInfo())])
       .finally(() => wx.stopPullDownRefresh());
   },
 
@@ -159,6 +186,52 @@ Page({
         _diag: name === 'home' ? 'home unavailable' : `${name}: ${msg} (${Date.now() - t0}ms)`
       });
     }
+  },
+
+  // ===== 首页双入口：满减/优惠券摘要 =====
+  async loadPromoInfo() {
+    // 满减规则
+    try {
+      const res = await API.getPromotions({ silent: true });
+      if (res && res.success && res.data && res.data.enabled && Array.isArray(res.data.rules) && res.data.rules.length > 0) {
+        const rules = res.data.rules.slice().sort((a, b) => b.threshold - a.threshold);
+        const best = rules[0];
+        this.setData({
+          promotionDesc: `满${Math.round(best.threshold / 100)}减${Math.round(best.discount / 100)}`,
+          _promotionRules: rules
+        });
+      }
+    } catch (err) { /* 满减未开启时保持默认文案 */ }
+    // 最优优惠券
+    try {
+      const res = await API.getCouponCenter({ silent: true });
+      if (res && res.success && Array.isArray(res.data)) {
+        const best = res.data
+          .filter(c => c && c.status !== 'off' && c.type === 'amount' && c.value > 0 && c.status !== 'off')
+          .sort((a, b) => b.value - a.value)[0];
+        if (best) {
+          const min = best.minSpend > 0 ? `满${Math.round(best.minSpend / 100)}` : '';
+          this.setData({ couponDesc: `${min}减${Math.round(best.value / 100)} 可领` });
+        }
+      }
+    } catch (err) { /* 领券中心不可用时保持默认文案 */ }
+  },
+
+  showPromotionRules() {
+    const rules = this.data._promotionRules || [];
+    if (rules.length === 0) {
+      toast('满减活动敬请期待');
+      return;
+    }
+    wx.showModal({
+      title: '全场满减',
+      content: rules
+        .slice().sort((a, b) => a.threshold - b.threshold)
+        .map(r => `满 ¥${Math.round(r.threshold / 100)} 减 ¥${Math.round(r.discount / 100)}`)
+        .join('\n') + '\n可与优惠券叠加使用',
+      showCancel: false,
+      confirmText: '知道了'
+    });
   },
 
   loadBanners(forceRefresh = false) {
@@ -223,9 +296,16 @@ Page({
     });
   },
 
-  handleReferrer() {
-    const ref = getApp().getReferrer();
-    if (ref) wx.setStorageSync('pendingReferrer', ref);
+  handleReferrer(options) {
+    const ref = String((options && options.ref) || getApp().getReferrer() || '').trim().toUpperCase();
+    if (ref) {
+      wx.setStorageSync('pendingReferrer', ref);
+      if (wx.getStorageSync('openId')) {
+        API.login({ action: 'login', ref }, { silent: true }).then(result => {
+          if (result && result.success) wx.removeStorageSync('pendingReferrer');
+        }).catch(() => {});
+      }
+    }
   },
 
   async loadProducts(isPullDown = false, isLoadMore = false) {
@@ -267,7 +347,6 @@ Page({
     wx.navigateTo({ url: `/pages/checkout/checkout?productId=${goods._id}&quantity=1` });
   },
 
-  goCategory() { wx.navigateTo({ url: '/pages/category/category' }); },
   goSearch() { wx.navigateTo({ url: '/pages/search/search' }); },
   goFavorites() { wx.navigateTo({ url: '/pages/favorites/favorites' }); },
   goCouponCenter() { wx.navigateTo({ url: '/pages/coupon-center/coupon-center' }); },
@@ -279,10 +358,9 @@ Page({
   },
 
   onShareAppMessage() {
-    const openId = wx.getStorageSync('openId');
     return {
       title: '橘与杏中医生活 - 自然疗愈好物',
-      path: `/pages/index/index?ref=${openId || ''}`,
+      path: '/pages/index/index',
       imageUrl: '/images/share-banner.png'
     };
   }

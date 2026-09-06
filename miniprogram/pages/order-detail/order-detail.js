@@ -105,7 +105,8 @@ Page({
         received: '感谢您的购买，欢迎再次光临',
         refunding: '退款申请处理中',
         refunded: '退款已处理完成',
-        cancelled: '订单已取消'
+        cancelled: '订单已取消',
+        closed: '订单已关闭'
       };
 
       // 地址区域
@@ -239,6 +240,7 @@ Page({
       hideLoading();
       
       if (res && res.mock) {
+        this.setData({ submitting: false });
         toast('支付成功', 'success');
         this.loadOrder(this.data.order._id);
         return;
@@ -266,6 +268,7 @@ Page({
           ...payment,
           success: () => {
             finish();
+            this.setData({ submitting: false });
             toast('支付成功', 'success');
             this.loadOrder(this.data.order._id);
           },
@@ -275,7 +278,10 @@ Page({
               toast('已取消支付');
             } else {
               const isDev = (() => {
-                try { return wx.getSystemInfoSync().platform === 'devtools'; } catch (e) { return false; }
+                try {
+                  const info = typeof wx.getDeviceInfo === 'function' ? wx.getDeviceInfo() : wx.getSystemInfoSync();
+                  return info.platform === 'devtools';
+                } catch (e) { return false; }
               })();
               if (isDev) {
                 wx.showModal({

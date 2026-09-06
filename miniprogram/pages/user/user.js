@@ -1,7 +1,6 @@
 const API = require('../../utils/api');
 const { toast } = require('../../utils/util');
 
-const AGENT_CACHE_TTL = 5 * 60 * 1000;
 const ORDER_COUNTS_CACHE_TTL = 30 * 1000;
 const EMPTY_ORDER_COUNTS = { pending: 0, paid: 0, shipped: 0, refunding: 0 };
 
@@ -29,8 +28,6 @@ function writeTimedCache(key, data) {
 Page({
   data: {
     userInfo: {},
-    isAgent: false,
-    isAdmin: false,
     isLoggedIn: false,
     hasUserInfo: false,
     showPrivacy: false,
@@ -45,7 +42,7 @@ Page({
     const openId = wx.getStorageSync('openId');
     const savedInfo = wx.getStorageSync('userInfo');
     if (!openId) {
-      this.setData({ isLoggedIn: false, hasUserInfo: false, isAdmin: false, isAgent: false, userInfo: {}, orderCounts: EMPTY_ORDER_COUNTS });
+      this.setData({ isLoggedIn: false, hasUserInfo: false, userInfo: {}, orderCounts: EMPTY_ORDER_COUNTS });
       return;
     }
     getApp().globalData.openId = openId;
@@ -55,32 +52,6 @@ Page({
       hasUserInfo: !!(savedInfo && savedInfo.nickName)
     });
 
-    const agentCacheKey = 'userAgentInfo_' + openId;
-    const cachedAgent = readTimedCache(agentCacheKey, AGENT_CACHE_TTL);
-    if (cachedAgent && typeof cachedAgent.isAgent === 'boolean') {
-      this.setData({ isAgent: cachedAgent.isAgent });
-      getApp().globalData.isAgent = cachedAgent.isAgent;
-    } else try {
-      const agentRes = await API.getAgentInfo({ silent: true });
-      const isAgent = !!(agentRes && agentRes.isAgent);
-      this.setData({ isAgent });
-      getApp().globalData.isAgent = isAgent;
-      writeTimedCache(agentCacheKey, { isAgent });
-    } catch (e) {}
-
-    // 管理员权限：登录后只校验一次并缓存（按 openId 隔离），避免每次 onShow 浪费云函数调用
-    const adminCacheKey = 'isAdmin_' + openId;
-    const cachedAdmin = wx.getStorageSync(adminCacheKey);
-    if (typeof cachedAdmin === 'boolean') {
-      this.setData({ isAdmin: cachedAdmin });
-      return;
-    }
-    try {
-      const adminRes = await wx.cloud.callFunction({ name: 'admin', data: { action: 'checkAdmin' } });
-      const isAdmin = !!(adminRes.result && adminRes.result.success);
-      this.setData({ isAdmin });
-      wx.setStorageSync(adminCacheKey, isAdmin); // 缓存结果，后续 onShow 不再重复请求
-    } catch (e) {}
   },
 
   async loadOrderCounts() {
@@ -169,10 +140,9 @@ Page({
   },
 
   onShareAppMessage() {
-    const openId = wx.getStorageSync('openId');
     return {
       title: '橘与杏中医生活 - 我的',
-      path: `/pages/user/user?ref=${openId || ''}`
+      path: '/pages/index/index'
     };
   }
 });

@@ -16,7 +16,7 @@ view, text, scroll-view, button, input, textarea {
 
 /* ====== 通用按钮 ====== */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-bright) 100%);
   color: #FFFFFF;
   border: none;
   border-radius: var(--radius-pill);

@@ -240,7 +240,7 @@ Page({
       title: approve ? '确认同意退款' : '确认拒绝退款',
       content: approve ? '同意后将通过微信支付原路退回，确定吗？' : '拒绝后订单将恢复原状态，确定吗？',
       confirmText: approve ? '同意' : '拒绝',
-      confirmColor: approve ? '#E0725A' : '#999',
+      confirmColor: approve ? '#FA5151' : '#999',
       success: async (res) => {
         if (!res.confirm) return;
         showLoading(approve ? '退款处理中...' : '拒绝中...');
@@ -400,7 +400,7 @@ Page({
     wx.showModal({
       title: '确认删除',
       content: '删除后不可恢复，确定吗？',
-      confirmColor: '#E0725A',
+      confirmColor: '#FA5151',
       success: async (res) => {
         if (res.confirm) {
           showLoading('删除中...');
@@ -525,7 +525,7 @@ Page({
     wx.showModal({
       title: '确认删除',
       content: '删除后不可恢复，确定吗？',
-      confirmColor: '#E0725A',
+      confirmColor: '#FA5151',
       success: async (res) => {
         if (res.confirm) {
           showLoading('删除中...');

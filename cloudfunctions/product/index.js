@@ -3,12 +3,26 @@ cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
 const _ = db.command;
 
+function toPublicProduct(product) {
+  if (!product) return product;
+  return {
+    ...product,
+    stock: Math.max(0, (Number(product.stock) || 0) - (Number(product.reservedStock) || 0)),
+    specs: (product.specs || []).map(spec => ({
+      ...spec,
+      stock: Math.max(0, (Number(spec.stock) || 0) - (Number(spec.reservedStock) || 0)),
+      reservedStock: undefined
+    })),
+    reservedStock: undefined
+  };
+}
+
 exports.main = async (event) => {
   try {
     switch (event.action) {
     case 'get': {
       const res = await db.collection('products').doc(event.id).get();
-      return { success: true, data: res.data };
+      return { success: true, data: toPublicProduct(res.data) };
     }
     case 'list': {
       const pageSize = event.pageSize || 10;
@@ -20,7 +34,7 @@ exports.main = async (event) => {
         .limit(pageSize)
         .get()
         .catch(() => ({ data: [] }));
-      return { success: true, data: res.data || [] };
+      return { success: true, data: (res.data || []).map(toPublicProduct) };
     }
     case 'search': {
       const keyword = (event.keyword || '').trim();
@@ -52,7 +66,7 @@ exports.main = async (event) => {
 
       return {
         success: true,
-        data: res.data || [],
+        data: (res.data || []).map(toPublicProduct),
         total: countRes.total || 0,
         page: page,
         pageSize: pageSize,

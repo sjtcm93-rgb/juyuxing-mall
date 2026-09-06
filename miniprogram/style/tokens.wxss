@@ -1,44 +1,45 @@
-/* 橘与杏 · 本草志 v2 — 小程序 tokens（rpx 版） */
+/* 橘与杏 · 品牌暖橙 v3 — 小程序 tokens（rpx 版） */
+/* 方案 B 换肤：2026-09-03，主色 #E8730C，中性背景 #F5F6F8 */
 page {
   /* 画布 */
-  --color-bg:         #FAF6F0;
-  --color-bg-pale:    #F5EFE6;
-  --color-bg-soft:    #F0E8DC;
+  --color-bg:         #F5F6F8;
+  --color-bg-pale:    #EFF1F4;
+  --color-bg-soft:    #E9ECF1;
   --color-card:       #FFFFFF;
-  --color-card-soft:  #FDFBF8;
+  --color-card-soft:  #FAFAFA;
 
   /* 文字 */
-  --color-text:        #2A2622;
-  --color-text-sub:    #5C544B;
-  --color-text-muted:  #8B8278;
-  --color-text-faint:  #C4BDB5;
-  --color-text-disabled: #D9D2C8;
+  --color-text:        #333333;
+  --color-text-sub:    #666666;
+  --color-text-muted:  #999999;
+  --color-text-faint:  #C6C6C6;
+  --color-text-disabled: #DDDDDD;
 
-  /* 主题色：墨绿 */
-  --color-primary:      #2D4A3E;
-  --color-primary-soft: #5C7868;
-  --color-primary-dark: #1A2E25;
+  /* 主题色：品牌暖橙 */
+  --color-primary:      #E8730C;
+  --color-primary-soft: #FF9A3D;
+  --color-primary-dark: #C25E08;
 
-  /* 强调色：朱砂 */
-  --color-accent:       #C8553D;
-  --color-accent-soft:  #E07A5F;
+  /* 强调色：价格红 / 售罄 */
+  --color-accent:       #FA5151;
+  --color-accent-soft:  #FF8A80;
 
-  /* 辅助：杏 / 苔藓 */
-  --color-warm:        #E8A87C;
-  --color-warm-soft:   #F5D6B8;
+  /* 辅助：暖橙系 / 草本绿（次要色，保留中医气质） */
+  --color-warm:        #E8730C;
+  --color-warm-soft:   #FFF2E3;
   --color-leaf:        #8BA888;
   --color-leaf-soft:   #B5C9B0;
 
   /* 语义色 */
-  --color-success:     #6B8E5A;
-  --color-warning:     #D89E4F;
-  --color-danger:      #C8553D;
-  --color-info:        #5B7B9D;
+  --color-success:     #04BE02;
+  --color-warning:     #FA9D3B;
+  --color-danger:      #FA5151;
+  --color-info:        #576B95;
 
   /* 边框 / 分割 */
-  --color-border:        #E5DDD0;
-  --color-divider:       #EFE7D8;
-  --color-divider-strong:#D4C9B8;
+  --color-border:        #E8E8E8;
+  --color-divider:       #F0F0F0;
+  --color-divider-strong:#D9D9D9;
 
   /* 字体 */
   --font-sans:  -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
@@ -72,13 +73,16 @@ page {
   --radius-pill: 999rpx;
 
   /* 阴影（更柔更克制） */
-  --shadow-xs: 0 2rpx 6rpx rgba(42,38,34,.04);
-  --shadow-sm: 0 4rpx 16rpx rgba(42,38,34,.06);
-  --shadow-md: 0 8rpx 32rpx rgba(42,38,34,.08);
-  --shadow-lg: 0 16rpx 48rpx rgba(42,38,34,.12);
-  --shadow-float: 0 12rpx 36rpx rgba(45,74,62,.18);
+  --shadow-xs: 0 2rpx 6rpx rgba(0,0,0,.04);
+  --shadow-sm: 0 4rpx 16rpx rgba(0,0,0,.06);
+  --shadow-md: 0 8rpx 32rpx rgba(0,0,0,.08);
+  --shadow-lg: 0 16rpx 48rpx rgba(0,0,0,.12);
+  --shadow-float: 0 12rpx 36rpx rgba(232,115,12,.18);
 
   /* 旧名兼容 —— 平滑迁移期间保留 */
-  --color-primary-light: var(--color-warm-soft);
-  --color-secondary:     var(--color-leaf);
+  /* primary-light：浅底角色（选中态/提示条底，需配深橙文字） */
+  --color-primary-light:  #FFE3C2;
+  /* primary-bright：品牌渐变浅端（与 primary 组成 135deg 渐变，白字） */
+  --color-primary-bright: #FF9A3D;
+  --color-secondary:      var(--color-leaf);
 }

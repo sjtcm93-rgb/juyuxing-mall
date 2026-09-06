@@ -1,0 +1,5 @@
+<view class="page">
+  <view class="profile"><image src="{{userInfo.avatarUrl || '/images/avatar-placeholder.png'}}"/><text class="name">{{userInfo.nickName || '微信用户'}}</text><text class="level">{{info.level || '一级分销员'}}</text></view>
+  <view class="card"><view><text>身份状态</text><text>{{info.status === 'active' ? '已激活' : info.status}}</text></view><view bindtap="copyCode"><text>专属推广码</text><text class="code">{{info.code || '—'}}　复制</text></view><view><text>分销层级</text><text>一级分销</text></view></view>
+  <view class="privacy">为保护消费者隐私，分销中心不会展示消费者姓名、手机号和收货地址。</view>
+</view>

@@ -42,16 +42,19 @@ const API = {
   updateAddress: (id, data, options) => call('login', Object.assign({ action: 'updateAddress', id }, data || {}), options),
   deleteAddress: (id, options) => call('login', { action: 'deleteAddress', id }, options),
 
-  // 代理
+  // 分销员
   applyAgent: (data, options) => call('agent', Object.assign({ action: 'apply' }, data || {}), options),
   getAgentInfo: (options) => call('agent', { action: 'info' }, options),
   getAgentPerformance: (options) => call('agent', { action: 'performance' }, options),
   getAgentTeam: (options) => call('agent', { action: 'team' }, options),
   getAgentCommissions: (params, options) => call('agent', Object.assign({ action: 'commissions' }, params || {}), options),
+  claimAgentInvite: (token, options) => call('agent', { action: 'claimInvite', token }, options),
+  getAgentDashboard: (options) => call('agent', { action: 'dashboard' }, options),
+  getPromotionAsset: (productId, options) => call('promotion', { action: 'asset', productId: productId || '' }, options),
+  getPromotionUrlLink: (productId, options) => call('promotion', { action: 'urlLink', productId: productId || '' }, options),
 
   // 佣金
   getCommissionList: (params, options) => call('commission', Object.assign({ action: 'list' }, params || {}), options),
-  withdrawCommission: (amount, options) => call('commission', { action: 'withdraw', amount }, options),
 
   // 提现
   getWithdrawalInfo: (options) => call('withdrawal', { action: 'info' }, options),
@@ -61,6 +64,10 @@ const API = {
   // 退款（管理后台）
   getRefundList: (options) => call('admin', { action: 'refundList' }, options),
   processRefund: (refundId, approve, adminNote, options) => call('admin', { action: 'processRefund', refundId, approve, adminNote }, options),
+
+  // 管理后台微信扫码登录（确认页不在消费者菜单暴露）
+  inspectAdminQrLogin: (data, options) => call('adminQrAuth', Object.assign({ action: 'inspectQrLogin' }, data || {}), options),
+  confirmAdminQrLogin: (data, options) => call('adminQrAuth', Object.assign({ action: 'confirmQrLogin' }, data || {}), options),
 
   // 聊天
   sendChatMessage: (data, options) => call('chat', Object.assign({ action: 'sendMessage' }, data || {}), options),
@@ -87,6 +94,9 @@ const API = {
   getAvailableCoupons: (params, options) => call('coupon', Object.assign({ action: 'available' }, params || {}), options),
   calculateCouponDiscount: (data, options) => call('coupon', Object.assign({ action: 'calculate' }, data || {}), options),
   useCoupon: (data, options) => call('coupon', Object.assign({ action: 'use' }, data || {}), options),
+
+  // 满减规则
+  getPromotions: (options) => call('coupon', { action: 'promotions' }, options),
 };
 
 module.exports = API;

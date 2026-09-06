@@ -1,0 +1,5 @@
+<view class="page">
+  <view class="balance-card"><text>可提现金额</text><text class="balance">¥{{available}}</text><text class="sub">审核中 ¥{{pendingAmount}} · 账面余额 ¥{{ledgerBalance}}</text></view>
+  <view class="card"><text class="title">申请提现</text><input type="digit" value="{{amount}}" bindinput="onAmount" placeholder="最低 10 元"/><input value="{{name}}" bindinput="onName" placeholder="收款人姓名"/><input value="{{account}}" bindinput="onAccount" placeholder="收款账号"/><button bindtap="submit" loading="{{submitting}}">提交申请</button></view>
+  <view class="card"><text class="title">提现记录</text><view class="record" wx:for="{{records}}" wx:key="_id"><text>¥{{item.amount / 100}}</text><text>{{item.status}}</text></view><text class="empty" wx:if="{{records.length === 0}}">暂无记录</text></view>
+</view>

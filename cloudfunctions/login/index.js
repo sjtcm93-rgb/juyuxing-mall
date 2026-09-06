@@ -1,8 +1,24 @@
+'use strict';
+
 const cloud = require('wx-server-sdk');
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
 cloud.init({ env: ENV_ID });
 const db = cloud.database();
 const _ = db.command;
+
+function withTransaction(work) {
+  return typeof db.runTransaction === 'function' ? db.runTransaction(work) : work(db);
+}
+
+async function resolveActiveReferrer(ref, openId, database = db) {
+  const referralCode = String(ref || '').trim().toUpperCase();
+  if (!referralCode) return '';
+  const referrerRes = await database.collection('users').where({ referralCode }).limit(1).get().catch(() => ({ data: [] }));
+  const referrer = referrerRes.data && referrerRes.data[0];
+  if (!referrer || referrer._id === openId || !referrer.isAgent ||
+      !referrer.agentInfo || referrer.agentInfo.status !== 'active') return '';
+  return referrer._id;
+}
 
 exports.main = async (event, context) => {
   const { OPENID } = cloud.getWXContext();
@@ -12,34 +28,28 @@ exports.main = async (event, context) => {
 
   switch (action) {
     case 'login': {
-      const ref = event.ref || '';
-      // 查找或创建用户
-      const userRes = await db.collection('users').where({ _id: OPENID }).get();
-      if (userRes.data.length === 0) {
-        const userData = {
-          _id: OPENID,
-          nickName: event.nickName || '',
-          avatarUrl: event.avatarUrl || '',
-          phone: '',
-          isAgent: false,
-          agentInfo: { level: '', code: '', applyTime: null, status: '' },
-          referrer: ref || '',
-          createTime: db.serverDate()
-        };
-        await db.collection('users').add({ data: userData });
-      } else {
-        // 已存在的用户，更新可能的新信息
-        const updateData = {};
-        if (event.nickName) updateData.nickName = event.nickName;
-        if (event.avatarUrl) updateData.avatarUrl = event.avatarUrl;
-        if (ref && !userRes.data[0].referrer) {
-          // 只在用户还没有推荐人时写入（永久绑定）
-          updateData.referrer = ref;
+      await withTransaction(async transaction => {
+        const ref = await resolveActiveReferrer(event.ref, OPENID, transaction);
+        const userRes = await transaction.collection('users').doc(OPENID).get().catch(() => null);
+        const existing = userRes && userRes.data;
+        if (!existing) {
+          await transaction.collection('users').doc(OPENID).set({ data: {
+            nickName: event.nickName || '', avatarUrl: event.avatarUrl || '', phone: '',
+            isAgent: false, agentInfo: { level: '', code: '', applyTime: null, status: '' },
+            referrer: ref || '', createTime: db.serverDate(), updateTime: db.serverDate()
+          } });
+        } else {
+          const updateData = {};
+          if (event.nickName) updateData.nickName = event.nickName;
+          if (event.avatarUrl) updateData.avatarUrl = event.avatarUrl;
+          // 用户文档是事务冲突点；两个推广入口并发时只会有第一个成功绑定。
+          if (ref && !existing.referrer) updateData.referrer = ref;
+          if (Object.keys(updateData).length > 0) {
+            updateData.updateTime = db.serverDate();
+            await transaction.collection('users').doc(OPENID).update({ data: updateData });
+          }
         }
-        if (Object.keys(updateData).length > 0) {
-          await db.collection('users').doc(OPENID).update({ data: updateData });
-        }
-      }
+      });
 
       // ===== 自动设管理员：如果 admin_config 里 openId 为空，自动把当前用户设为管理员 =====
       try {
@@ -150,28 +160,12 @@ exports.main = async (event, context) => {
     }
 
     case 'getReferralCode': {
-      // 获取/生成当前用户的推广码
       const userRes = await db.collection('users').doc(OPENID).get();
       if (!userRes.data) return { success: false, error: '用户不存在' };
-      let code = userRes.data.referralCode || '';
-      if (!code) {
-        // 生成推广码：JYX + 6位随机字母数字
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        let attempts = 0;
-        while (!code && attempts < 10) {
-          const rand = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-          code = 'JYX' + rand;
-          // 检查是否已存在
-          const exist = await db.collection('users').where({ referralCode: code }).count();
-          if (exist.total === 0) {
-            await db.collection('users').doc(OPENID).update({ data: { referralCode: code } });
-          } else {
-            code = ''; // 冲突，重新生成
-          }
-          attempts++;
-        }
+      if (!userRes.data.isAgent || !userRes.data.agentInfo || userRes.data.agentInfo.status !== 'active') {
+        return { success: false, error: '仅已激活分销员可获取推广码' };
       }
-      return { success: true, code };
+      return { success: true, code: userRes.data.referralCode || '' };
     }
 
     default:

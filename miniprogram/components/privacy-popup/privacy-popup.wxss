@@ -13,7 +13,7 @@
 
 .privacy-card {
   width: 560rpx;
-  background: #FDF8F3;
+  background: #FFF9F2;
   border-radius: 24rpx;
   padding: 48rpx 40rpx 40rpx;
   box-shadow: 0 12rpx 40rpx rgba(120, 90, 60, 0.18);
@@ -35,7 +35,7 @@
 }
 
 .privacy-link {
-  color: #E8A87C;
+  color: #E8730C;
   font-weight: 500;
 }
 
@@ -66,6 +66,6 @@
 }
 
 .privacy-btn-primary {
-  background: #E8A87C;
+  background: #E8730C;
   color: #fff;
 }

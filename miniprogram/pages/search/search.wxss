@@ -135,3 +135,14 @@
   color: var(--color-text-muted);
   padding: 32rpx 0;
 }
+
+/* 双列商品网格（2026-09-03 原型升级） */
+.search-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 16rpx 24rpx;
+}
+.search-grid goods-card {
+  width: calc((100% - 16rpx) / 2);
+}

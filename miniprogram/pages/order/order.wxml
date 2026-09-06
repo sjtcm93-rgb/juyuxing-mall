@@ -1,7 +1,4 @@
 <view class="page-wrap">
-  <!-- 调试状态条（上线前移除） -->
-  <view class="debug-bar" wx:if="{{debugInfo}}">{{debugInfo}}</view>
-
   <!-- Tabs -->
   <scroll-view scroll-x class="order-tabs">
     <view class="tab-list">

@@ -8,34 +8,49 @@
     "pages/order/order",
     "pages/order-detail/order-detail",
     "pages/user/user",
-    "pages/agent-center/agent-center",
-    "pages/agent-join/agent-join",
     "pages/address/address",
     "pages/address-edit/address-edit",
     "pages/logistics/logistics",
     "pages/about/about",
-    "pages/withdrawal/withdrawal",
-    "pages/admin/admin",
     "pages/refund/refund",
     "pages/chat/chat",
     "pages/search/search",
     "pages/favorites/favorites",
     "pages/coupon-center/coupon-center",
-    "pages/coupon-mine/coupon-mine",
-    "pages/referral/referral",
-    "pages/shop-editor/shop-editor"
+    "pages/coupon-mine/coupon-mine"
+  ],
+  "subPackages": [
+    {
+      "root": "subpackages/distributor",
+      "name": "distributor",
+      "pages": [
+        "bind/bind",
+        "dashboard/dashboard",
+        "promotion/promotion",
+        "commissions/commissions",
+        "withdrawal/withdrawal",
+        "profile/profile"
+      ]
+    },
+    {
+      "root": "subpackages/admin-auth",
+      "name": "admin-auth",
+      "pages": [
+        "confirm/confirm"
+      ]
+    }
   ],
   "window": {
-    "navigationBarBackgroundColor": "#FDF8F3",
+    "navigationBarBackgroundColor": "#FFFFFF",
     "navigationBarTitleText": "橘与杏中医生活",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#FDF8F3",
+    "backgroundColor": "#F5F6F8",
     "backgroundTextStyle": "dark"
   },
   "tabBar": {
-    "color": "#8B7E72",
-    "selectedColor": "#E8A87C",
-    "backgroundColor": "#FDF8F3",
+    "color": "#999999",
+    "selectedColor": "#E8730C",
+    "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {

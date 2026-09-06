@@ -64,31 +64,9 @@
       <text class="menu-text">我的优惠券</text>
       <text class="menu-arrow">›</text>
     </navigator>
-    <navigator url="/pages/referral/referral" class="menu-item" wx:if="{{isLoggedIn}}">
-      <image class="menu-icon-img" src="/images/icons/money.png" mode="aspectFit"></image>
-      <text class="menu-text">邀请有礼</text>
-      <text class="menu-tag">送5元券</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
     <navigator url="/pages/chat/chat" class="menu-item">
       <image class="menu-icon-img" src="/images/icons/chat.png" mode="aspectFit"></image>
       <text class="menu-text">联系客服</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-    <navigator url="/pages/agent-center/agent-center" class="menu-item" wx:if="{{isAgent}}">
-      <image class="menu-icon-img" src="/images/icons/star.png" mode="aspectFit"></image>
-      <text class="menu-text">代理中心</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-    <navigator url="/pages/agent-join/agent-join" class="menu-item" wx:else>
-      <image class="menu-icon-img" src="/images/icons/star.png" mode="aspectFit"></image>
-      <text class="menu-text">成为代理</text>
-      <text class="menu-tag">分享赚钱</text>
-      <text class="menu-arrow">›</text>
-    </navigator>
-    <navigator url="/pages/admin/admin" class="menu-item" wx:if="{{isAdmin}}">
-      <image class="menu-icon-img" src="/images/icons/settings.png" mode="aspectFit"></image>
-      <text class="menu-text">管理后台</text>
       <text class="menu-arrow">›</text>
     </navigator>
     <navigator url="/pages/about/about" class="menu-item">

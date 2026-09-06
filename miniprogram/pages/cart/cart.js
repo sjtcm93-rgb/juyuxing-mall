@@ -16,16 +16,50 @@ Page({
     allSelected: false,
     totalPrice: 0,
     selectedCount: 0,
+    promotion: { enabled: false, rules: [] },
+    promotionTip: '',
+    promotionPct: 0,
     loading: true,
     loadError: ''
   },
 
   onShow() {
+    this.loadPromotions();
     this.loadCart();
   },
 
   onPullDownRefresh() {
-    this.loadCart({ force: true }).then(() => wx.stopPullDownRefresh());
+    Promise.all([this.loadCart({ force: true }), this.loadPromotions()]).then(() => wx.stopPullDownRefresh());
+  },
+
+  async loadPromotions() {
+    try {
+      const res = await API.getPromotions({ silent: true });
+      if (res && res.success && res.data) {
+        this.setData({ promotion: res.data || { enabled: false, rules: [] } });
+        this.recalcTotal();
+      }
+    } catch (err) {}
+  },
+
+  computePromotion(total) {
+    const promotion = this.data.promotion || {};
+    if (!promotion.enabled) return { tip: '', pct: 0 };
+    const rules = (promotion.rules || []).slice().sort((a, b) => a.threshold - b.threshold);
+    if (rules.length === 0) return { tip: '', pct: 0 };
+    let best = null, next = null;
+    for (const r of rules) {
+      if (total >= r.threshold) best = r;
+      else if (!next) next = r;
+    }
+    if (best) {
+      return { tip: `已享满${Math.round(best.threshold / 100)}减${Math.round(best.discount / 100)}优惠`, pct: 100 };
+    }
+    if (next) {
+      const gap = next.threshold - total;
+      return { tip: `再买 ¥${(gap / 100).toFixed(2)} 可减 ${Math.round(next.discount / 100)} 元`, pct: Math.min(100, Math.round(total / next.threshold * 100)) };
+    }
+    return { tip: '', pct: 0 };
   },
 
   readCartCache() {
@@ -98,11 +132,14 @@ Page({
         selected += 1;
       }
     });
+    const promo = this.computePromotion(total);
     this.setData({
       totalPrice: total,
       totalPriceText: (total / 100).toFixed(2),
       selectedCount: count,
       selectedItemCount: selected,
+      promotionTip: promo.tip,
+      promotionPct: promo.pct,
       allSelected: items.length > 0 && selected === items.length
     });
   },

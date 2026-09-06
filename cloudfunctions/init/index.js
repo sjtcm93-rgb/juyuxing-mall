@@ -3,6 +3,66 @@ const ENV_ID = 'cloud1-d4gx1jxk675274501';
 cloud.init({ env: ENV_ID });
 const db = cloud.database();
 
+// ============================================================
+// 集合初始化工具
+//
+// 修复说明（2026-09-02）：
+// 1. 服务端 SDK 的 collection().add() 在集合不存在时不会自动建集合，
+//    会抛 -502005（DATABASE_COLLECTION_NOT_EXIST）。旧代码依赖这一错误假设。
+// 2. -502005 的含义是"集合不存在"，不是"集合已存在"；集合已存在的错误
+//    通常是 -501007 或 message 含 exists/已存在。旧代码把两者弄反了。
+// 3. 正确顺序：先探测（limit(1).get()），不存在则 createCollection，
+//    再用 add/remove 验证可写。
+// ============================================================
+
+// 判断错误是否表示"集合已存在"（这类错误应视为成功）
+function isCollectionExistsError(err) {
+  const msg = String((err && err.message) || '');
+  const code = (err && (err.errCode !== undefined ? err.errCode : err.code)) || 0;
+  return code === -501007 || /exists|已存在|COLLECTION_EXISTS/i.test(msg);
+}
+
+// 通用：确保集合存在且可写
+async function ensureCollection(name) {
+  // 1. 探测：能读到说明集合已存在
+  try {
+    await db.collection(name).limit(1).get();
+    return true;
+  } catch (err) {
+    // 读不到（集合不存在或权限异常），继续尝试创建
+    console.log(`[ensureCollection:${name}] 探测未通过，尝试创建:`, err && (err.errCode || err.message));
+  }
+
+  // 2. 创建集合（注意区分"已存在"错误与真实失败）
+  if (typeof db.createCollection === 'function') {
+    try {
+      await db.createCollection(name);
+      console.log(`[ensureCollection:${name}] createCollection 成功`);
+      return true;
+    } catch (err) {
+      if (isCollectionExistsError(err)) {
+        return true; // 已存在，视为成功
+      }
+      console.log(`[ensureCollection:${name}] createCollection 失败:`, err && (err.errCode || err.message));
+      // 继续走兜底验证
+    }
+  } else {
+    console.log(`[ensureCollection:${name}] 当前 SDK 不支持 db.createCollection，走 add 兜底`);
+  }
+
+  // 3. 兜底验证：add 一条再删掉（同时验证可写；个别旧环境 add 也能触发自动建集合）
+  try {
+    const res = await db.collection(name).add({
+      data: { _init: true, createTime: db.serverDate() }
+    });
+    await db.collection(name).doc(res._id).remove();
+    return true;
+  } catch (err) {
+    console.error(`[ensureCollection:${name}] 创建/写入均失败:`, err && (err.errCode || err.message));
+    return false;
+  }
+}
+
 // 工具：确保 admin_config 文档存在
 async function ensureAdminConfig() {
   const res = await db.collection('admin_config').doc('admin').get().catch(() => null);
@@ -18,49 +78,6 @@ async function ensureAdminConfig() {
   return false;
 }
 
-// 工具：确保 pay_config 集合存在
-async function ensurePayConfigCollection() {
-  // 先尝试 add/remove 方式（最可靠，CloudBase 会自动建集合）
-  try {
-    const res = await db.collection('pay_config').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('pay_config').doc(res._id).remove();
-    return true;
-  } catch (err) {
-    const msg = (err && err.message) || '';
-    // 集合已存在的情况，add 应该成功；如果失败说明有其他问题
-    console.log('[ensurePayConfigCollection] add/remove 失败:', msg);
-  }
-  // 备选：尝试 createCollection API
-  try {
-    await db.createCollection('pay_config');
-    return true;
-  } catch (err) {
-    const msg = (err && err.message) || '';
-    const code = (err && err.errCode) || 0;
-    // 集合已存在或创建成功都可接受
-    if (msg.includes('exists') || msg.includes('已存在') || msg.includes('EXIST') || code === -502005) {
-      // -502005 在某些 SDK 版本中表示集合已存在或不允许创建，尝试 add 确认
-      try {
-        const res = await db.collection('pay_config').add({
-          data: { _init: true, createTime: db.serverDate() }
-        });
-        await db.collection('pay_config').doc(res._id).remove();
-        return true;
-      } catch (err2) {
-        console.log('[ensurePayConfigCollection] createCollection 后 add 也失败:', err2.message || err2);
-        return false;
-      }
-    }
-    console.log('[ensurePayConfigCollection] createCollection 失败:', msg, 'code:', code);
-    return false;
-  }
-}
-
-// 工具：确保 pay_config 文档存在
-
-
 // 默认分类种子
 const DEFAULT_CATEGORIES = [
   { name: '本草养颜', icon: '🌸', parentId: '', sort: 1, status: 'on', hot: true },
@@ -71,144 +88,36 @@ const DEFAULT_CATEGORIES = [
   { name: '香疗舒缓', icon: '🕯️', parentId: '', sort: 6, status: 'on', hot: false }
 ];
 
-// 工具：确保 categories 集合存在并种子默认分类
+// 工具：确保 categories 集合存在；仅在集合为空时播种默认分类（修复重复播种 bug）
 async function ensureCategoriesCollection() {
+  const ok = await ensureCollection('categories');
+  if (!ok) return false;
   try {
-    const res = await db.collection('categories').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('categories').doc(res._id).remove();
-    // 种子默认分类
-    for (const c of DEFAULT_CATEGORIES) {
-      await db.collection('categories').add({
-        data: Object.assign({ createTime: db.serverDate() }, c)
-      });
+    const cnt = await db.collection('categories').count();
+    if (cnt.total === 0) {
+      for (const c of DEFAULT_CATEGORIES) {
+        await db.collection('categories').add({
+          data: Object.assign({ createTime: db.serverDate() }, c)
+        });
+      }
+      console.log('[init] 已播种默认分类', DEFAULT_CATEGORIES.length, '条');
     }
     return true;
-  } catch (err) { return false; }
+  } catch (err) {
+    console.log('[init] categories count 失败:', err && err.message);
+    return false;
+  }
 }
 
-// 工具：确保 coupons 集合存在
-async function ensureCouponsCollection() {
-  try {
-    const res = await db.collection('coupons').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('coupons').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 user_coupons 集合存在
-async function ensureUserCouponsCollection() {
-  try {
-    const res = await db.collection('user_coupons').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('user_coupons').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 favorites 集合存在
-async function ensureFavoritesCollection() {
-  try {
-    const res = await db.collection('favorites').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('favorites').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 banners 集合存在
-async function ensureBannersCollection() {
-  try {
-    const res = await db.collection('banners').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('banners').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 orders 集合存在
-async function ensureOrdersCollection() {
-  try {
-    const res = await db.collection('orders').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('orders').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 carts 集合存在
-async function ensureCartsCollection() {
-  try {
-    const res = await db.collection('carts').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('carts').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 commissions 集合存在
-async function ensureCommissionsCollection() {
-  try {
-    const res = await db.collection('commissions').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('commissions').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 refunds 集合存在
-async function ensureRefundsCollection() {
-  try {
-    const res = await db.collection('refunds').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('refunds').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 withdrawals 集合存在
-async function ensureWithdrawalsCollection() {
-  try {
-    const res = await db.collection('withdrawals').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('withdrawals').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-// 工具：确保 referral_events 集合存在
-async function ensureReferralEventsCollection() {
-  try {
-    const res = await db.collection('referral_events').add({
-      data: { _init: true, createTime: db.serverDate() }
-    });
-    await db.collection('referral_events').doc(res._id).remove();
-    return true;
-  } catch (err) { return false; }
-}
-
-
+// 工具：确保 pay_config 默认文档存在（集合必须已存在）
 async function ensurePayConfig() {
   const res = await db.collection('pay_config').doc('default').get().catch(() => null);
   if (!res || !res.data) {
     await db.collection('pay_config').doc('default').set({
       data: {
-        subMchId: '1114186048',
-        // 显式开关：true=模拟支付(订单直接置paid，无需商户号)，false=真实微信支付
-        // 上线接入商户号并把商户绑定到云支付后，将此字段改为 false 即可切换
-        useMockPay: true,
-        note: '微信支付商户号；useMockPay=false 且已在云支付控制台绑定商户后走真实支付'
+        subMchId: '',
+        useMockPay: false,
+        note: '默认关闭模拟支付；真实支付需填写商户号并完成云支付绑定'
       }
     });
     return true;
@@ -216,44 +125,53 @@ async function ensurePayConfig() {
   return false;
 }
 
-// 工具：确保 messages 集合存在（通过写入一条空记录并删除）
-async function ensureMessagesCollection() {
-  try {
-    const res = await db.collection('messages').add({
-      data: {
-        _init: true,
-        createTime: db.serverDate()
-      }
-    });
-    await db.collection('messages').doc(res._id).remove();
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
+// 首版需要的全部集合清单（新增业务集合在此登记）
+// 2026-09-03 补全：以全部云函数实际引用的集合为准，避免运行时 -502005
+const COLLECTIONS = [
+  'users',
+  'products',
+  'categories',
+  'coupons',
+  'user_coupons',
+  'favorites',
+  'banners',
+  'orders',
+  'cart',
+  'commissions',
+  'refunds',
+  'withdrawals',
+  'cashflow_entries',
+  'addresses',
+  'referral_events',
+  'messages',
+  'admin_accounts',
+  'admin_sessions',
+  'admin_login_tickets',
+  'agent_invites',
+  'inventory_adjustments',
+  'inventory_reservations',
+  'promotion_targets',
+  'config',
+  'pay_config'
+];
 
 exports.main = async (event) => {
   const action = event.action || 'init';
 
   if (action === 'init') {
-    // 先确保管理后台配置存在
+    // 管理配置
     const adminCreated = await ensureAdminConfig();
-    // 确保 messages 集合存在
-    const messagesCreated = await ensureMessagesCollection();
-    const categoriesCreated = await ensureCategoriesCollection();
-    const couponsCreated = await ensureCouponsCollection();
-    const userCouponsCreated = await ensureUserCouponsCollection();
-    const favoritesCreated = await ensureFavoritesCollection();
-    const bannersCreated = await ensureBannersCollection();
-    const ordersCreated = await ensureOrdersCollection();
-    const cartsCreated = await ensureCartsCollection();
-    const commissionsCreated = await ensureCommissionsCollection();
-    const refundsCreated = await ensureRefundsCollection();
-    const withdrawalsCreated = await ensureWithdrawalsCollection();
-    const referralEventsCreated = await ensureReferralEventsCollection();
-    // 确保支付配置集合与默认文档存在
-    const payConfigCollectionCreated = await ensurePayConfigCollection();
-    console.log('[init] payConfigCollectionCreated:', payConfigCollectionCreated);
+
+    // 逐个确保集合存在，输出每个集合的状态（便于排查）
+    const collectionStatus = {};
+    for (const name of COLLECTIONS) {
+      collectionStatus[name] = name === 'categories'
+        ? await ensureCategoriesCollection()
+        : await ensureCollection(name);
+    }
+
+    // pay_config：集合存在时写入默认文档
+    const payConfigCollectionCreated = collectionStatus['pay_config'];
     let payConfigCreated = false;
     let payConfigError = '';
     if (payConfigCollectionCreated) {
@@ -264,14 +182,15 @@ exports.main = async (event) => {
         console.error('[init] ensurePayConfig 失败:', payConfigError);
       }
     } else {
-      payConfigError = 'pay_config 集合创建失败，跳过默认文档写入';
+      payConfigError = 'pay_config 集合创建失败，请到 CloudBase 控制台手动创建该集合后重试';
       console.error('[init]', payConfigError);
     }
 
+    const failedCollections = Object.keys(collectionStatus).filter(k => !collectionStatus[k]);
+    const messagesCreated = collectionStatus['messages'];
 
-    // 再检查商品是否已存在
+    // 已有商品时补 categoryId（幂等）
     const existing = await db.collection('products').get();
-    // 已有商品时尝试补 categoryId
     const catRes = await db.collection('categories').limit(1).get().catch(() => ({ data: [] }));
     const defaultCatId = (catRes.data && catRes.data[0] && catRes.data[0]._id) || '';
     for (const p of existing.data) {
@@ -280,17 +199,21 @@ exports.main = async (event) => {
       }
     }
     if (existing.data.length > 0) {
-    return {
-      success: true,
-      message: '数据库已有数据，跳过商品初始化',
-      count: existing.data.length,
-      adminCreated,
-      messagesCreated,
-      payConfigCollectionCreated,
-      payConfigCreated,
-      payConfigError
-    };
-  }
+      return {
+        success: true,
+        message: failedCollections.length
+          ? `数据库已有数据，但有集合初始化失败: ${failedCollections.join(', ')}`
+          : '数据库已有数据，跳过商品初始化',
+        count: existing.data.length,
+        adminCreated,
+        messagesCreated,
+        payConfigCollectionCreated,
+        payConfigCreated,
+        payConfigError,
+        collectionStatus,
+        failedCollections
+      };
+    }
 
     // 创建默认商品 - 小紫瓶
     const productRes = await db.collection('products').add({
@@ -300,7 +223,12 @@ exports.main = async (event) => {
         categoryId: defaultCatId,
         price: 6900,
         originalPrice: 7800,
-        specs: [{ name: '13.5g', stock: 999 }],
+        stock: 1998,
+        reservedStock: 0,
+        specs: [
+          { name: '13.5g', stock: 999, reservedStock: 0 },
+          { name: '27g', stock: 999, reservedStock: 0 }
+        ],
         images: ['/images/product-xiaoziping.jpg'],
         description: `<p style="font-weight:600;font-size:30rpx;color:#2D4A3E;margin:0 0 12rpx;">一、品牌简介</p>
 <p style="font-weight:600;font-size:28rpx;color:#4A3F35;margin:16rpx 0 8rpx;">1.1 品牌定位</p>
@@ -336,13 +264,17 @@ exports.main = async (event) => {
 
     return {
       success: true,
-      message: '初始化完成',
+      message: failedCollections.length
+        ? `初始化完成，但有集合初始化失败: ${failedCollections.join(', ')}`
+        : '初始化完成',
       productId: productRes._id,
       adminCreated,
       messagesCreated,
       payConfigCollectionCreated,
       payConfigCreated,
-      payConfigError
+      payConfigError,
+      collectionStatus,
+      failedCollections
     };
   }
 
@@ -350,6 +282,7 @@ exports.main = async (event) => {
     const products = await db.collection('products').get();
     const adminRes = await db.collection('admin_config').doc('admin').get().catch(() => null);
     const messagesCheck = await db.collection('messages').limit(1).get().catch(() => null);
+    const payConfigCheck = await db.collection('pay_config').doc('default').get().catch(() => null);
     return {
       success: true,
       productCount: products.data.length,
@@ -361,7 +294,9 @@ exports.main = async (event) => {
       })),
       adminConfigured: !!(adminRes && adminRes.data),
       adminOpenIdSet: !!(adminRes && adminRes.data && adminRes.data.openId),
-      messagesCollectionReady: !!(messagesCheck && messagesCheck.data !== undefined)
+      messagesCollectionReady: !!(messagesCheck && messagesCheck.data !== undefined),
+      payConfigCollectionReady: !!(payConfigCheck && payConfigCheck.data !== undefined),
+      payConfigDocExists: !!(payConfigCheck && payConfigCheck.data)
     };
   }
 

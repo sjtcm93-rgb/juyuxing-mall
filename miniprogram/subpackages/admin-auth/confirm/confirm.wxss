@@ -1,0 +1,97 @@
+@import "../../../style/tokens.wxss";
+
+.admin-auth-page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 112rpx 36rpx 64rpx;
+  background: var(--color-bg);
+}
+
+.brand-mark {
+  margin-bottom: 48rpx;
+  color: var(--color-primary);
+  font-family: var(--font-serif);
+  font-size: 48rpx;
+  font-weight: 700;
+  letter-spacing: 14rpx;
+  text-align: center;
+}
+
+.auth-card {
+  padding: 58rpx 42rpx;
+  border: 1rpx solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: var(--shadow-md);
+}
+
+.state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.state-icon {
+  width: 104rpx;
+  height: 104rpx;
+  margin-bottom: 28rpx;
+  border-radius: 52rpx;
+  font-size: 46rpx;
+  line-height: 104rpx;
+  text-align: center;
+}
+
+.loading-icon, .shield-icon { background: var(--color-bg-soft); color: var(--color-primary); }
+.success-icon { background: var(--color-leaf-soft); color: var(--color-primary-dark); }
+.error-icon { background: var(--color-warm-soft); color: var(--color-danger); }
+
+.state-title {
+  color: var(--color-text);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.state-desc {
+  margin-top: 22rpx;
+  color: var(--color-text-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.75;
+  text-align: center;
+}
+
+.error-text { color: var(--color-danger); }
+
+.binding-help {
+  width: 100%;
+  margin-top: 18rpx;
+}
+
+.account-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 34rpx;
+  padding: 28rpx;
+  border-radius: var(--radius-md);
+  background: var(--color-card-soft);
+  text-align: center;
+}
+
+.account-name { color: var(--color-text); font-size: var(--fs-md); font-weight: 700; }
+.account-role { margin-top: 8rpx; color: var(--color-primary-soft); font-size: var(--fs-xs); }
+
+.primary-btn, .secondary-btn {
+  width: 100%;
+  margin-top: 42rpx;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-md);
+}
+
+.primary-btn { background: var(--color-primary) !important; color: #fff !important; }
+.secondary-btn { border: 1rpx solid var(--color-border); background: var(--color-card) !important; color: var(--color-primary) !important; }
+
+.security-note {
+  margin-top: 32rpx;
+  color: var(--color-text-faint);
+  font-size: var(--fs-xs);
+  text-align: center;
+}

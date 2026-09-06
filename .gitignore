@@ -19,6 +19,11 @@ project.private.config.json
 
 # Local agent workflow records
 docs/baymax/
+.playwright-cli/
+.workbuddy/screenshots/
+.workbuddy/memory/
+.workbuddy/overview.md
+output/
 
 # Env
 .env

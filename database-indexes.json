@@ -5,12 +5,14 @@
       "name": "users",
       "indexes": [
         { "name": "referrer_index", "fields": [{ "name": "referrer", "direction": "asc" }] },
-        { "name": "isAgent_index", "fields": [{ "name": "isAgent", "direction": "desc" }] }
+        { "name": "isAgent_index", "fields": [{ "name": "isAgent", "direction": "desc" }] },
+        { "name": "referral_code_unique", "unique": true, "fields": [{ "name": "referralCode", "direction": "asc" }] }
       ]
     },
     {
       "name": "orders",
       "indexes": [
+        { "name": "order_no_unique", "unique": true, "fields": [{ "name": "orderNo", "direction": "asc" }] },
         { "name": "user_orders", "fields": [
           { "name": "userId", "direction": "asc" },
           { "name": "createTime", "direction": "desc" }
@@ -30,6 +32,7 @@
     {
       "name": "commissions",
       "indexes": [
+        { "name": "commission_idempotency_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
         { "name": "agent_commissions", "fields": [
           { "name": "agentId", "direction": "asc" },
           { "name": "createTime", "direction": "desc" }
@@ -53,6 +56,7 @@
     {
       "name": "withdrawals",
       "indexes": [
+        { "name": "withdrawal_idempotency_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
         { "name": "agent_withdrawals", "fields": [
           { "name": "agentId", "direction": "asc" },
           { "name": "createTime", "direction": "desc" }
@@ -64,11 +68,85 @@
       ]
     },
     {
+      "name": "refunds",
+      "indexes": [
+        { "name": "refund_request_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
+        { "name": "refund_user_time", "fields": [{ "name": "userId", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] },
+        { "name": "refund_status_time", "fields": [{ "name": "status", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] }
+      ]
+    },
+    {
       "name": "cart",
       "indexes": [
         { "name": "user_cart", "fields": [
           { "name": "userId", "direction": "asc" }
         ]}
+      ]
+    },
+    {
+      "name": "user_coupons",
+      "indexes": [
+        { "name": "user_coupon_lookup", "fields": [{ "name": "userId", "direction": "asc" }, { "name": "couponId", "direction": "asc" }] },
+        { "name": "user_coupon_status", "fields": [{ "name": "userId", "direction": "asc" }, { "name": "status", "direction": "asc" }, { "name": "claimTime", "direction": "desc" }] }
+      ]
+    },
+    {
+      "name": "admin_accounts",
+      "indexes": [
+        { "name": "admin_username_unique", "unique": true, "fields": [{ "name": "username", "direction": "asc" }] },
+        { "name": "admin_role_status", "fields": [{ "name": "role", "direction": "asc" }, { "name": "status", "direction": "asc" }] },
+        { "name": "admin_wechat_status", "fields": [{ "name": "wechatOpenId", "direction": "asc" }, { "name": "status", "direction": "asc" }] }
+      ]
+    },
+    {
+      "name": "admin_sessions",
+      "indexes": [
+        { "name": "admin_token_unique", "unique": true, "fields": [{ "name": "tokenHash", "direction": "asc" }] },
+        { "name": "admin_session_status", "fields": [{ "name": "status", "direction": "asc" }, { "name": "expiresAt", "direction": "asc" }] }
+      ]
+    },
+    {
+      "name": "admin_login_tickets",
+      "indexes": [
+        { "name": "admin_login_public_unique", "unique": true, "fields": [{ "name": "publicId", "direction": "asc" }] },
+        { "name": "admin_login_poll_unique", "unique": true, "fields": [{ "name": "pollSecretHash", "direction": "asc" }] },
+        { "name": "admin_login_status_expiry", "fields": [{ "name": "status", "direction": "asc" }, { "name": "expiresAt", "direction": "asc" }] }
+      ]
+    },
+    {
+      "name": "agent_invites",
+      "indexes": [
+        { "name": "agent_invite_token_unique", "unique": true, "fields": [{ "name": "tokenHash", "direction": "asc" }] },
+        { "name": "agent_invite_status", "fields": [{ "name": "status", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] }
+      ]
+    },
+    {
+      "name": "inventory_reservations",
+      "indexes": [
+        { "name": "reservation_idempotency_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
+        { "name": "reservation_order_status", "fields": [{ "name": "orderId", "direction": "asc" }, { "name": "status", "direction": "asc" }] },
+        { "name": "reservation_expiry", "fields": [{ "name": "status", "direction": "asc" }, { "name": "expireTime", "direction": "asc" }] }
+      ]
+    },
+    {
+      "name": "inventory_adjustments",
+      "indexes": [
+        { "name": "inventory_product_time", "fields": [{ "name": "productId", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] }
+      ]
+    },
+    {
+      "name": "cashflow_entries",
+      "indexes": [
+        { "name": "cashflow_idempotency_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
+        { "name": "cashflow_status_time", "fields": [{ "name": "status", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] }
+      ]
+    },
+    {
+      "name": "promotion_targets",
+      "indexes": [
+        { "name": "promotion_scene_unique", "unique": true, "fields": [{ "name": "contentKey", "direction": "asc" }] },
+        { "name": "promotion_agent_product", "fields": [{ "name": "agentId", "direction": "asc" }, { "name": "productId", "direction": "asc" }] },
+        { "name": "promotion_resolve", "fields": [{ "name": "referralCode", "direction": "asc" }, { "name": "contentKey", "direction": "asc" }, { "name": "status", "direction": "asc" }] }
       ]
     }
   ]

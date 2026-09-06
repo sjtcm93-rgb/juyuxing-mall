@@ -17,6 +17,14 @@
 
   <!-- 购物车列表 -->
   <block wx:else>
+    <!-- 满减进度条 -->
+    <view class="cart-promotion" wx:if="{{promotionTip}}">
+      <text class="cart-promotion-tip">{{promotionTip}}</text>
+      <view class="cart-promotion-bar">
+        <view class="cart-promotion-fill" style="width: {{promotionPct}}%"></view>
+      </view>
+    </view>
+
     <view
       wx:for="{{cartItems}}"
       wx:key="productId-{{item.spec}}"

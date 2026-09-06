@@ -37,6 +37,8 @@ Page({
     });
     this.setData({ submitting: false });
     if (res && res.success) {
+      const openId = wx.getStorageSync('openId') || '';
+      if (openId) wx.removeStorageSync('userAgentInfo_' + openId);
       toast('申请已提交，等待审核', 'success');
       setTimeout(() => wx.navigateBack(), 800);
     } else {

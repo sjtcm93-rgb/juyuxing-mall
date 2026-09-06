@@ -1,83 +1,135 @@
+'use strict';
+
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
+
 cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
 const _ = db.command;
 
-exports.main = async (event, context) => {
+function withTransaction(work) {
+  return typeof db.runTransaction === 'function' ? db.runTransaction(work) : work(db);
+}
+
+function normalizeRequestId(value) {
+  const requestId = String(value || '').trim();
+  if (/^[A-Za-z0-9_-]{12,64}$/.test(requestId)) return requestId;
+  return crypto.randomBytes(16).toString('hex');
+}
+
+async function getBalance(database, agentId) {
+  const [commissionRes, pendingRes] = await Promise.all([
+    database.collection('commissions')
+      .where({ agentId, status: 'settled' })
+      .limit(1000)
+      .get(),
+    database.collection('withdrawals')
+      .where({ agentId, status: _.in(['pending', 'processing']) })
+      .limit(1000)
+      .get()
+  ]);
+  const ledgerBalance = (commissionRes.data || [])
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const pendingAmount = (pendingRes.data || [])
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  return {
+    ledgerBalance,
+    pendingAmount,
+    pendingCount: (pendingRes.data || []).length,
+    available: Math.max(0, ledgerBalance - pendingAmount)
+  };
+}
+
+exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
   const action = event.action || 'info';
 
+  const userRes = await db.collection('users').doc(OPENID).get().catch(() => null);
+  const user = userRes && userRes.data;
+  if (!user || !user.isAgent || !user.agentInfo || user.agentInfo.status !== 'active') {
+    return { success: false, error: '分销员身份未激活' };
+  }
+
   switch (action) {
     case 'info': {
-      // 获取代理的可提现金额和提现记录
-      const commRes = await db.collection('commissions')
-        .where({ agentId: OPENID, status: 'settled' })
-        .get();
-      const available = commRes.data.reduce((s, c) => s + (c.amount || 0), 0);
-      
-      // 处理中的提现
-      const pendingRes = await db.collection('withdrawals')
-        .where({ agentId: OPENID, status: _.in(['pending', 'processing']) })
-        .get();
-      const pendingAmount = pendingRes.data.reduce((s, w) => s + (w.amount || 0), 0);
-      
-      return {
-        success: true,
-        available,
-        pendingAmount,
-        pendingCount: pendingRes.data.length
-      };
+      const balance = await getBalance(db, OPENID);
+      return { success: true, ...balance };
     }
 
     case 'apply': {
-      const { amount, name, account } = event;
-      
-      if (!amount || amount <= 0) {
+      const amount = Number(event.amount);
+      const name = String(event.name || '').trim();
+      const account = String(event.account || '').trim();
+      const requestId = normalizeRequestId(event.requestId);
+      const idempotencyKey = `withdrawal:${OPENID}:${requestId}`;
+
+      if (!Number.isInteger(amount) || amount <= 0) {
         return { success: false, error: '提现金额无效' };
       }
-      if (amount < 1000) { // 10元起提（以分为单位）
+      if (amount < 1000) {
         return { success: false, error: '最低提现金额为10元' };
       }
       if (!name || !account) {
         return { success: false, error: '请填写收款信息' };
       }
-
-      // 检查可用余额
-      const commRes = await db.collection('commissions')
-        .where({ agentId: OPENID, status: 'settled' })
-        .get();
-      const available = commRes.data.reduce((s, c) => s + (c.amount || 0), 0);
-      
-      // 扣除处理中的提现
-      const pendingRes = await db.collection('withdrawals')
-        .where({ agentId: OPENID, status: _.in(['pending', 'processing']) })
-        .get();
-      const frozenAmount = pendingRes.data.reduce((s, w) => s + (w.amount || 0), 0);
-      
-      if (amount > (available - frozenAmount)) {
-        return { success: false, error: '可提现余额不足' };
+      if (name.length > 40 || account.length > 100) {
+        return { success: false, error: '收款信息过长' };
       }
 
-      // 创建提现申请
-      await db.collection('withdrawals').add({
-        data: {
-          agentId: OPENID,
-          amount: amount,
-          name: name,
-          account: account,
-          status: 'pending',
-          createTime: db.serverDate(),
-          processTime: null,
-          remark: ''
-        }
-      });
+      try {
+        const result = await withTransaction(async transaction => {
+          const duplicateRes = await transaction.collection('withdrawals')
+            .where({ idempotencyKey })
+            .limit(1)
+            .get();
+          const duplicate = duplicateRes.data && duplicateRes.data[0];
+          if (duplicate) {
+            return { withdrawalId: duplicate._id, duplicate: true };
+          }
 
-      return { success: true };
+          // 读写用户版本字段，使同一分销员的并发申请冲突后重新计算余额。
+          const latestUserRes = await transaction.collection('users').doc(OPENID).get();
+          if (!latestUserRes.data || !latestUserRes.data.isAgent) {
+            throw new Error('分销员身份未激活');
+          }
+          const balance = await getBalance(transaction, OPENID);
+          if ((balance.ledgerBalance - balance.pendingAmount) <= 0) {
+            throw new Error('当前存在退款冲销，佣金余额恢复为正后方可提现');
+          }
+          if (amount > (balance.ledgerBalance - balance.pendingAmount)) {
+            throw new Error('可提现余额不足');
+          }
+
+          const createRes = await transaction.collection('withdrawals').add({ data: {
+            idempotencyKey,
+            requestId,
+            agentId: OPENID,
+            amount,
+            name,
+            account,
+            status: 'pending',
+            createTime: db.serverDate(),
+            processTime: null,
+            remark: ''
+          } });
+          await transaction.collection('users').doc(OPENID).update({
+            data: { withdrawalVersion: _.inc(1), updateTime: db.serverDate() }
+          });
+          return { withdrawalId: createRes._id, duplicate: false };
+        });
+        return {
+          success: true,
+          withdrawalId: result.withdrawalId,
+          duplicate: result.duplicate
+        };
+      } catch (err) {
+        return { success: false, error: (err && err.message) || '提现申请失败' };
+      }
     }
 
     case 'list': {
-      const pageSize = event.pageSize || 20;
-      const page = event.page || 1;
+      const pageSize = Math.min(Math.max(Number(event.pageSize) || 20, 1), 50);
+      const page = Math.max(Number(event.page) || 1, 1);
       const res = await db.collection('withdrawals')
         .where({ agentId: OPENID })
         .orderBy('createTime', 'desc')

@@ -1,0 +1,17 @@
+<view class="distributor-page bind-page">
+  <view class="brand-mark">橘与杏</view>
+  <view class="bind-card">
+    <text class="bind-title">分销员专属入口</text>
+    <text class="bind-desc" wx:if="{{!activated}}">此入口仅面向受邀分销员。激活后可生成专属推广素材、查看佣金并申请提现。</text>
+    <block wx:if="{{activated}}">
+      <text class="success-mark">✓</text>
+      <text class="bind-title">激活成功</text>
+      <text class="code">推广码：{{code}}</text>
+      <button class="primary-btn" bindtap="enterDashboard">进入分销中心</button>
+    </block>
+    <block wx:else>
+      <text class="error" wx:if="{{error}}">{{error}}</text>
+      <button class="primary-btn" bindtap="activate" loading="{{loading}}" disabled="{{loading}}">{{loading ? '激活中…' : '确认激活'}}</button>
+    </block>
+  </view>
+</view>

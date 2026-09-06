@@ -4,7 +4,7 @@
 
   <block wx:else>
     <!-- 商品图片轮播 -->
-    <swiper class="product-swiper" indicator-dots="{{true}}" autoplay="{{false}}" circular="{{images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8A87C">
+    <swiper class="product-swiper" indicator-dots="{{true}}" autoplay="{{false}}" circular="{{images.length > 1}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8730C">
       <swiper-item wx:for="{{images}}" wx:key="*this">
         <image class="swiper-image" src="{{item}}" mode="aspectFill" lazy-load="{{true}}" binderror="onSwiperError"></image>
       </swiper-item>

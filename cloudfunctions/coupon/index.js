@@ -1,3 +1,5 @@
+'use strict';
+
 const cloud = require('wx-server-sdk');
 cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
@@ -5,6 +7,10 @@ const _ = db.command;
 
 const COL_COUPON = 'coupons';
 const COL_USER_COUPON = 'user_coupons';
+
+function withTransaction(work) {
+  return typeof db.runTransaction === 'function' ? db.runTransaction(work) : work(db);
+}
 
 function now() { return Date.now(); }
 
@@ -89,27 +95,35 @@ exports.main = async (event, context) => {
       if (!OPENID) return { success: false, code: 'NO_AUTH', error: '请先登录' };
       const couponId = event.couponId;
       if (!couponId) return { success: false, error: '缺少 couponId' };
-      const cRes = await db.collection(COL_COUPON).doc(couponId).get().catch(() => null);
-      if (!cRes || !cRes.data) return { success: false, error: '优惠券不存在' };
-      const coupon = cRes.data;
-      if (coupon.status === 'off') return { success: false, error: '该券已下架' };
-      if ((coupon.total || 0) > 0 && (coupon.claimed || 0) >= coupon.total) {
-        return { success: false, error: '已被领完' };
-      }
-      await db.collection(COL_USER_COUPON).add({
-        data: {
-          userId: OPENID,
-          couponId: couponId,
-          status: 'unused',
-          claimTime: db.serverDate(),
-          useTime: null,
-          orderId: null
+      return withTransaction(async transaction => {
+        const cRes = await transaction.collection(COL_COUPON).doc(couponId).get().catch(() => null);
+        if (!cRes || !cRes.data) return { success: false, error: '优惠券不存在' };
+        const coupon = cRes.data;
+        const currentTime = now();
+        if (coupon.status === 'off') return { success: false, error: '该券已下架' };
+        if ((coupon.startTime && Number(coupon.startTime) > currentTime) ||
+            (coupon.endTime && Number(coupon.endTime) < currentTime)) {
+          return { success: false, error: '该券不在有效期内' };
         }
+        const existingRes = await transaction.collection(COL_USER_COUPON)
+          .where({ userId: OPENID, couponId })
+          .limit(1)
+          .get();
+        if (existingRes.data && existingRes.data[0]) {
+          return { success: true, alreadyClaimed: true, userCouponId: existingRes.data[0]._id };
+        }
+        if ((coupon.total || 0) > 0 && (coupon.claimed || 0) >= coupon.total) {
+          return { success: false, error: '已被领完' };
+        }
+        const addRes = await transaction.collection(COL_USER_COUPON).add({ data: {
+          userId: OPENID, couponId, status: 'unused', claimTime: db.serverDate(),
+          useTime: null, orderId: null
+        } });
+        await transaction.collection(COL_COUPON).doc(couponId).update({
+          data: { claimed: _.inc(1) }
+        });
+        return { success: true, message: '领取成功', userCouponId: addRes._id };
       });
-      await db.collection(COL_COUPON).doc(couponId).update({
-        data: { claimed: _.inc(1) }
-      }).catch(() => null);
-      return { success: true, message: '领取成功' };
     }
 
     case 'mine': {
@@ -161,7 +175,8 @@ exports.main = async (event, context) => {
         const c = couponMap[uc.couponId];
         if (!c) return null;
         // 过期检查
-        if (c.endTime && c.endTime < now()) return null;
+        if (c.status === 'off' || (c.startTime && Number(c.startTime) > now()) ||
+            (c.endTime && Number(c.endTime) < now())) return null;
         const discount = calcDiscount(c, amountFen);
         return {
           userCouponId: uc._id,
@@ -174,6 +189,18 @@ exports.main = async (event, context) => {
       // 按优惠额排序
       list.sort((a, b) => b.discount - a.discount);
       return { success: true, data: list };
+    }
+
+    case 'promotions': {
+      // 公开读取订单满减规则（存在 admin_config.doc('admin').fullReduction）
+      const cfgRes = await db.collection('admin_config').doc('admin').get().catch(() => null);
+      const cfg = (cfgRes && cfgRes.data) || {};
+      const fr = cfg.fullReduction || {};
+      const rules = (Array.isArray(fr.rules) ? fr.rules : [])
+        .map(rule => ({ threshold: Number(rule && rule.threshold) || 0, discount: Number(rule && rule.discount) || 0 }))
+        .filter(rule => rule.threshold > 0 && rule.discount > 0)
+        .sort((a, b) => a.threshold - b.threshold);
+      return { success: true, data: { enabled: fr.enabled === true, rules } };
     }
 
     case 'calculate': {

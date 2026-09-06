@@ -45,6 +45,9 @@
       </view>
     </view>
 
+    <!-- 满减提示 -->
+    <view class="promotion-tip" wx:if="{{promotionTip}}">{{promotionTip}}</view>
+
     <!-- 备注 -->
     <view class="section remark-section">
       <text class="section-title">订单备注</text>
@@ -54,6 +57,7 @@
     <!-- 价格明细 -->
     <view class="section price-section">
       <view class="price-row"><text>商品总额</text><text>¥{{ totalPriceText }}</text></view>
+      <view class="price-row" wx:if="{{fullReduction > 0}}"><text>满减优惠</text><text class="discount">-¥{{ fullReductionText }}</text></view>
       <view class="price-row" wx:if="{{discountAmount > 0}}"><text>优惠券</text><text class="discount">-¥{{ discountAmountText }}</text></view>
       <view class="price-row total"><text>实付</text><text class="total-num">¥{{ finalPriceText }}</text></view>
     </view>

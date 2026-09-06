@@ -28,7 +28,7 @@
 .current-price {
   font-size: 48rpx;
   font-weight: 700;
-  color: #E0725A;
+  color: #FA5151;
 }
 
 .original-price {
@@ -91,14 +91,14 @@
 }
 
 .spec-active {
-  background: #FFFBF7;
-  border-color: #E8A87C;
-  color: #E8A87C;
+  background: #FFFFFF;
+  border-color: #E8730C;
+  color: #E8730C;
 }
 
 .spec-stock {
   font-size: 20rpx;
-  color: #E0725A;
+  color: #FA5151;
   margin-top: 4rpx;
 }
 
@@ -159,10 +159,10 @@
 .brand-card {
   margin: 20rpx;
   padding: 40rpx 32rpx;
-  background: linear-gradient(135deg, #FDF8F3, #FFFBF7);
+  background: linear-gradient(135deg, #FFF9F2, #FFFFFF);
   border-radius: 20rpx;
   text-align: center;
-  border: 2rpx solid #F5D6B8;
+  border: 2rpx solid #FF9A3D;
 }
 
 .brand-card-title {
@@ -227,8 +227,8 @@
   height: 72rpx;
   line-height: 72rpx;
   background: #FFFFFF;
-  color: #E8A87C;
-  border: 2rpx solid #E8A87C;
+  color: #E8730C;
+  border: 2rpx solid #E8730C;
   border-radius: 36rpx;
   font-size: 28rpx;
   text-align: center;
@@ -242,7 +242,7 @@
   flex: 1;
   height: 72rpx;
   line-height: 72rpx;
-  background: linear-gradient(135deg, #E8A87C, #F5D6B8);
+  background: linear-gradient(135deg, #E8730C, #FF9A3D);
   color: #4A3F35;
   border: none;
   border-radius: 36rpx;

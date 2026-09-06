@@ -1,5 +1,0 @@
-<view class="price-tag price-{{size}} price-color-{{color}}">
-  <text wx:if="{{showSymbol}}" class="price-symbol">¥</text>
-  <text class="price-value">{{ valueText }}</text>
-  <text wx:if="{{original > 0 && original > value}}" class="price-original">¥{{ originalText }}</text>
-</view>

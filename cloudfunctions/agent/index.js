@@ -1,121 +1,184 @@
+'use strict';
+
 const cloud = require('wx-server-sdk');
+const crypto = require('crypto');
 cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
 const _ = db.command;
 
-exports.main = async (event, context) => {
+function withTransaction(work) {
+  return typeof db.runTransaction === 'function' ? db.runTransaction(work) : work(db);
+}
+
+function sha256(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+}
+
+function maskOrderNo(orderNo) {
+  const value = String(orderNo || '');
+  if (value.length <= 8) return value;
+  return value.slice(0, 4) + '****' + value.slice(-4);
+}
+
+async function getUser(openId) {
+  const res = await db.collection('users').doc(openId).get().catch(() => null);
+  return res && res.data;
+}
+
+function isActiveAgent(user) {
+  return !!(user && user.isAgent && user.agentInfo && user.agentInfo.status === 'active');
+}
+
+async function listAll(collectionName, query, max = 5000) {
+  const pageSize = 100;
+  const data = [];
+  for (let offset = 0; offset < max; offset += pageSize) {
+    const res = await db.collection(collectionName)
+      .where(query)
+      .skip(offset)
+      .limit(pageSize)
+      .get();
+    const page = res.data || [];
+    data.push(...page);
+    if (page.length < pageSize) break;
+  }
+  if (data.length >= max) throw new Error('数据量超过看板安全上限，请联系管理员导出核对');
+  return data;
+}
+
+async function requireAgent(openId) {
+  const user = await getUser(openId);
+  return isActiveAgent(user) ? user : null;
+}
+
+async function generateReferralCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const random = Array.from({ length: 8 }, () => chars[crypto.randomInt(chars.length)]).join('');
+    const code = 'JY' + random;
+    const exists = await db.collection('users').where({ referralCode: code }).count();
+    if (exists.total === 0) return code;
+  }
+  throw new Error('推广码生成失败，请重试');
+}
+
+exports.main = async (event) => {
   const { OPENID } = cloud.getWXContext();
+  try {
+    switch (event.action) {
+      case 'apply':
+        return { success: false, error: '分销员仅支持后台邀请开通' };
 
-  switch (event.action) {
-    case 'apply': {
-      // 先看当前用户是否已申请 / 已是代理 / 已被拒绝
-      const userRes = await db.collection('users').doc(OPENID).get().catch(() => null);
-      const user = userRes && userRes.data;
-      if (!user) {
-        return { success: false, error: '请先登录后再申请' };
-      }
-      if (user.isAgent) {
-        return { success: false, error: '你已经是代理了' };
-      }
-      const currentStatus = user.agentInfo && user.agentInfo.status;
-      if (currentStatus === 'pending') {
-        return { success: false, error: '申请审核中，请耐心等待' };
-      }
-      // rejected 可以再次申请，accepted / active 已是代理（上面已拦截）
-
-      // 简易入参校验
-      if (!event.name || !event.phone) {
-        return { success: false, error: '请填写姓名和手机号' };
-      }
-
-      // 生成推广码：取 OPENID 末 6 位，避免重复
-      const code = 'JY' + OPENID.substring(Math.max(0, OPENID.length - 6)).toUpperCase();
-      await db.collection('users').doc(OPENID).update({
-        data: {
-          isAgent: false,
-          agentInfo: {
-            level: 'pending',
-            code: code,
-            name: event.name,
-            phone: event.phone,
-            wechat: event.wechat || '',
-            reason: event.reason || '',
-            applyTime: db.serverDate(),
-            status: 'pending'
+      case 'claimInvite': {
+        const token = String(event.token || '').trim();
+        if (!token) return { success: false, error: '邀请链接无效' };
+        const user = await getUser(OPENID);
+        if (!user) return { success: false, error: '请先登录后再激活' };
+        if (isActiveAgent(user)) return { success: true, alreadyActive: true, code: user.referralCode || '' };
+        const code = await generateReferralCode();
+        return withTransaction(async transaction => {
+          const latestUserRes = await transaction.collection('users').doc(OPENID).get().catch(() => null);
+          const latestUser = latestUserRes && latestUserRes.data;
+          if (!latestUser) return { success: false, error: '请先登录后再激活' };
+          if (isActiveAgent(latestUser)) {
+            return { success: true, alreadyActive: true, code: latestUser.referralCode || '' };
           }
+          const inviteRes = await transaction.collection('agent_invites')
+            .where({ tokenHash: sha256(token), status: 'pending' }).limit(1).get();
+          const invite = inviteRes.data && inviteRes.data[0];
+          if (!invite || !invite.expireTime || new Date(invite.expireTime) <= new Date()) {
+            return { success: false, error: '邀请已失效，请联系运营重新生成' };
+          }
+          const info = {
+            level: '一级分销员', status: 'active', name: invite.name || latestUser.nickName || '',
+            phone: invite.phone || '', inviteId: invite._id, activateTime: db.serverDate()
+          };
+          await transaction.collection('users').doc(OPENID).update({
+            data: { isAgent: true, referralCode: code, agentInfo: info, updateTime: db.serverDate() }
+          });
+          await transaction.collection('agent_invites').doc(invite._id).update({
+            data: { status: 'claimed', claimedBy: OPENID, claimedTime: db.serverDate() }
+          });
+          return { success: true, code };
+        });
+      }
+
+      case 'info': {
+        const user = await getUser(OPENID);
+        return {
+          success: true,
+          isAgent: isActiveAgent(user),
+          level: (user && user.agentInfo && user.agentInfo.level) || '',
+          code: (user && user.referralCode) || '',
+          status: (user && user.agentInfo && user.agentInfo.status) || ''
+        };
+      }
+
+      case 'performance':
+      case 'dashboard': {
+        const agent = await requireAgent(OPENID);
+        if (!agent) return { success: false, error: '分销员身份未激活' };
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const [agentOrders, list, team] = await Promise.all([
+          listAll('orders', { agentId: OPENID }),
+          listAll('commissions', { agentId: OPENID }),
+          db.collection('users').where({ referrer: OPENID }).count()
+        ]);
+        const monthOrders = agentOrders.filter(order =>
+          ['paid', 'shipped', 'received', 'refunding', 'refunded'].includes(order.status) &&
+          order.payTime && new Date(order.payTime) >= monthStart
+        );
+        const sum = status => list.filter(item => item.status === status)
+          .reduce((total, item) => total + (Number(item.amount) || 0), 0);
+        const frozen = sum('frozen');
+        const available = sum('settled');
+        const paid = sum('paid');
+        const totalCommission = frozen + available + paid;
+        const monthSales = monthOrders.filter(order => order.status !== 'refunded')
+          .reduce((total, order) => total + (Number(order.totalFee) || 0), 0);
+        return {
+          success: true, totalCommission, frozen, pending: frozen, available, paid,
+          monthSales, monthCommission: monthOrders.reduce((total, order) => total + (Number(order.commission) || 0), 0),
+          monthOrders: monthOrders.length, teamCount: team.total || 0,
+          code: agent.referralCode || ''
+        };
+      }
+
+      case 'team': {
+        if (!await requireAgent(OPENID)) return { success: false, error: '分销员身份未激活' };
+        const res = await db.collection('users').where({ referrer: OPENID }).count();
+        return { success: true, total: res.total || 0 };
+      }
+
+      case 'commissions': {
+        if (!await requireAgent(OPENID)) return { success: false, error: '分销员身份未激活' };
+        const pageSize = Math.min(Number(event.pageSize) || 20, 50);
+        const page = Math.max(Number(event.page) || 1, 1);
+        const res = await db.collection('commissions').where({ agentId: OPENID })
+          .orderBy('createTime', 'desc').skip((page - 1) * pageSize).limit(pageSize).get();
+        const data = [];
+        for (const commission of res.data || []) {
+          const orderRes = await db.collection('orders').doc(commission.orderId).get().catch(() => null);
+          const order = orderRes && orderRes.data;
+          data.push({
+            _id: commission._id,
+            orderNo: maskOrderNo(commission.orderNo),
+            productNames: order ? (order.items || []).map(item => item.name).slice(0, 3) : [],
+            amount: Number(commission.amount) || 0,
+            type: commission.type || 'earning', status: commission.status,
+            createTime: commission.createTime, settleTime: commission.settleTime || null,
+            paidTime: commission.paidTime || null
+          });
         }
-      });
-      return { success: true, code: code };
-    }
-    case 'info': {
-      const res = await db.collection('users').doc(OPENID).get();
-      const user = res.data || {};
-      return {
-        success: true,
-        isAgent: user.isAgent || false,
-        level: (user.agentInfo && user.agentInfo.level) || '',
-        code: (user.agentInfo && user.agentInfo.code) || '',
-        status: (user.agentInfo && user.agentInfo.status) || ''
-      };
-    }
-    case 'performance': {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { success: true, data };
+      }
 
-      // 计算本月业绩（仅 paid+ 状态）
-      const monthOrders = await db.collection('orders')
-        .where({
-          agentId: OPENID,
-          status: _.in(['paid', 'shipped', 'received']),
-          createTime: _.gte(monthStart)
-        })
-        .get();
-
-      const monthSales = monthOrders.data.reduce((s, o) => s + (o.totalFee || 0), 0);
-
-      // 佣金汇总：以 commissions 集合为准（避免按订单重算造成差异）
-      const commRes = await db.collection('commissions')
-        .where({ agentId: OPENID })
-        .get();
-
-      const totalCommission = commRes.data.reduce((s, c) => s + (c.amount || 0), 0);
-      const settledComm = commRes.data
-        .filter(c => c.status === 'settled')
-        .reduce((s, c) => s + (c.amount || 0), 0);
-      const pendingComm = commRes.data
-        .filter(c => c.status === 'pending')
-        .reduce((s, c) => s + (c.amount || 0), 0);
-
-      return {
-        success: true,
-        totalCommission,
-        available: settledComm,
-        pending: pendingComm,
-        monthSales,
-        monthCommission: monthOrders.data.reduce((s, o) => {
-          return s + (o.commission || 0);
-        }, 0),
-        monthOrders: monthOrders.data.length
-      };
+      default:
+        return { success: false, error: 'unknown action' };
     }
-    case 'team': {
-      const res = await db.collection('users')
-        .where({ referrer: OPENID })
-        .count();
-      return { success: true, total: res.total };
-    }
-    case 'commissions': {
-      const pageSize = event.pageSize || 20;
-      const page = event.page || 1;
-      const res = await db.collection('commissions')
-        .where({ agentId: OPENID })
-        .orderBy('createTime', 'desc')
-        .skip((page - 1) * pageSize)
-        .limit(pageSize)
-        .get();
-      return { success: true, data: res.data };
-    }
-    default:
-      return { success: false, error: 'unknown action' };
+  } catch (err) {
+    console.error('[agent] 运行时错误:', err);
+    return { success: false, error: (err && err.message) || '分销服务暂不可用' };
   }
 };

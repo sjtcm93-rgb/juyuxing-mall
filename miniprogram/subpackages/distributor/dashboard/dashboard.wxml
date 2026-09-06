@@ -1,0 +1,26 @@
+<view class="page">
+  <view class="hero">
+    <text class="eyebrow">DISTRIBUTOR CENTER</text>
+    <text class="title">分销中心</text>
+    <text class="code">专属推广码 {{code || '—'}}</text>
+  </view>
+  <view class="notice" wx:if="{{unauthorized}}">当前微信尚未激活分销员身份，请使用 B 端发出的邀请链接进入。</view>
+  <block wx:else>
+    <view class="money-card">
+      <text class="label">可提现佣金</text><text class="main-money">¥{{stats.available || '0.00'}}</text>
+      <view class="money-row"><view><text>冻结中</text><text class="metric-value">¥{{stats.frozen || '0.00'}}</text></view><view><text>累计已提现</text><text class="metric-value">¥{{stats.paid || '0.00'}}</text></view></view>
+    </view>
+    <view class="grid">
+      <view class="metric"><text class="metric-value">¥{{stats.monthSales || '0.00'}}</text><text>本月销售额</text></view>
+      <view class="metric"><text class="metric-value">{{stats.monthOrders || 0}}</text><text>本月订单</text></view>
+      <view class="metric"><text class="metric-value">{{stats.teamCount || 0}}</text><text>绑定客户</text></view>
+      <view class="metric"><text class="metric-value">¥{{stats.totalCommission || '0.00'}}</text><text>累计佣金</text></view>
+    </view>
+    <view class="menu">
+      <view bindtap="goPromotion"><text>生成推广素材</text><text>›</text></view>
+      <view bindtap="goCommissions"><text>佣金明细</text><text>›</text></view>
+      <view bindtap="goWithdrawal"><text>提现管理</text><text>›</text></view>
+      <view bindtap="goProfile"><text>分销员资料</text><text>›</text></view>
+    </view>
+  </block>
+</view>

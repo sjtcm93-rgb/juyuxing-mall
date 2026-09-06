@@ -1,5 +1,5 @@
 .coupon-card { display:flex; align-items:stretch; background:var(--color-card); border-radius:var(--radius-md); margin-bottom:20rpx; box-shadow:var(--shadow-sm); overflow:hidden; position:relative; }
-.cc-left { width:220rpx; padding:32rpx 16rpx; background:linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); color:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.cc-left { width:220rpx; padding:32rpx 16rpx; background:linear-gradient(135deg, var(--color-primary), var(--color-primary-bright)); color:#FFFFFF; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .cc-amount { display:flex; align-items:baseline; }
 .cc-symbol { font-size:var(--fs-md); margin-right:4rpx; }
 .cc-amount-num { font-size:60rpx; font-weight:700; line-height:1; }

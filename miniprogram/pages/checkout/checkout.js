@@ -15,6 +15,9 @@ Page({
     productId: '',
     selectedCoupon: null,
     availableCoupons: [],
+    promotion: { enabled: false, rules: [] },
+    fullReduction: 0,
+    promotionTip: '',
     loadError: '',
     loading: true
   },
@@ -44,7 +47,17 @@ Page({
       this.setData({ loading: false, loadError: '订单参数缺失' });
     }
     this.loadDefaultAddress();
-    this.loadAvailableCoupons();
+    this.loadPromotions();
+  },
+
+  async loadPromotions() {
+    const res = await API.getPromotions();
+    if (res && res.success) {
+      this.setData({ promotion: res.data || { enabled: false, rules: [] } });
+      this.calcTotal();
+      // 满减会影响优惠券门槛校验，重新拉取可用券
+      this.loadAvailableCoupons();
+    }
   },
 
   async fetchProductDetail(productId, quantity, specName) {
@@ -64,6 +77,7 @@ Page({
     };
     this.setData({ items: decorateList([item]), loading: false });
     this.calcTotal();
+    this.loadAvailableCoupons();
   },
 
   async fetchItemsDetail(items) {
@@ -101,6 +115,7 @@ Page({
     if (changed) toast('部分商品已下架，已自动剔除');
     this.setData({ items: decorateList(fixed), loading: false });
     this.calcTotal();
+    this.loadAvailableCoupons();
   },
 
   async loadDefaultAddress() {
@@ -111,21 +126,61 @@ Page({
   },
 
   async loadAvailableCoupons() {
+    const requestId = this._couponRequestId = (this._couponRequestId || 0) + 1;
     const items = this.data.items || [];
-    if (items.length === 0) return;
-    const total = this.data.totalPrice;
-    const res = await API.getAvailableCoupons({ total });
-    if (res && res.success) {
-      this.setData({ availableCoupons: res.data || [] });
+    if (items.length === 0) {
+      this.setData({ availableCoupons: [], selectedCoupon: null });
+      this.calcTotal();
+      return;
     }
+    // 与服务端口径一致：优惠券门槛按满减后的金额校验
+    const amount = Math.max(0, this.data.totalPrice - (this.data.fullReduction || 0));
+    let res;
+    try { res = await API.getAvailableCoupons({ amount }); } catch (err) { res = null; }
+    if (requestId !== this._couponRequestId) return;
+    const availableCoupons = (res && res.success && Array.isArray(res.data) ? res.data : [])
+      .filter(c => c && c.userCouponId && c.available === true && Number.isSafeInteger(c.discount) && c.discount > 0 && c.discount <= amount)
+      .map(c => ({ ...c, label: (c.coupon && c.coupon.name) || '优惠券' }));
+    const selectedId = this.data.selectedCoupon && this.data.selectedCoupon.userCouponId;
+    this.setData({ availableCoupons, selectedCoupon: availableCoupons.find(c => c.userCouponId === selectedId) || null });
+    this.calcTotal();
+  },
+
+  computeFullReduction(total) {
+    const promotion = this.data.promotion || {};
+    if (!promotion.enabled) return { discount: 0, tip: '' };
+    const rules = promotion.rules || [];
+    let best = 0;
+    let bestRule = null;
+    let nextRule = null;
+    for (const rule of rules) {
+      if (total >= rule.threshold && rule.discount > best) { best = rule.discount; bestRule = rule; }
+      if (total < rule.threshold && (!nextRule || rule.threshold < nextRule.threshold)) nextRule = rule;
+    }
+    let tip = '';
+    if (bestRule) {
+      tip = '已享满' + (bestRule.threshold / 100) + '减' + (best / 100) + '优惠';
+    } else if (nextRule) {
+      const gap = nextRule.threshold - total;
+      tip = '还差¥' + (gap / 100).toFixed(2) + ' 可享满' + (nextRule.threshold / 100) + '减' + (nextRule.discount / 100);
+    }
+    return { discount: Math.min(best, total), tip };
   },
 
   calcTotal() {
     const items = this.data.items || [];
     const total = items.reduce((s, it) => s + (Number(it.price) || 0) * (Number(it.quantity) || 1), 0);
+    const fr = this.computeFullReduction(total);
+    const fullReduction = fr.discount;
     const discount = Number((this.data.selectedCoupon && this.data.selectedCoupon.discount) || 0);
-    const finalPrice = Math.max(0, total - discount);
-    this.setData({ totalPrice: total, totalPriceText: (total/100).toFixed(2), discountAmount: discount, discountAmountText: (discount/100).toFixed(2), finalPrice: finalPrice, finalPriceText: (finalPrice/100).toFixed(2) });
+    const finalPrice = Math.max(0, total - fullReduction - discount);
+    this.setData({
+      totalPrice: total, totalPriceText: (total / 100).toFixed(2),
+      fullReduction, fullReductionText: (fullReduction / 100).toFixed(2),
+      promotionTip: fr.tip,
+      discountAmount: discount, discountAmountText: (discount / 100).toFixed(2),
+      finalPrice: finalPrice, finalPriceText: (finalPrice / 100).toFixed(2)
+    });
   },
 
   selectAddress() {
@@ -139,7 +194,6 @@ Page({
   pickCoupon() {
     const list = this.data.availableCoupons || [];
     if (list.length === 0) { toast('暂无可用优惠券'); return; }
-    const selected = this.data.selectedCoupon;
     wx.showActionSheet({
       itemList: list.map(c => `${c.label}（减¥${(c.discount / 100).toFixed(2)}）`).concat(['不使用优惠券']),
       success: (res) => {
@@ -176,14 +230,11 @@ Page({
       address: this.data.address,
       remark: this.data.remark,
       couponId: (this.data.selectedCoupon && this.data.selectedCoupon.userCouponId) || '',
-      couponDiscount: this.data.discountAmount
+      couponDiscount: this.data.discountAmount,
+      fullReductionDiscount: this.data.fullReduction
     };
     const res = await API.createOrder(orderData);
     if (res && res.success && res.orderId) {
-      // 标记优惠券已使用
-      if (this.data.selectedCoupon && this.data.selectedCoupon.userCouponId) {
-        API.useCoupon({ userCouponId: this.data.selectedCoupon.userCouponId, orderId: res.orderId }, { silent: true });
-      }
       if (this.data.fromCart) {
         // 清理临时结算数据（云端购物车由 order 云函数按 removeCartKeys 精确清理）
         try { wx.removeStorageSync('checkoutItems'); } catch (e) {}

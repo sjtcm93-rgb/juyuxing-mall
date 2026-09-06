@@ -15,6 +15,9 @@ const Module = require('module');
 const fs = require('fs');
 const ROOT = path.resolve(__dirname, '..');
 const CF = path.join(ROOT, 'cloudfunctions');
+process.env.CLOUDBASE_CUSTOM_LOGIN_PRIVATE_KEY_ID = 'mock-private-key-id';
+process.env.CLOUDBASE_CUSTOM_LOGIN_PRIVATE_KEY = 'mock-private-key';
+process.env.ALLOW_MOCK_PAY = 'true';
 
 // ============ wx-server-sdk mock ============
 const db = {
@@ -81,10 +84,17 @@ function matchDoc(doc, query) {
 function applyUpdate(doc, data) {
   for (const k of Object.keys(data)) {
     const v = data[k];
+    const parts = k.split('.');
+    let target = doc;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!target[parts[i]] || typeof target[parts[i]] !== 'object') target[parts[i]] = {};
+      target = target[parts[i]];
+    }
+    const field = parts[parts.length - 1];
     if (v && typeof v === 'object' && v.__op === 'inc') {
-      doc[k] = (Number(doc[k]) || 0) + Number(v.value || 0);
+      target[field] = (Number(target[field]) || 0) + Number(v.value || 0);
     } else {
-      doc[k] = v;
+      target[field] = v;
     }
   }
 }
@@ -152,7 +162,7 @@ class Collection {
       applyUpdate(t, data);
       t.updateTime = db._serverNow;
     }
-    return { updated: targets.length };
+    return { updated: targets.length, stats: { updated: targets.length } };
   }
   async remove() {
     const arr = db._store[this._name] || [];
@@ -181,6 +191,17 @@ class Collection {
 db.collection = (n) => new Collection(n);
 db.command = CMD;
 db.serverDate = () => new Date();
+db.runTransaction = async work => {
+  const snapshot = structuredClone(db._store);
+  const nextId = db._nextId;
+  try {
+    return await work(db);
+  } catch (err) {
+    db._store = snapshot;
+    db._nextId = nextId;
+    throw err;
+  }
+};
 // 简易 RegExp 占位,匹配 where.name = db.RegExp({ regexp, options })
 db.RegExp = function ({ regexp, options }) {
   const re = new RegExp(regexp, options || '');
@@ -197,7 +218,7 @@ function loadCloudFunction(name) {
 
 const cloud = {
   init() {},
-  getWXContext() { return { OPENID: currentOpenId }; },
+  getWXContext() { return { OPENID: currentOpenId, UID: currentOpenId }; },
   database() { return db; },
   async getTempFileURL({ fileList }) {
     return {
@@ -214,6 +235,11 @@ const cloud = {
   // 不模拟真实云支付
   cloudPay: null
 };
+cloud.openapi = {
+  wxacode: {
+    getUnlimited: async () => ({ buffer: Buffer.from('mock-admin-login-qr') })
+  }
+};
 // 给真实云支付 refund 一个桩,避免退款流程因为没有云支付凭证而崩
 cloud.cloudPay = {
   unifiedOrder: async () => ({ returnCode: 'SUCCESS', resultCode: 'SUCCESS', payment: { timeStamp: '1', nonceStr: 'n', package: 'prepay_id=mock', signType: 'MD5', paySign: 'mock' }, prepayId: 'mock_prepay' }),
@@ -227,6 +253,13 @@ const origResolve = Module._resolveFilename;
 const origLoad = Module._load;
 Module._load = function (request, parent, isMain) {
   if (request === 'wx-server-sdk') return wxServerSdk;
+  if (request === '@cloudbase/node-sdk') {
+    return {
+      init() {
+        return { auth: () => ({ createTicket: uid => `mock-custom-ticket:${uid}` }) };
+      }
+    };
+  }
   return origLoad.apply(this, arguments);
 };
 
@@ -244,7 +277,9 @@ async function call(name, data) {
 }
 
 function generateOrderNo() {
-  return 'O' + Date.now() + Math.floor(Math.random() * 1000);
+  const stamp = new Date().toISOString().replace(/[-T:Z.]/g, '').slice(0, 14);
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase().padEnd(6, '0');
+  return 'JY' + stamp + suffix;
 }
 
 // ============== 主流程 ==============
@@ -255,6 +290,10 @@ async function main() {
   const initRes = (await call('init', { action: 'init' })).result;
   step('init 完成', initRes.success, 'productId=' + initRes.productId);
   const productId = initRes.productId;
+  const payConfig = db._store.pay_config.find(item => item._id === 'default');
+  step('新环境默认关闭模拟支付', payConfig && payConfig.useMockPay === false && !payConfig.subMchId);
+  // 后续主链路显式切换为测试模式，仍需环境变量二次授权。
+  payConfig.useMockPay = true;
 
   // 验证 6 个分类 + 3 张券被 seed
   const cats = (await call('category', { action: 'list' })).result;
@@ -289,14 +328,48 @@ async function main() {
   db.collection = originalCollection;
   step('公开 Banner 查询失败返回通用失败', !bannerFailure.success && bannerFailure.error === 'Banner 暂不可用');
 
-  header('Step 2: 模拟代理推广——A 邀请 B');
-  // A 登录（自动设管理员），B 登录
+  header('Step 2: B 端邀请 → C 端激活 → 推广绑定');
+  const adminCfg = db._store.admin_config && db._store.admin_config.find(d => d._id === 'admin');
+  if (adminCfg) {
+    adminCfg.openId = 'mock-owner';
+    adminCfg.adminOpenIds = ['mock-owner'];
+    adminCfg.password = 'owner-password';
+  }
+  setOpenId('mock-owner');
+  const invite = (await call('admin', { action: 'createInvite', name: '分销员A', phone: '13800138001' })).result;
+  step('B 端生成 7 天邀请', invite.success && invite.invitePath && invite.invitePath.includes('token='));
+  const inviteToken = decodeURIComponent(invite.invitePath.split('token=')[1]);
+
   setOpenId('mock-agent-A');
   const loginA = (await call('login', { action: 'login', ref: '' })).result;
-  step('代理 A 登录（自动设管理员）', loginA.success && loginA.openId === 'mock-agent-A');
+  step('分销员 A 登录', loginA.success && loginA.openId === 'mock-agent-A');
+  const publicApply = (await call('agent', { action: 'apply', name: 'A', phone: '13800138001' })).result;
+  step('公开申请入口已关闭', !publicApply.success && publicApply.error.includes('后台邀请'));
+  const claimInvite = (await call('agent', { action: 'claimInvite', token: inviteToken })).result;
+  step('C 端领取一次性邀请', claimInvite.success && /^JY[A-Z2-9]{8}$/.test(claimInvite.code || ''));
+  const repeatClaim = (await call('agent', { action: 'claimInvite', token: inviteToken })).result;
+  step('已激活分销员重复领取保持幂等', repeatClaim.success && repeatClaim.alreadyActive);
+  const agentInfo = (await call('agent', { action: 'info' })).result;
+  step('A 已成为 active 分销员', agentInfo.isAgent && agentInfo.status === 'active');
+
+  const homeAsset = (await call('promotion', { action: 'asset' })).result;
+  step('生成商城首页推广素材', homeAsset.success && homeAsset.data && homeAsset.data.sharePath.includes(agentInfo.code));
+  const resolvedScene = (await call('promotion', { action: 'resolve', scene: homeAsset.data.scene })).result;
+  step('小程序码 scene 可解析', resolvedScene.success && resolvedScene.ref === agentInfo.code);
+
+  // 无效推广码与自推荐都不应永久绑定。
+  setOpenId('mock-invalid-ref-C');
+  await call('login', { action: 'login', ref: 'INVALID001' });
+  const userC = db._store.users.find(u => u._id === 'mock-invalid-ref-C');
+  step('无效推广码不绑定', userC && !userC.referrer, '实际=' + (userC && userC.referrer));
+
+  setOpenId('mock-agent-A');
+  await call('login', { action: 'login', ref: agentInfo.code });
+  const agentUser = db._store.users.find(u => u._id === 'mock-agent-A');
+  step('自推荐不绑定', agentUser && !agentUser.referrer, '实际=' + (agentUser && agentUser.referrer));
 
   setOpenId('mock-customer-B');
-  const loginB = (await call('login', { action: 'login', ref: 'mock-agent-A' })).result;
+  const loginB = (await call('login', { action: 'login', ref: agentInfo.code })).result;
   step('客户 B 登录（带 ref）', loginB.success);
 
   // 验证 B 的 referrer 写入了
@@ -307,6 +380,8 @@ async function main() {
   const newUserCoupon = coupons.data.find(c => c.name === '新人立减券');
   const claimRes = (await call('coupon', { action: 'claim', couponId: newUserCoupon._id })).result;
   step('领取新人立减券', claimRes.success);
+  const duplicateClaim = (await call('coupon', { action: 'claim', couponId: newUserCoupon._id })).result;
+  step('同一优惠券不可重复领取', duplicateClaim.success && duplicateClaim.alreadyClaimed && duplicateClaim.userCouponId === claimRes.userCouponId);
 
   const myCoupons = (await call('coupon', { action: 'mine' })).result;
   step('我的券列表 1 张', myCoupons.data && myCoupons.data.length === 1, '实际=' + (myCoupons.data && myCoupons.data.length));
@@ -325,9 +400,30 @@ async function main() {
   const usableCoupon = avail.data[0];
   step('券折扣 = 1000 分', usableCoupon.discount === 1000, '实际=' + usableCoupon.discount);
 
+  const couponRecord = db._store.coupons.find(c => c._id === newUserCoupon._id);
+  const originalCoupon = { ...couponRecord };
+  for (const [label, override] of [
+    ['下架', { status: 'off' }],
+    ['尚未生效', { startTime: Date.now() + 60000 }],
+    ['已过期', { endTime: Date.now() - 60000 }]
+  ]) {
+    Object.assign(couponRecord, originalCoupon, override);
+    const invalid = (await call('coupon', { action: 'available', amount: 6900 })).result;
+    step(label + '券不出现在结算可用列表', invalid.success && invalid.data.length === 0);
+  }
+  Object.assign(couponRecord, originalCoupon);
+
   // 计算折后价
   const calc = (await call('coupon', { action: 'calculate', userCouponId: usableCoupon.userCouponId, amount: 6900 })).result;
   step('折后价 = 5900', calc.finalAmount === 5900, '实际=' + calc.finalAmount);
+
+  const tamperedDiscount = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 1 }],
+    totalFee: 100, couponDiscount: 6800,
+    address: { name: '张三', phone: '13800138000', detail: '北京市朝阳区某街道1号' }
+  })).result;
+  step('服务端拒绝伪造优惠金额', !tamperedDiscount.success && tamperedDiscount.error.includes('优惠信息'));
 
   // 下单
   const orderNo = generateOrderNo();
@@ -347,10 +443,17 @@ async function main() {
   const orderId = orderRes.orderId;
   const orderDoc = db._store.orders.find(o => o._id === orderId);
   step('订单状态=pending', orderDoc.status === 'pending');
+  const firstReservation = db._store.inventory_reservations.find(item => item.orderId === orderId);
+  step('下单即锁定 SKU 库存', firstReservation && firstReservation.status === 'reserved' && orderDoc.inventoryStatus === 'reserved');
+  step('库存预留写入业务幂等键', firstReservation && firstReservation.idempotencyKey === `reservation:${orderNo}:0`);
   step('订单 agentId=A', orderDoc.agentId === 'mock-agent-A', '实际=' + orderDoc.agentId);
   step('订单 commission=1920(15%*12800)', orderDoc.commission === 1920, '实际=' + orderDoc.commission);
 
-  // mock 模式下 pay.request 直接落 paid（无真实 payNotify 回调）
+  // 模拟支付必须同时具备数据库开关和云函数环境变量授权。
+  process.env.ALLOW_MOCK_PAY = 'false';
+  const blockedMockPay = (await call('pay', { action: 'request', orderId })).result;
+  step('未获环境变量授权时模拟支付被拦截', !blockedMockPay.success && orderDoc.status === 'pending');
+  process.env.ALLOW_MOCK_PAY = 'true';
   const payRes = (await call('pay', { action: 'request', orderId })).result;
   step('模拟支付受理', payRes.success && payRes.mock, 'message=' + (payRes.message || ''));
 
@@ -364,24 +467,40 @@ async function main() {
   'counts=' + JSON.stringify(orderCounts.data || {}));
   // 记住 wdId 以便后续断言拆分后产生的 paid 佣金
   let _wdIdForCheck = '';
-  // payNotify 回调验证幂等性（重复回调应被忽略）
-  const notify = (await call('payNotify', { outTradeNo: orderNo, transactionId: 'MOCK_TXN_001', resultCode: 'SUCCESS', returnCode: 'SUCCESS' })).result;
+  // payNotify 回调验证金额、付款身份及幂等性。
+  setOpenId('');
+  const wrongAmountNotify = (await call('payNotify', {
+    outTradeNo: orderNo, transactionId: 'WRONG_AMOUNT_TXN', openid: 'mock-customer-B',
+    totalFee: 1, resultCode: 'SUCCESS', returnCode: 'SUCCESS'
+  })).result;
+  step('支付回调金额不一致时拒绝入账', wrongAmountNotify.errcode !== 0);
+  const wrongPayerNotify = (await call('payNotify', {
+    outTradeNo: orderNo, transactionId: 'WRONG_PAYER_TXN', openid: 'mock-customer-A',
+    totalFee: orderDoc.totalFee, resultCode: 'SUCCESS', returnCode: 'SUCCESS'
+  })).result;
+  step('支付回调付款身份不一致时拒绝入账', wrongPayerNotify.errcode !== 0);
+  const notify = (await call('payNotify', {
+    outTradeNo: orderNo, transactionId: 'MOCK_TXN_001', openid: 'mock-customer-B',
+    totalFee: orderDoc.totalFee, resultCode: 'SUCCESS', returnCode: 'SUCCESS'
+  })).result;
   step('支付回调幂等', notify.errcode === 0, JSON.stringify(notify));
 
-  // 验证佣金已结算
+  // 支付时佣金只冻结，收货后才能结算。
   const comm = db._store.commissions.find(c => c.orderId === orderId);
   step('佣金记录创建', !!comm);
   step('佣金金额=1920', comm && comm.amount === 1920, '实际=' + (comm && comm.amount));
-  step('佣金状态=settled', comm && comm.status === 'settled', '实际=' + (comm && comm.status));
+  step('佣金状态=frozen', comm && comm.status === 'frozen', '实际=' + (comm && comm.status));
 
   const orderAfterNotify = db._store.orders.find(o => o._id === orderId);
-  step('订单 commissionStatus=settled', orderAfterNotify.commissionStatus === 'settled', '实际=' + orderAfterNotify.commissionStatus);
+  step('订单 commissionStatus=frozen', orderAfterNotify.commissionStatus === 'frozen', '实际=' + orderAfterNotify.commissionStatus);
+  const firstProductAfterPay = db._store.products.find(product => product._id === productId);
+  step('支付后锁定库存转正式扣减', orderAfterNotify.inventoryStatus === 'committed' &&
+    firstReservation.status === 'committed' && firstProductAfterPay.reservedStock === 0);
+  step('支付现金流只写一笔', db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'payment:' + orderId).length === 1);
 
-  // 标记券已使用
-  const useRes = (await call('coupon', { action: 'use', userCouponId: usableCoupon.userCouponId, orderId })).result;
-  step('券已标记 used', useRes.success);
   const userCouponDoc = db._store.user_coupons.find(uc => uc._id === usableCoupon.userCouponId);
-  step('user_coupons.status=used', userCouponDoc.status === 'used', '实际=' + userCouponDoc.status);
+  step('订单与优惠券在同一事务核销', userCouponDoc.status === 'used' && userCouponDoc.orderId === orderId,
+    '实际=' + userCouponDoc.status);
 
   header('Step 4.5: 多商品购物车结算（只删已结算商品）');
   setOpenId('mock-customer-B');
@@ -413,16 +532,115 @@ async function main() {
   step('购物车保留 2 件', remaining.length === 2, '实际=' + remaining.length);
   step('被结算的 other-product 已移除', !remaining.find(i => i.productId === 'other-product'));
 
-  header('Step 5: 代理 A 申请提现');
+  header('Step 4.6: 真实格式支付回调 + 管理员发货');
+  // CloudBase 官方回调使用 snake_case 字段；该格式必须能把 pending 订单落成 paid。
+  setOpenId('');
+  const realShapeNotify = (await call('payNotify', {
+    out_trade_no: multiOrderNo,
+    transaction_id: 'MOCK_TXN_REAL_SHAPE',
+    openid: 'mock-customer-B',
+    total_fee: multiOrderDoc.totalFee,
+    result_code: 'SUCCESS',
+    return_code: 'SUCCESS'
+  })).result;
+  step('snake_case 支付回调受理', realShapeNotify.errcode === 0, JSON.stringify(realShapeNotify));
+  step('snake_case 回调后订单已 paid', multiOrderDoc.status === 'paid', '实际=' + multiOrderDoc.status);
+
+  // 管理员只能发已支付订单。
+  db._store.orders.push({
+    _id: 'mock-pending-order',
+    orderNo: 'MOCK_PENDING_ORDER',
+    userId: 'mock-customer-B',
+    totalFee: 100,
+    status: 'pending',
+    items: []
+  });
+  setOpenId('mock-owner');
+  const rejectPendingShip = (await call('admin', {
+    action: 'shipOrder', orderId: 'mock-pending-order', company: '顺丰', trackingNo: 'SF000'
+  })).result;
+  step('待支付订单禁止发货', !rejectPendingShip.success);
+  const rejectMissingShip = (await call('admin', {
+    action: 'shipOrder', orderId: 'missing-order', company: '顺丰', trackingNo: 'SF404'
+  })).result;
+  step('不存在订单禁止发货', !rejectMissingShip.success);
+  const shipRes = (await call('admin', {
+    action: 'shipOrder', orderId: multiRes.orderId, company: ' 顺丰 ', trackingNo: ' SF123456 '
+  })).result;
+  step('管理员发出已支付订单', shipRes.success, shipRes.error || '');
+  step('订单状态=shipped 且物流已保存', multiOrderDoc.status === 'shipped' &&
+    multiOrderDoc.logistics && multiOrderDoc.logistics.company === '顺丰' &&
+    multiOrderDoc.logistics.trackingNo === 'SF123456');
+  const rejectRepeatShip = (await call('admin', {
+    action: 'shipOrder', orderId: multiRes.orderId, company: '顺丰', trackingNo: 'SF123456'
+  })).result;
+  step('已发货订单禁止重复发货', !rejectRepeatShip.success);
+
+  const shipFirst = (await call('admin', {
+    action: 'shipOrder', orderId, company: '中通快递', trackingNo: 'ZT123456'
+  })).result;
+  step('首笔订单发货', shipFirst.success);
+  setOpenId('mock-customer-B');
+  const receiveFirst = (await call('order', { action: 'updateStatus', id: orderId, status: 'received' })).result;
+  const receiveMulti = (await call('order', { action: 'updateStatus', id: multiRes.orderId, status: 'received' })).result;
+  step('客户确认两笔订单收货', receiveFirst.success && receiveMulti.success);
+  step('确认收货后佣金转 settled', db._store.commissions.filter(item => item.agentId === 'mock-agent-A' && item.status === 'settled').length === 2);
+
+  // 核心持久化失败时必须让支付平台重试，不能返回成功吞掉通知。
+  db._store.orders.push({
+    _id: 'mock-notify-failure-order',
+    orderNo: 'MOCK_NOTIFY_FAILURE',
+    userId: 'mock-customer-B',
+    totalFee: 100,
+    status: 'pending',
+    agentId: '',
+    items: []
+  });
+  const collectionBeforeNotifyFailure = db.collection;
+  db.collection = (name) => {
+    const query = collectionBeforeNotifyFailure(name);
+    if (name === 'orders') {
+      const originalUpdate = query.update.bind(query);
+      query.update = async payload => {
+        if (query._docId === 'mock-notify-failure-order' || query._query._id === 'mock-notify-failure-order') {
+          throw new Error('forced order update failure');
+        }
+        return originalUpdate(payload);
+      };
+    }
+    return query;
+  };
+  setOpenId('');
+  const retryableNotify = (await call('payNotify', {
+    out_trade_no: 'MOCK_NOTIFY_FAILURE',
+    transaction_id: 'MOCK_TXN_FAILURE',
+    openid: 'mock-customer-B',
+    total_fee: 100,
+    result_code: 'SUCCESS',
+    return_code: 'SUCCESS'
+  })).result;
+  db.collection = collectionBeforeNotifyFailure;
+  step('支付回调持久化失败返回可重试错误', retryableNotify.errcode !== 0, JSON.stringify(retryableNotify));
+  const failedNotifyOrder = db._store.orders.find(o => o._id === 'mock-notify-failure-order');
+  step('失败回调未伪造 paid 状态', failedNotifyOrder.status === 'pending');
+
+  header('Step 5: 分销员 A 申请提现');
   setOpenId('mock-agent-A');
   const wdInfo = (await call('withdrawal', { action: 'info' })).result;
-  step('A 可提现=1920', wdInfo.available === 1920, '实际=' + wdInfo.available);
+  step('A 可提现=5025（两笔已支付订单）', wdInfo.available === 5025, '实际=' + wdInfo.available);
   step('A 处理中=0', wdInfo.pendingCount === 0);
 
-  const apply = (await call('withdrawal', { action: 'apply', amount: 1000, name: '代理A', account: '6222021234567890' })).result;
+  const withdrawalRequestId = 'wd_mock_agent_a_0001';
+  const apply = (await call('withdrawal', {
+    action: 'apply', amount: 1000, name: '分销员A', account: '6222021234567890', requestId: withdrawalRequestId
+  })).result;
   step('申请提现 1000', apply.success);
+  const duplicateApply = (await call('withdrawal', {
+    action: 'apply', amount: 1000, name: '分销员A', account: '6222021234567890', requestId: withdrawalRequestId
+  })).result;
+  step('同一提现请求幂等复用原申请', duplicateApply.success && duplicateApply.duplicate && duplicateApply.withdrawalId === apply.withdrawalId);
   const wdInfo2 = (await call('withdrawal', { action: 'info' })).result;
-  step('A 剩余=920(available-pending)', (wdInfo2.available - wdInfo2.pendingAmount) === 920, '实际=' + wdInfo2.available + '-' + wdInfo2.pendingAmount);
+  step('A 剩余可提现=4025', wdInfo2.available === 4025 && wdInfo2.pendingAmount === 1000, '实际=' + wdInfo2.available);
 
   // 验证申请边界: 申请 100 元以下应失败
   const small = (await call('withdrawal', { action: 'apply', amount: 500, name: 'A', account: 'x' })).result;
@@ -434,13 +652,7 @@ async function main() {
   step('超额拦截', !over.success && over.error.indexOf('余额') >= 0);
 
   header('Step 6: 管理员审批提现');
-  setOpenId('mock-agent-A'); // A 是 admin
-  // 在 mock 环境中手动设置 A 为管理员（生产环境中应通过 init setAdminOpenId 配置）
-  const adminCfg = db._store.admin_config && db._store.admin_config.find(d => d._id === 'admin');
-  if (adminCfg) {
-    adminCfg.openId = 'mock-agent-A';
-    adminCfg.adminOpenIds = ['mock-agent-A'];
-  }
+  setOpenId('mock-owner');
   const pending = (await call('admin', { action: 'withdrawalList', statusFilter: 'pending' })).result;
   step('管理员看到 1 条 pending 提现', pending.data && pending.data.length === 1, '实际=' + (pending.data && pending.data.length));
   const wdId = pending.data[0]._id; _wdIdForCheck = wdId;
@@ -459,9 +671,10 @@ async function main() {
   const wdDoc = db._store.withdrawals.find(w => w._id === wdId);
   step('提现 status=approved', wdDoc.status === 'approved', '实际=' + wdDoc.status);
 
-  // 重复审批应失败
+  // 重复审批应返回同一结果，且不能重复写资金流水。
   const dup = (await call('admin', { action: 'processWithdrawal', withdrawalId: wdId, approve: true })).result;
-  step('重复审批拦截', !dup.success);
+  step('重复审批幂等', dup.success && dup.alreadyProcessed &&
+    db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'commission_payout:' + wdId).length === 1);
 
   header('Step 7: 申请退款');
   setOpenId('mock-customer-B');
@@ -470,19 +683,28 @@ async function main() {
   const orderRef = db._store.orders.find(o => o._id === orderId);
   step('订单状态=refunding', orderRef.status === 'refunding', '实际=' + orderRef.status);
 
-  // 重复申请应拦截
+  // 重复申请应幂等返回已有售后单。
   const dupRefund = (await call('order', { action: 'requestRefund', id: orderId, reason: 'x' })).result;
-  step('重复退款拦截', !dupRefund.success);
+  step('重复退款申请幂等', dupRefund.success && dupRefund.duplicate && dupRefund.refundId === refundReq.refundId);
 
-  header('Step 8: 管理员处理退款（无交易号走线下）');
-  setOpenId('mock-agent-A');
+  header('Step 8: 财务确认退货并处理退款');
+  setOpenId('mock-owner');
   const refundList = (await call('admin', { action: 'refundList', statusFilter: 'pending' })).result;
   step('管理员看到 1 条 pending 退款', refundList.data && refundList.data.length === 1);
-  // 订单里还没有 transactionId,审批走"无交易号"分支
-  const process = (await call('admin', { action: 'processRefund', refundId: refundList.data[0]._id, approve: true, adminNote: 'OK' })).result;
-  step('处理退款', process.success, 'msg=' + (process.message || ''));
+  const rejectWithoutReturn = (await call('admin', { action: 'processRefund', refundId: refundList.data[0]._id, approve: true, adminNote: 'OK' })).result;
+  step('退货未收货禁止退款', !rejectWithoutReturn.success && rejectWithoutReturn.error.includes('收到退回'));
+  const processedRefund = (await call('admin', {
+    action: 'processRefund', refundId: refundList.data[0]._id, approve: true,
+    adminNote: '已验收', returnReceived: true, restock: true
+  })).result;
+  step('处理退款', processedRefund.success, 'msg=' + (processedRefund.message || ''));
   const orderFinal = db._store.orders.find(o => o._id === orderId);
   step('订单状态=refunded', orderFinal.status === 'refunded', '实际=' + orderFinal.status);
+  const reversal = db._store.commissions.find(item => item.orderId === orderId && item.type === 'reversal');
+  step('已提现佣金生成负向冲销', reversal && reversal.amount === -1000 && reversal.status === 'settled');
+  step('退款、佣金支出现金流各一笔',
+    db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'refund:' + orderId).length === 1 &&
+    db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'commission_payout:' + wdId).length === 1);
 
   header('Step 9: checkAdmin 权限校验');
   // 非管理员
@@ -491,9 +713,112 @@ async function main() {
   step('非管理员 checkAdmin 拒绝', !noAdmin.success && noAdmin.error.indexOf('管理员') >= 0);
 
   // 管理员
-  setOpenId('mock-agent-A');
+  setOpenId('mock-owner');
   const yesAdmin = (await call('admin', { action: 'checkAdmin' })).result;
   step('管理员 checkAdmin 通过', yesAdmin.success);
+
+  header('Step 9.5: Web 后台账号与三角色 RBAC');
+  const ownerLogin = (await call('admin', { action: 'login', username: 'owner', password: 'owner-password' })).result;
+  step('旧后台密码迁移为 owner 账号', ownerLogin.success && ownerLogin.account.role === 'owner');
+
+  header('Step 9.5a: 微信扫码登录后台');
+  setOpenId('mock-web-anonymous');
+  const qrCreate = (await call('adminQrAuth', { action: 'createQrLogin' })).result;
+  step('Web 创建两分钟扫码票据', qrCreate.success && qrCreate.qrDataUrl.startsWith('data:image/png;base64,') && qrCreate.pollSecret);
+  setOpenId('mock-customer-B');
+  const qrForbidden = (await call('adminQrAuth', { action: 'inspectQrLogin', scene: qrCreate.scene })).result;
+  step('非管理员微信不能确认后台登录', !qrForbidden.success && qrForbidden.status === 'forbidden');
+  setOpenId('mock-owner');
+  const qrInspect = (await call('adminQrAuth', { action: 'inspectQrLogin', scene: qrCreate.scene })).result;
+  const qrConfirm = (await call('adminQrAuth', { action: 'confirmQrLogin', scene: qrCreate.scene })).result;
+  step('旧 owner OpenID 自动绑定并确认', qrInspect.success && qrConfirm.success && qrConfirm.account.role === 'owner');
+  setOpenId('mock-web-anonymous');
+  const qrPoll = (await call('adminQrAuth', {
+    action: 'pollQrLogin', publicId: qrCreate.publicId, pollSecret: qrCreate.pollSecret
+  })).result;
+  step('扫码确认后签发自定义登录和后台会话', qrPoll.success && qrPoll.cloudbaseTicket && qrPoll.adminToken && qrPoll.account.role === 'owner');
+  const qrDashboard = (await call('admin', { action: 'dashboard', adminToken: qrPoll.adminToken })).result;
+  step('扫码会话可按 owner 权限进入后台', qrDashboard.success);
+  const qrRepeat = (await call('adminQrAuth', {
+    action: 'pollQrLogin', publicId: qrCreate.publicId, pollSecret: qrCreate.pollSecret
+  })).result;
+  step('扫码票据只能消费一次', !qrRepeat.success && qrRepeat.status === 'consumed');
+  const expiredCreate = (await call('adminQrAuth', { action: 'createQrLogin' })).result;
+  const expiredTicket = db._store.admin_login_tickets.find(item => item.publicId === expiredCreate.publicId);
+  expiredTicket.expiresAt = new Date(Date.now() - 1000);
+  const expiredPoll = (await call('adminQrAuth', {
+    action: 'pollQrLogin', publicId: expiredCreate.publicId, pollSecret: expiredCreate.pollSecret
+  })).result;
+  step('过期扫码票据拒绝登录', !expiredPoll.success && expiredPoll.status === 'expired');
+
+  setOpenId('mock-web-session');
+  const createOps = (await call('admin', {
+    action: 'createAccount', adminToken: ownerLogin.token, username: 'operations1',
+    displayName: '运营一号', role: 'operations', password: 'operations-password'
+  })).result;
+  const createFinance = (await call('admin', {
+    action: 'createAccount', adminToken: ownerLogin.token, username: 'finance1',
+    displayName: '财务一号', role: 'finance', password: 'finance-password'
+  })).result;
+  step('店主创建运营和财务账号', createOps.success && createFinance.success);
+  const opsLogin = (await call('admin', { action: 'login', username: 'operations1', password: 'operations-password' })).result;
+  const opsProducts = (await call('admin', { action: 'productList', adminToken: opsLogin.token })).result;
+  const opsFinance = (await call('admin', { action: 'financeOverview', adminToken: opsLogin.token })).result;
+  step('运营可管理商品但不可查看财务', opsProducts.success && !opsFinance.success && opsFinance.code === 'FORBIDDEN');
+  const financeLogin = (await call('admin', { action: 'login', username: 'finance1', password: 'finance-password' })).result;
+  const financeView = (await call('admin', { action: 'financeOverview', adminToken: financeLogin.token })).result;
+  const financeProductEdit = (await call('admin', { action: 'toggleProductStatus', adminToken: financeLogin.token, id: productId, status: 'off' })).result;
+  step('财务可查看经营收支但不可修改商品', financeView.success && !financeProductEdit.success && financeProductEdit.code === 'FORBIDDEN');
+  step('经营现金流汇总正确', financeView.data.receipts === 33500 && financeView.data.refunds === 12800 &&
+    financeView.data.commissionPaid === 1000 && financeView.data.netCashflow === 19700,
+  JSON.stringify(financeView.data));
+
+  setOpenId('mock-agent-A');
+  const sanitizedCommissions = (await call('agent', { action: 'commissions', pageSize: 20 })).result;
+  step('C 端佣金明细不含客户隐私', sanitizedCommissions.success && sanitizedCommissions.data.every(item =>
+    !Object.prototype.hasOwnProperty.call(item, 'address') && !Object.prototype.hasOwnProperty.call(item, 'phone') && !Object.prototype.hasOwnProperty.call(item, 'userId')));
+
+  header('Step 9.6: 取消订单释放库存与防超卖');
+  setOpenId('mock-customer-B');
+  const cancelNo = generateOrderNo();
+  const cancelCreate = (await call('order', {
+    action: 'create', orderNo: cancelNo,
+    items: [{ productId, spec: '13.5g', quantity: 1 }], totalFee: 6900,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' }
+  })).result;
+  const cancelReservation = db._store.inventory_reservations.find(item => item.orderId === cancelCreate.orderId);
+  const cancelResult = (await call('order', { action: 'cancel', id: cancelCreate.orderId })).result;
+  const cancelOrder = db._store.orders.find(item => item._id === cancelCreate.orderId);
+  step('取消待支付订单并释放库存', cancelResult.success && cancelOrder.status === 'closed' && cancelReservation.status === 'released');
+  const timeoutCreate = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(), items: [{ productId, spec: '13.5g', quantity: 1 }],
+    totalFee: 6900, address: { name: '王五', phone: '13700137000', detail: '测试地址' }
+  })).result;
+  const timeoutOrder = db._store.orders.find(item => item._id === timeoutCreate.orderId);
+  const timeoutReservation = db._store.inventory_reservations.find(item => item.orderId === timeoutCreate.orderId);
+  timeoutOrder.expireTime = new Date(Date.now() - 1000);
+  db._store.orders.push({
+    _id: 'mock-auto-receive', orderNo: 'MOCK_AUTO_RECEIVE', userId: 'mock-customer-B',
+    agentId: 'mock-agent-A', status: 'shipped', commissionStatus: 'frozen',
+    shipTime: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), items: [], totalFee: 100
+  });
+  db._store.commissions.push({
+    _id: 'mock-auto-commission', idempotencyKey: 'commission:mock-auto-receive', type: 'earning',
+    agentId: 'mock-agent-A', orderId: 'mock-auto-receive', orderNo: 'MOCK_AUTO_RECEIVE',
+    amount: 15, status: 'frozen', createTime: new Date()
+  });
+  setOpenId('');
+  const maintenance = (await call('maintenance', {})).result;
+  step('30 分钟超时关单并释放库存', maintenance.success && timeoutOrder.status === 'closed' && timeoutReservation.status === 'released');
+  step('发货 7 天自动收货并结算佣金',
+    db._store.orders.find(item => item._id === 'mock-auto-receive').status === 'received' &&
+    db._store.commissions.find(item => item._id === 'mock-auto-commission').status === 'settled');
+  setOpenId('mock-customer-B');
+  const oversell = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(), items: [{ productId, spec: '13.5g', quantity: 99999 }],
+    totalFee: 6900 * 99999, address: { name: '王五', phone: '13700137000', detail: '测试地址' }
+  })).result;
+  step('超出可售库存时拒绝下单', !oversell.success && oversell.error.includes('库存不足'));
 
   header('Step 10: 收藏 / 搜索 / 分类');
   setOpenId('mock-customer-B');
@@ -520,12 +845,147 @@ async function main() {
   const markRes = (await call('chat', { action: 'markAsRead' })).result;
   step('B markAsRead', markRes.success);
   // 管理员视角拉会话列表
-  setOpenId('mock-agent-A');
+  setOpenId('mock-owner');
   const conv = (await call('chat', { action: 'getConversationList' })).result;
   step('管理员看到 1 个会话', conv.data && conv.data.length === 1, '实际=' + (conv.data && conv.data.length));
   // 管理员回复
   const reply = (await call('chat', { action: 'sendMessage', content: '亲,24 小时内发货~', toId: 'mock-customer-B' })).result;
   step('管理员回复', reply.success);
+
+  header('Step 12: 店主清理测试交易数据');
+  setOpenId('mock-web-session');
+  const forbiddenCleanup = (await call('admin', {
+    action: 'transactionCleanupPreview', adminToken: opsLogin.token
+  })).result;
+  step('运营无权清理测试交易', !forbiddenCleanup.success && forbiddenCleanup.code === 'FORBIDDEN');
+  setOpenId('mock-owner');
+  const cleanupPreview = (await call('admin', { action: 'transactionCleanupPreview' })).result;
+  step('清理前只读预检返回订单及关联数量', cleanupPreview.success && cleanupPreview.data.orders > 0 &&
+    cleanupPreview.data.inventoryReservations > 0 && cleanupPreview.data.cashflowEntries > 0);
+  const rejectedCleanup = (await call('admin', {
+    action: 'purgeTestTransactions', confirm: 'WRONG_CONFIRM',
+    expectedOrderCount: cleanupPreview.data.orders
+  })).result;
+  step('错误确认码不能删除交易数据', !rejectedCleanup.success && db._store.orders.length === cleanupPreview.data.orders);
+  const cleanup = (await call('admin', {
+    action: 'purgeTestTransactions', confirm: 'PURGE_TEST_TRANSACTIONS',
+    expectedOrderCount: cleanupPreview.data.orders
+  })).result;
+  step('店主可幂等清理完整测试交易链', cleanup.success &&
+    ['orders', 'inventory_reservations', 'refunds', 'commissions', 'withdrawals', 'cashflow_entries']
+      .every(name => (db._store[name] || []).length === 0));
+  step('订单关联库存调整记录已清理', (db._store.inventory_adjustments || []).every(item => !item.orderId));
+  step('订单绑定优惠券恢复为未使用', (db._store.user_coupons || [])
+    .filter(item => item._id === userCouponDoc._id)
+    .every(item => item.status === 'unused' && item.orderId === null));
+  step('清理保留商品、用户和后台账号', (db._store.products || []).length > 0 &&
+    (db._store.users || []).length > 0 && (db._store.admin_accounts || []).length > 0);
+
+  header('Step 13: 满减规则配置与下单联动');
+  // 读取当前佣金比例（与 order 云函数 getCommissionRate 口径一致）
+  const frPayCfg = db._store.pay_config.find(i => i._id === 'default');
+  const frAdminCfg = (db._store.admin_config || []).find(d => d._id === 'admin');
+  const frRate = typeof (frPayCfg && frPayCfg.commissionRate) === 'number' ? frPayCfg.commissionRate
+    : typeof (frAdminCfg && frAdminCfg.commissionRate) === 'number' ? frAdminCfg.commissionRate : 0.15;
+
+  setOpenId('mock-owner');
+  const badFr = (await call('admin', {
+    action: 'setFullReduction',
+    fullReduction: { enabled: true, rules: [{ threshold: 5000, discount: 6000 }] }
+  })).result;
+  step('优惠大于门槛的规则被拒绝', !badFr.success);
+
+  const saveFr = (await call('admin', {
+    action: 'setFullReduction',
+    fullReduction: {
+      enabled: true,
+      rules: [{ threshold: 20000, discount: 3000 }, { threshold: 10000, discount: 1000 }]
+    }
+  })).result;
+  step('店主保存满减规则', saveFr.success);
+
+  const promotions = (await call('coupon', { action: 'promotions' })).result;
+  step('公开读取满减规则（启用+按门槛升序）', promotions.success && promotions.data.enabled &&
+    promotions.data.rules.length === 2 && promotions.data.rules[0].threshold === 10000);
+
+  setOpenId('mock-customer-B');
+  // 2×6900=13800，命中满10000减1000
+  const frOrder1 = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 2 }], totalFee: 12800,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' },
+    fullReductionDiscount: 1000
+  })).result;
+  const frOrder1Doc = db._store.orders.find(o => o._id === frOrder1.orderId);
+  step('满减订单实付 12800', frOrder1.success && frOrder1.totalFee === 12800 &&
+    frOrder1.fullReductionDiscount === 1000 && frOrder1Doc.totalFee === 12800);
+  step('佣金按满减后实付计算',
+    frOrder1Doc.commission === Math.round(12800 * frRate),
+    '期望=' + Math.round(12800 * frRate) + ' 实际=' + frOrder1Doc.commission);
+
+  // 前端传入的满减金额与服务端不一致时拒绝
+  const frMismatch = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 2 }], totalFee: 12800,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' },
+    fullReductionDiscount: 999
+  })).result;
+  step('满减金额不一致时拒绝下单', !frMismatch.success && frMismatch.error.includes('优惠信息已变化'));
+
+  // 满减 + 优惠券叠加：13800 → 满10000减1000 → 12800 → 券再减1000 → 11800
+  const frOrder2 = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 2 }], totalFee: 11800,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' },
+    couponId: userCouponDoc._id, couponDiscount: 1000,
+    fullReductionDiscount: 1000
+  })).result;
+  const frOrder2Doc = db._store.orders.find(o => o._id === frOrder2.orderId);
+  step('满减与优惠券叠加实付 11800', frOrder2.success && frOrder2.totalFee === 11800 &&
+    frOrder2Doc.couponDiscount === 1000 && frOrder2Doc.fullReductionDiscount === 1000);
+  step('叠加后佣金仍按实付计算',
+    frOrder2Doc.commission === Math.round(11800 * frRate),
+    '期望=' + Math.round(11800 * frRate) + ' 实际=' + frOrder2Doc.commission);
+
+  // 未达门槛：1×6900=6900 < 10000，无满减
+  const frOrder3 = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 1 }], totalFee: 6900,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' },
+    fullReductionDiscount: 0
+  })).result;
+  const frOrder3Doc = db._store.orders.find(o => o._id === frOrder3.orderId);
+  step('未达门槛无满减', frOrder3.success && frOrder3Doc.fullReductionDiscount === 0 &&
+    frOrder3Doc.totalFee === 6900);
+
+  // 3×6900=20700 命中更高档 满20000减3000
+  const frOrder4 = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 3 }], totalFee: 17700,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' },
+    fullReductionDiscount: 3000
+  })).result;
+  step('阶梯规则命中更高档减 3000', frOrder4.success && frOrder4.totalFee === 17700 &&
+    frOrder4.fullReductionDiscount === 3000);
+
+  // 停用满减后规则不再生效
+  setOpenId('mock-owner');
+  const disableFr = (await call('admin', {
+    action: 'setFullReduction',
+    fullReduction: { enabled: false, rules: [{ threshold: 10000, discount: 1000 }] }
+  })).result;
+  step('停用满减', disableFr.success);
+  const disabledPromotions = (await call('coupon', { action: 'promotions' })).result;
+  step('停用后公开接口返回未启用', disabledPromotions.success && disabledPromotions.data.enabled === false);
+  setOpenId('mock-customer-B');
+  const frOrder5 = (await call('order', {
+    action: 'create', orderNo: generateOrderNo(),
+    items: [{ productId, spec: '13.5g', quantity: 2 }], totalFee: 13800,
+    address: { name: '王五', phone: '13700137000', detail: '测试地址' }
+  })).result;
+  const frOrder5Doc = db._store.orders.find(o => o._id === frOrder5.orderId);
+  step('停用后下单不再享受满减', frOrder5.success && frOrder5Doc.totalFee === 13800 &&
+    frOrder5Doc.fullReductionDiscount === 0);
 
   // ===== 汇总 =====
   const pass = results.filter(r => r.ok).length;

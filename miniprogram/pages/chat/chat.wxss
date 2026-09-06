@@ -44,7 +44,7 @@
   border-top-left-radius: 4rpx;
 }
 .msg-me .msg-bubble {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-bright));
   color: #FFFFFF;
   border-top-right-radius: 4rpx;
 }
@@ -75,6 +75,6 @@
 }
 .send-btn::after { border: none; }
 .send-btn.send-active {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-bright));
   color: #FFFFFF;
 }

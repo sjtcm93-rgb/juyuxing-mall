@@ -1,21 +1,34 @@
 <view class="page-wrap with-tabbar home-wrap">
-  <!-- 品牌头图 -->
-  <view class="hero-section">
-    <view class="hero-deco-circle"></view>
-    <view class="hero-deco-circle-2"></view>
-    <view class="hero-content">
-      <view class="hero-brand-wrap">
-        <text class="hero-brand-char" wx:for="{{brandChars}}" wx:key="index" style="animation-delay:{{index * 0.15}}s">{{item}}</text>
+  <!-- 顶部渐变区：品牌 + 搜索 + 双入口 -->
+  <view class="home-top">
+    <view class="home-brand-row">
+      <text class="home-brand-name">橘与杏</text>
+      <text class="home-brand-tag">中医生活 · 自然疗愈</text>
+    </view>
+    <view class="search-bar search-bar-icon-only" bindtap="goSearch" hover-class="search-bar-hover">
+      <image class="search-icon" src="/images/icons/search.png" mode="aspectFit"></image>
+    </view>
+    <view class="promo-row">
+      <view class="promo-card" bindtap="goCouponCenter" hover-class="promo-card-hover">
+        <image class="promo-icon" src="/images/icons/ticket.png" mode="aspectFit"></image>
+        <view class="promo-text">
+          <text class="promo-title">领券中心</text>
+          <text class="promo-desc">{{couponDesc}}</text>
+        </view>
       </view>
-      <view class="hero-divider"></view>
-      <text class="hero-subtitle">中医生活 · 自然疗愈</text>
-      <text class="hero-slogan">源于草本 温润日常</text>
+      <view class="promo-card" bindtap="showPromotionRules" hover-class="promo-card-hover">
+        <image class="promo-icon" src="/images/icons/sale.png" mode="aspectFit"></image>
+        <view class="promo-text">
+          <text class="promo-title">全场满减</text>
+          <text class="promo-desc">{{promotionDesc}}</text>
+        </view>
+      </view>
     </view>
   </view>
 
   <!-- 轮播图 -->
   <view class="banner-section" wx:if="{{banners.length > 0}}">
-    <swiper class="banner-swiper" autoplay="{{true}}" interval="{{4000}}" duration="{{500}}" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8A87C">
+    <swiper class="banner-swiper" autoplay="{{true}}" interval="{{4000}}" duration="{{500}}" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#E8730C">
       <swiper-item wx:for="{{banners}}" wx:key="_id">
         <view class="banner-item" data-link="{{item.linkUrl}}" bindtap="onBannerTap">
           <image class="banner-image" src="{{item.imageUrl}}" mode="aspectFit" data-index="{{index}}" binderror="onBannerImageError"></image>
@@ -82,15 +95,4 @@
     </view>
   </view>
 
-  <!-- 代理入口 -->
-  <view class="agent-entry card">
-    <view class="agent-icon-wrap">
-      <image class="agent-icon-img" src="/images/icons/handshake.png" mode="aspectFit"></image>
-    </view>
-    <view class="agent-entry-text">
-      <text class="agent-entry-title">成为橘与杏代理</text>
-      <text class="agent-entry-desc">分享好物，收获一份事业</text>
-    </view>
-    <navigator url="/pages/agent-join/agent-join" class="agent-entry-btn">了解更多</navigator>
-  </view>
 </view>

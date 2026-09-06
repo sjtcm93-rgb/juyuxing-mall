@@ -17,5 +17,6 @@
   "projectname": "橘与杏中医生活",
   "miniprogramRoot": "miniprogram/",
   "cloudfunctionRoot": "cloudfunctions/",
-  "condition": {}
+  "condition": {},
+  "simulatorPluginLibVersion": {}
 }

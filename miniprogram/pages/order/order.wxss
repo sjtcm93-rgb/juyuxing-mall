@@ -63,7 +63,7 @@
   border-radius: var(--radius-sm);
   font-weight: 500;
 }
-.order-status.pending { color: #E8A87C; background: rgba(232, 168, 124, 0.12); }
+.order-status.pending { color: #E8730C; background: rgba(232, 115, 12, 0.12); }
 .order-status.paid { color: #4CAF50; background: rgba(76, 175, 80, 0.12); }
 .order-status.shipped { color: #2196F3; background: rgba(33, 150, 243, 0.12); }
 .order-status.received { color: #9E9E9E; background: rgba(158, 158, 158, 0.12); }
@@ -130,7 +130,7 @@
   color: var(--color-text);
 }
 .order-action-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-bright));
   color: #FFFFFF;
   border: none;
 }

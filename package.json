@@ -4,6 +4,7 @@
   "private": true,
   "description": "橘与杏中医生活 - 微信小程序商城",
   "scripts": {
+    "admin": "python3 -m http.server 8765 --directory admin-web",
     "smoke": "node scripts/smoke-test.js",
     "setup": "bash scripts/setup.sh",
     "lint:functions": "for f in cloudfunctions/*/index.js; do node --check \"$f\" || exit 1; done"

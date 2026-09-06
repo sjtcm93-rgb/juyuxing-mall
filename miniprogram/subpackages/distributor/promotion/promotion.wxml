@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="card">
+    <text class="title">选择推广目标</text>
+    <picker mode="selector" range="{{products}}" range-key="name" bindchange="chooseTarget">
+      <view class="picker">{{selectedProductId ? '已选择指定商品' : '商城首页'}} <text>⌄</text></view>
+    </picker>
+    <view class="product-options">
+      <button class="target-btn {{selectedProductId === '' ? 'active' : ''}}" data-id="" bindtap="chooseHome">商城首页</button>
+    </view>
+    <button class="primary" bindtap="generate" loading="{{loading}}">生成推广素材</button>
+  </view>
+  <view class="card asset" wx:if="{{asset}}">
+    <text class="title">专属推广素材</text>
+    <image wx:if="{{asset.qrFileId}}" class="qr" src="{{asset.qrFileId}}" mode="aspectFit"></image>
+    <view wx:else class="qr-placeholder">二维码生成权限尚未配置</view>
+    <text class="code">推广码 {{asset.referralCode}}</text>
+    <button class="outline" bindtap="saveQr">保存二维码</button>
+    <button class="outline" bindtap="copyPath">复制小程序分享路径</button>
+    <button class="outline" bindtap="createUrlLink" loading="{{linkLoading}}">生成 30 天 URL Link</button>
+    <button class="share" open-type="share">分享给微信好友</button>
+    <text class="hint">URL Link 按微信接口规则到期；小程序分享路径和小程序码为主要推广方式。</text>
+  </view>
+</view>

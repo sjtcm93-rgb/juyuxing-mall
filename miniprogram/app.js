@@ -1,3 +1,13 @@
+function parseAdminQrScene(value) {
+  let scene = String(value || '').trim();
+  try {
+    scene = decodeURIComponent(scene);
+  } catch (err) {
+    // Keep the original value when it is not valid URI encoded text.
+  }
+  return /^q=[A-Za-z0-9_-]{12,32}$/.test(scene) ? scene : '';
+}
+
 App({
   globalData: {
     userInfo: null,
@@ -5,10 +15,11 @@ App({
     isAgent: false,
     hasPayment: false,
     envId: 'cloud1-d4gx1jxk675274501',
-    cloudReady: false
+    cloudReady: false,
+    pendingAdminQrScene: ''
   },
 
-  onLaunch() {
+  onLaunch(options) {
     // 安全初始化云开发——如果未开通云环境也不会崩溃
     try {
       if (wx.cloud) {
@@ -27,11 +38,10 @@ App({
     
     // 获取设备信息
     try {
-      wx.getSystemInfo({
-        success: (res) => {
-          this.globalData.systemInfo = res;
-        }
-      });
+      const deviceInfo = typeof wx.getDeviceInfo === 'function' ? wx.getDeviceInfo() : {};
+      const windowInfo = typeof wx.getWindowInfo === 'function' ? wx.getWindowInfo() : {};
+      const appBaseInfo = typeof wx.getAppBaseInfo === 'function' ? wx.getAppBaseInfo() : {};
+      this.globalData.systemInfo = Object.assign({}, deviceInfo, windowInfo, appBaseInfo);
     } catch (err) {
       console.warn('[系统信息] 获取失败:', err.message);
     }
@@ -41,6 +51,8 @@ App({
     if (openId) {
       this.globalData.openId = openId;
     }
+
+    this.handleEntryOptions(options || {});
 
     // 隐私授权拦截：当调用 getUserProfile 等隐私接口且用户未授权时，
     // 系统会自动触发此回调，由我们弹出品牌化授权框，用户同意后继续。
@@ -66,9 +78,43 @@ App({
     }
   },
 
+  onShow(options) {
+    this.handleEntryOptions(options || {});
+  },
+
+  handleEntryOptions(options) {
+    const query = (options && options.query) || {};
+    if (query.ref) wx.setStorageSync('pendingReferrer', String(query.ref).trim().toUpperCase());
+    const scene = query.scene;
+    const adminQrScene = parseAdminQrScene(scene);
+    if (adminQrScene) {
+      this.globalData.pendingAdminQrScene = adminQrScene;
+      return;
+    }
+    if (!scene || !this.globalData.cloudReady || this._resolvingPromotionScene === scene) return;
+    this._resolvingPromotionScene = scene;
+    wx.cloud.callFunction({ name: 'promotion', data: { action: 'resolve', scene } })
+      .then(res => {
+        const result = res && res.result;
+        if (!result || !result.success) return;
+        if (result.ref) wx.setStorageSync('pendingReferrer', result.ref);
+        if (result.productId) {
+          setTimeout(() => wx.navigateTo({ url: `/pages/product/product?id=${encodeURIComponent(result.productId)}&ref=${result.ref || ''}` }), 300);
+        }
+      })
+      .catch(err => console.warn('[推广场景] 解析失败:', err && (err.errMsg || err.message || err)));
+  },
+
+  consumeAdminQrScene(value) {
+    const scene = parseAdminQrScene(value) || parseAdminQrScene(this.globalData.pendingAdminQrScene);
+    if (scene) this.globalData.pendingAdminQrScene = '';
+    return scene;
+  },
+
   // 获取代理推广参数
   getReferrer() {
-    const query = wx.getEnterOptionsSync().query;
-    return query.ref || null;
+    const options = typeof wx.getEnterOptionsSync === 'function' ? wx.getEnterOptionsSync() : {};
+    const query = (options && options.query) || {};
+    return query.ref || wx.getStorageSync('pendingReferrer') || null;
   }
 })

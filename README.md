@@ -1,176 +1,58 @@
-# 橘与杏中医生活 — 微信小程序商城
+# 橘与杏商城
 
-> 品牌：橘与杏 | 技术栈：微信原生小程序 + 微信云开发
+微信原生小程序 + CloudBase 的 A/B/C 三端商城：
 
----
+- A 端消费者商城：商品、购物车、下单支付、订单、物流和售后。
+- B 端运营后台：`admin-web/`，负责订单、发货、库存、退款、经营收支、分销邀请和提现审核。
+- B 端登录：使用现有小程序扫码确认，签发 CloudBase 自定义身份和 24 小时后台会话；确认页不在消费者菜单展示。
+- C 端分销员中心：同一小程序的 `subpackages/distributor/` 独立分包，负责邀请激活、推广素材、业绩、佣金和提现。
 
-## 快速启动
+三端共享一个 AppID、一个 CloudBase 环境以及同一套商品、订单和用户数据。分销关系仅支持一级。
 
-### 1. 准备工作
+## 本地验证
 
-| 事项 | 说明 |
-|------|------|
-| ✅ 微信开发者工具 | 已安装（wechatwebdevtools.app） |
-| ✅ Node.js v22 | 已安装 |
-| ✅ 小程序 AppID | 已申请 |
-| ❌ 微信支付商户号 | **需申请**，用于真实支付 |
-| ❌ 云开发环境 | **需开通**，见下方步骤 |
-
-### 2. 配置 AppID 和环境 ID
-
-打开以下两个文件，替换其中的占位内容：
-
-**`project.config.json`** → 将 `"appid": "your-app-id"` 替换为你的真实 AppID
-
-**`miniprogram/app.js`** → 将 `envId: 'your-env-id'` 替换为你的云环境 ID
-
-**`cloudbaserc.json`** → 将 `"envId": "your-env-id"` 替换为同一云环境 ID
-
-### 3. 开通云开发
-
-1. 打开微信开发者工具，导入项目（路径：`/Users/orange/Documents/橘与杏商城`）
-2. 点击顶部工具栏「云开发」按钮
-3. 开通云开发，创建一个新的环境
-4. 记下环境 ID，填入上述两个配置文件中
-5. 在云开发控制台中，创建以下数据库集合：
-
-```
-users       — 用户表
-products    — 商品表
-orders      — 订单表
-cart        — 购物车
-addresses   — 收货地址
-commissions — 佣金记录
+```bash
+npm install
+npm run smoke
+node scripts/e2e-mock.js
+node scripts/page-load-logic-test.js
+node scripts/admin-qr-auth-test.js
+node scripts/release-gap-test.js
+npm run lint:functions
 ```
 
-### 4. 初始化商品数据
+然后在微信开发者工具中导入仓库根目录并检查：
 
-在云开发控制台中，右键点击 `login` 云函数 → 「上传并部署」
-
-然后部署其他所有云函数：
-
-```
-init → product → cart → order → pay → agent → commission
-```
-
-在云开发控制台云端测试 `init` 云函数：
-
-```
-参数：{ "action": "init" }
-```
-
-这将自动创建"小紫瓶"商品数据。
-
-### 5. 预览运行
-
-1. 在微信开发者工具中点击「编译」
-2. 点击「预览」或直接在模拟器中查看
-
----
+- 普通编译：`pages/index/index`
+- C 端编译：`subpackages/distributor/dashboard/dashboard`
+- 受影响页面的加载、错误和空状态
 
 ## 项目结构
 
-```
-橘与杏商城/
-├── miniprogram/                  # 小程序前端
-│   ├── pages/
-│   │   ├── index/                # 首页
-│   │   ├── product/              # 商品详情
-│   │   ├── cart/                 # 购物车
-│   │   ├── checkout/             # 结算页
-│   │   ├── order/                # 订单列表
-│   │   ├── order-detail/         # 订单详情
-│   │   ├── user/                 # 个人中心
-│   │   ├── agent-center/         # 代理中心
-│   │   ├── agent-join/           # 代理申请
-│   │   ├── address/              # 地址管理
-│   │   ├── address-edit/         # 地址编辑
-│   │   ├── logistics/            # 物流查询
-│   │   └── about/                # 品牌故事
-│   ├── images/                   # 图片资源
-│   └── utils/                    # 工具函数
-├── cloudfunctions/               # 云函数
-│   ├── init/                     # 数据库初始化
-│   ├── login/                    # 登录 + 地址管理
-│   ├── product/                  # 商品查询
-│   ├── cart/                     # 购物车 CRUD
-│   ├── order/                    # 订单管理
-│   ├── pay/                      # 微信支付（预留）
-│   ├── agent/                    # 代理管理
-│   └── commission/               # 佣金计算
-├── project.config.json           # 项目配置
-└── cloudbaserc.json              # 云开发配置
+```text
+miniprogram/
+  pages/                         A 端消费者页面
+  subpackages/distributor/       C 端分销员中心
+  utils/                         客户端公共代码
+admin-web/                       B 端 Vue 管理后台
+cloudfunctions/                  CloudBase 云函数
+scripts/                         smoke、模拟 E2E、迁移和安装检查
+database-indexes.json            数据库索引定义
+cloudbaserc.json                 云函数和定时触发器定义
 ```
 
----
+## 关键业务规则
 
-## 功能清单
+- 创建订单原子锁定 SKU 库存，30 分钟未支付自动关闭并释放。
+- 支付成功将锁定库存转为正式销量并生成冻结佣金；支付、退款和提现均用幂等键防止重复入账。
+- 收货后佣金可提现；发货 7 天后自动确认收货。
+- 未发货退款和退货退款分开处理；退货由 B 端确认收到后决定是否回库存。
+- 分销员只能通过 B 端生成的 7 天一次性邀请开通，推广码为唯一随机码。
+- B 端账号分店主、运营、财务，权限由云函数校验，不依赖前端隐藏。
+- C 端订单信息只返回脱敏订单号、商品、金额和状态，不返回姓名、手机号或地址。
 
-### 用户端
-- [x] 品牌首页（品牌展示 + 产品推广）
-- [x] 商品详情（图片轮播 / 规格选择 / 数量）
-- [x] 购物车（增删改查 + 同步云端）
-- [x] 下单结算（地址选择 + 商品确认 + 备注）
-- [x] 订单管理（列表 / 详情 / 状态流转）
-- [x] 收货地址管理（增删改 + 默认地址）
-- [x] 物流查询
-- [x] 品牌故事页
+## 配置与上线
 
-### 代理分销
-- [x] 代理申请（表单 + 审核）
-- [x] 专属推广码
-- [x] 用户-代理永久绑定（通过分享参数）
-- [x] 代理中心（业绩面板 / 佣金记录 / 团队数据）
-- [x] 佣金自动计算（比例 15%）
+不要提交商户密钥、OpenID、管理员密码或其他凭据。`miniprogram/app.js`、`cloudbaserc.json` 和 `admin-web/app.js` 必须使用同一个 CloudBase 环境。
 
-### 其他
-- [x] 微信登录自动注册
-- [x] 页面分享（带代理参数）
-- [x] 自然草本视觉风格
-- [x] 支付预留接口（待商户号开通）
-
----
-
-## 品牌视觉
-
-```
-主色系：
-  米白 #FDF8F3  — 页面背景
-  淡杏 #F5D6B8  — 装饰色
-  杏色 #E8A87C  — 主色调、按钮
-  草绿 #8BA888  — 自然点缀
-  深褐 #4A3F35  — 主文字
-  中灰 #8B7E72  — 辅助文字
-```
-
----
-
-## 待办事项（优先级排序）
-
-1. **申请微信支付商户号** — 否则支付功能只能模拟
-2. **准备产品素材** — 商品图、详情图、banner
-3. **确定代理佣金比例** — 当前默认 15%，可在 `commission/index.js` 中调整 `rate` 变量
-4. **提交微信审核** — 开发完成后通过开发者工具提交小程序审核
-5. **补充产品线** — 后续产品可继续录入云数据库 `products` 集合
-
----
-
-## 代理关系数据流
-
-```
-代理分享小程序（带 ?ref=代理OPENID）
-    ↓
-用户首次进入 → app.js 读取 query.ref
-    ↓
-用户注册 → login 云函数写入 referrer 字段（永久绑定）
-    ↓
-用户下单 → order 云函数自动关联 agentId
-    ↓
-支付成功 → commission 云函数计算 15% 佣金
-    ↓
-代理中心 → 查看业绩、佣金、团队
-```
-
----
-
-> 开发者：Codex | 品牌：橘与杏 © 2026
+完整的数据库、迁移、云函数和试运行步骤见 [A/B/C 上线清单](docs/ABC-DEPLOYMENT.md)。上线前必须由具备真实商户权限的账号完成人工小额支付、退款和提现验收。

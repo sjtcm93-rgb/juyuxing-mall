@@ -1,5 +1,0 @@
-.cd { display:inline-flex; align-items:center; gap:6rpx; font-size:var(--fs-sm); color:var(--color-text); }
-.cd-cell { display:inline-block; min-width:40rpx; padding:4rpx 8rpx; background:var(--color-text); color:#FFFFFF; border-radius:6rpx; text-align:center; font-weight:500; font-size:var(--fs-xs); }
-.cd-colon { color:var(--color-text-sub); margin:0 2rpx; }
-.cd-prefix, .cd-suffix { color:var(--color-text-sub); }
-.cd-finished { color:var(--color-text-muted); }

@@ -14,9 +14,12 @@ Component({
         refunding: { label: '退款中', cls: 'tag-refund' },
         refunded: { label: '已退款', cls: 'tag-refund' },
         cancelled: { label: '已取消', cls: 'tag-cancel' },
+        closed: { label: '已关闭', cls: 'tag-cancel' },
         approved: { label: '已同意', cls: 'tag-success' },
         rejected: { label: '已拒绝', cls: 'tag-danger' },
         settled: { label: '已结算', cls: 'tag-success' },
+        frozen: { label: '冻结中', cls: 'tag-pending' },
+        cancelled_commission: { label: '已取消', cls: 'tag-cancel' },
         on: { label: '上架', cls: 'tag-success' },
         off: { label: '下架', cls: 'tag-cancel' }
       };

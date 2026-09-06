@@ -6,6 +6,7 @@ const ENV_ID = 'cloud1-d4gx1jxk675274501';
 cloud.init({ env: ENV_ID });
 const db = cloud.database();
 const _ = db.command;
+const confirmPayment = require('./payment-effects').createPaymentEffects(cloud, db);
 
 // 从 admin_config 读取佣金比例（默认 15%）
 async function getCommissionRate() {
@@ -19,31 +20,21 @@ async function getCommissionRate() {
     return 0.15;
   }
 }
-// 真实云支付依赖「云环境绑定商户号」+ pay_config 中记录 subMchId。
-// 切换规则（优先级从高到低）：
-//   1) useMockPay === true  → 强制模拟支付（不收真实钱，用于开发/回滚）
-//   2) useMockPay === false → 强制真实微信支付
-//   3) 字段缺失：若已配置 subMchId（说明商户已绑定）→ 走真实支付；否则 → 模拟支付
-async function resolveUseMockPay() {
+// 模拟支付是高风险开发能力，必须同时满足数据库开关与云函数环境变量。
+// 未配置支付时必须失败关闭，绝不能把订单自动标记为已支付。
+async function resolvePaymentConfig() {
   try {
     const cfgRes = await db.collection('pay_config').doc('default').get().catch(() => null);
-    if (cfgRes && cfgRes.data) {
-      if (cfgRes.data.useMockPay === true) return true;   // 显式强制 mock
-      if (cfgRes.data.useMockPay === false) return false;  // 显式强制真实
-      // 字段缺失：商户号已配置即视为已就绪，自动走真实支付
-      if (cfgRes.data.subMchId) return false;
-    }
-  } catch (e) {}
-  return true; // 兜底：未配置商户号时保持 mock
-}
-
-// 商户号配置
-async function resolveSubMchId() {
-  try {
-    const cfgRes = await db.collection('pay_config').doc('default').get().catch(() => null);
-    if (cfgRes && cfgRes.data && cfgRes.data.subMchId) return cfgRes.data.subMchId;
-  } catch (e) {}
-  return '';
+    const config = (cfgRes && cfgRes.data) || {};
+    const mockRequested = config.useMockPay === true;
+    return {
+      subMchId: String(config.subMchId || '').trim(),
+      mockRequested,
+      useMockPay: mockRequested && process.env.ALLOW_MOCK_PAY === 'true'
+    };
+  } catch (e) {
+    return { subMchId: '', mockRequested: false, useMockPay: false };
+  }
 }
 
 exports.main = async (event, context) => {
@@ -66,64 +57,41 @@ exports.main = async (event, context) => {
         return { success: false, error: '无权操作此订单' };
       }
       if (order.status === 'paid' || order.status === 'shipped' || order.status === 'received') {
-        return { success: true, mock: true, message: '订单已支付', orderId };
+        return {
+          success: true,
+          alreadyPaid: true,
+          mock: order.paymentSource === 'mockPay',
+          message: '订单已支付',
+          orderId
+        };
       }
       if (order.status !== 'pending') {
         return { success: false, error: '当前订单状态不可支付' };
       }
 
-      // ===== 模拟支付模式（未开通商户号时使用）=====
-      const useMock = await resolveUseMockPay();
-      const subMchId = await resolveSubMchId();
-      if (useMock || !subMchId) {
-        // Mock 模式：mock 支付不会有真实的 payNotify 回调，必须在这里同步把订单落成 paid
-        // 否则订单永远停在 pending，导致退款链路彻底跑不通。
+      const paymentConfig = await resolvePaymentConfig();
+      if (paymentConfig.mockRequested && !paymentConfig.useMockPay) {
+        return {
+          success: false,
+          error: '模拟支付未获服务器授权，请在 pay 云函数环境变量中明确设置 ALLOW_MOCK_PAY=true'
+        };
+      }
+
+      // ===== 显式授权的模拟支付模式（仅用于开发环境）=====
+      if (paymentConfig.useMockPay) {
         const mockTxnId = 'MOCK_TXN_' + order.orderNo;
-        await db.collection('orders').doc(orderId).update({
-          data: {
-            status: 'paid',
-            transactionId: mockTxnId,
-            payTime: db.serverDate(),
-            updateTime: db.serverDate()
-          }
-        });
-        // 模拟 payNotify 的佣金结算（与 payNotify 内的逻辑保持一致）
-        if (order.agentId) {
-          try {
-            const rate = await getCommissionRate();
-            const amount = Math.round(order.totalFee * rate);
-            const existCheck = await db.collection('commissions')
-              .where({ orderId: order._id })
-              .count();
-            if (existCheck.total === 0) {
-              await db.collection('commissions').add({
-                data: {
-                  agentId: order.agentId,
-                  orderId: order._id,
-                  orderNo: order.orderNo,
-                  amount: amount,
-                  rate: rate,
-                  status: 'settled',
-                  settleTime: db.serverDate(),
-                  createTime: db.serverDate(),
-                  paidTime: null,
-                  source: 'mockPay'
-                }
-              });
-              await db.collection('orders').doc(orderId).update({
-                data: { commissionStatus: 'settled' }
-              });
-            }
-          } catch (commErr) {
-            console.error('[mockPay] 佣金结算失败（不影响支付）:', commErr);
-          }
-        }
+        await confirmPayment({ orderId, transactionId: mockTxnId, source: 'mockPay' });
         return {
           success: true,
           mock: true,
           message: '模拟支付成功',
           orderId
         };
+      }
+
+      const subMchId = paymentConfig.subMchId;
+      if (!subMchId) {
+        return { success: false, error: '微信支付尚未配置，请联系管理员完善商户号和云支付绑定' };
       }
 
       // ===== 真实微信支付（微信云开发云支付）=====
@@ -142,7 +110,12 @@ exports.main = async (event, context) => {
           openId: OPENID
         });
 
-        console.log('云支付 unifiedOrder 完整返回:', JSON.stringify(payRes));
+        console.log('云支付 unifiedOrder 返回:', JSON.stringify({
+          returnCode: payRes.returnCode,
+          resultCode: payRes.resultCode,
+          errCode: payRes.errCode || '',
+          outTradeNo: order.orderNo
+        }));
 
         if (payRes.returnCode !== 'SUCCESS' || payRes.resultCode !== 'SUCCESS') {
           console.error('统一下单失败:', JSON.stringify(payRes));
@@ -165,7 +138,7 @@ exports.main = async (event, context) => {
             paySign: payRes.paySign
           };
           if (!fallbackPayment.paySign) {
-            return { success: false, error: `支付参数不完整，请检查云支付配置 payRes: ${JSON.stringify(payRes)}` };
+            return { success: false, error: '支付参数不完整，请管理员检查云支付配置' };
           }
           // 记录支付单号
           await db.collection('orders').doc(orderId).update({
@@ -189,8 +162,7 @@ exports.main = async (event, context) => {
         };
       } catch (err) {
         console.error('云支付调用失败:', JSON.stringify(err));
-        const errMsg = (err && err.message) || JSON.stringify(err);
-        return { success: false, error: '支付服务异常: ' + errMsg };
+        return { success: false, error: '支付服务暂不可用，请稍后重试' };
       }
     }
 

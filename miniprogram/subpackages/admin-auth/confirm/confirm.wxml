@@ -1,0 +1,43 @@
+<view class="admin-auth-page">
+  <view class="brand-mark">橘与杏</view>
+
+  <view class="auth-card">
+    <view wx:if="{{loading}}" class="state-block">
+      <view class="state-icon loading-icon">···</view>
+      <view class="state-title">正在验证登录请求</view>
+      <view class="state-desc">请稍候，不要关闭当前页面</view>
+    </view>
+
+    <view wx:elif="{{confirmed}}" class="state-block">
+      <view class="state-icon success-icon">✓</view>
+      <view class="state-title">登录已确认</view>
+      <view class="state-desc">电脑端将自动进入管理后台，现在可以关闭此页面。</view>
+    </view>
+
+    <view wx:elif="{{error}}" class="state-block">
+      <view class="state-icon error-icon">!</view>
+      <view class="state-title">无法确认登录</view>
+      <view class="state-desc error-text">{{error}}</view>
+      <view wx:if="{{error === '当前微信未绑定后台账号'}}" class="binding-help">
+        <view class="state-desc">首次使用需要在 CloudBase 的店主账号中绑定当前微信。请复制绑定标识，不要发送给其他人。</view>
+        <button class="secondary-btn" bindtap="copySelfOpenId">{{selfOpenId ? '复制我的微信绑定标识' : '获取并复制绑定标识'}}</button>
+      </view>
+      <button class="secondary-btn" bindtap="inspect">重新检查</button>
+    </view>
+
+    <view wx:else class="state-block">
+      <view class="state-icon shield-icon">安</view>
+      <view class="state-title">确认登录管理后台</view>
+      <view class="account-card">
+        <view class="account-name">{{account.displayName || account.username}}</view>
+        <view class="account-role">{{roleText}}</view>
+      </view>
+      <view class="state-desc">只有你本人正在电脑前操作时才确认。确认后，电脑端将获得 24 小时后台会话。</view>
+      <button class="primary-btn" loading="{{confirming}}" disabled="{{confirming}}" bindtap="confirmLogin">
+        {{confirming ? '确认中…' : '确认登录'}}
+      </button>
+    </view>
+  </view>
+
+  <view class="security-note">开发版 {{buildVersion}} · 扫码不会向电脑端展示你的微信 OpenID；绑定标识仅保存在当前手机剪贴板</view>
+</view>

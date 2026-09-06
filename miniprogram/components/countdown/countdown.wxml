@@ -1,9 +1,0 @@
-<view class="cd" wx:if="{{!finished}}">
-  <text wx:if="{{prefix}}" class="cd-prefix">{{prefix}}</text>
-  <text class="cd-cell" wx:if="{{d > 0 || d !== '00'}}">{{d}}</text><text class="cd-colon" wx:if="{{d > 0 || d !== '00'}}">天</text>
-  <text class="cd-cell">{{h}}</text><text class="cd-colon">:</text>
-  <text class="cd-cell">{{m}}</text><text class="cd-colon">:</text>
-  <text class="cd-cell">{{s}}</text>
-  <text wx:if="{{suffix}}" class="cd-suffix">{{suffix}}</text>
-</view>
-<view wx:else class="cd cd-finished">已结束</view>

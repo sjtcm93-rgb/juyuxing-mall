@@ -1,0 +1,8 @@
+<view class="page">
+  <view class="privacy-note">仅展示脱敏订单与佣金信息，不提供客户姓名、电话或地址。</view>
+  <view class="empty" wx:if="{{!loading && list.length === 0}}">暂无佣金记录</view>
+  <view class="item" wx:for="{{list}}" wx:key="_id">
+    <view class="info"><text class="products">{{item.productText}}</text><text class="order">{{item.orderNo}}</text><text class="status">{{item.statusText}}</text></view>
+    <text class="amount {{item.sign === '-' ? 'negative' : ''}}">{{item.sign}}¥{{item.amountText}}</text>
+  </view>
+</view>

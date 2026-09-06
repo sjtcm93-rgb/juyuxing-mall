@@ -1,12 +1,3 @@
-<!-- 调试状态条 —— 可观察页面是否渲染、处于什么状态 -->
-<view class="debug-state" wx:if="{{true}}">
-  <text class="debug-tag">调试</text>
-  <text wx:if="{{loading}}">状态: 加载中…</text>
-  <text wx:elif="{{loadError}}">状态: 错误 - {{loadError}}</text>
-  <text wx:elif="{{!order}}">状态: order=null</text>
-  <text wx:else>状态: 已加载 / {{order.status}} / {{order.orderNo}}</text>
-</view>
-
 <view class="page-wrap">
   <!-- 加载中骨架 -->
   <block wx:if="{{loading}}">

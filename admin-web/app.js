@@ -3,12 +3,24 @@
  * Vue 3 + 微信云开发 JS SDK
  */
 
-const { createApp, ref, reactive, computed, onMounted, nextTick, watch } = Vue;
+const { createApp, ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } = Vue;
 
 // ===== 云开发初始化 =====
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
-const tcbApp = tcb.init({ env: ENV_ID });
+const cloudbaseSdk = window.cloudbase;
+if (!cloudbaseSdk) throw new Error('CloudBase Web SDK 加载失败');
+const tcbApp = cloudbaseSdk.init({ env: ENV_ID });
 const auth = tcbApp.auth({ persistence: 'local' });
+
+function readStoredJson(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch (e) {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
 
 // ===== API 封装 =====
 async function callAdmin(action, data = {}) {
@@ -21,18 +33,57 @@ async function callAdmin(action, data = {}) {
     return res.result;
   } catch (e) {
     console.error(`[callAdmin] ${action} failed:`, e);
-    return { success: false, error: e.message || '网络请求失败' };
+    const message = String((e && e.message) || '');
+    if (message.includes('PERMISSION_DENIED')) {
+      return {
+        success: false,
+        error: '后台云函数权限未允许自定义登录身份调用，请检查 admin 安全规则'
+      };
+    }
+    if (message.includes("reading 'scope'") || message.includes('evaluating \'t.scope\'')) {
+      return {
+        success: false,
+        error: 'CloudBase 匿名登录未成功，请检查匿名登录和云函数权限配置'
+      };
+    }
+    return { success: false, error: message || '网络请求失败' };
+  }
+}
+
+async function callAdminQrAuth(action, data = {}) {
+  try {
+    const res = await tcbApp.callFunction({
+      name: 'adminQrAuth',
+      data: { action, ...data }
+    });
+    return res.result;
+  } catch (e) {
+    console.error(`[callAdminQrAuth] ${action} failed:`, e);
+    const message = String((e && e.message) || '');
+    if (message.includes('PERMISSION_DENIED')) {
+      return { success: false, error: '扫码登录云函数权限尚未开放，请检查 adminQrAuth 安全规则' };
+    }
+    return { success: false, error: message || '扫码登录服务暂不可用' };
   }
 }
 
 async function ensureAnonymousLogin() {
   try {
-    const state = await auth.getLoginState();
+    let state = await auth.getLoginState();
     if (!state) {
       await auth.signInAnonymously();
+      state = await auth.getLoginState();
     }
+    if (!state) {
+      throw new Error('ANONYMOUS_LOGIN_NOT_ESTABLISHED');
+    }
+    return { success: true };
   } catch (e) {
-    try { await auth.signInAnonymously(); } catch (e2) { console.error('匿名登录失败:', e2); }
+    console.error('匿名登录未启用:', e);
+    return {
+      success: false,
+      error: '后台连接尚未启用：请先在 CloudBase 控制台开启“匿名登录”'
+    };
   }
 }
 
@@ -42,26 +93,59 @@ const App = {
     // ----- 全局状态 -----
     const isLoggedIn = ref(!!localStorage.getItem('adminToken'));
     const loading = ref(false);
-    const loginPassword = ref('');
     const loginError = ref('');
+    const qrLogin = reactive({
+      loading: false,
+      authenticating: false,
+      qrDataUrl: '',
+      publicId: '',
+      pollSecret: '',
+      expiresAt: null,
+      secondsLeft: 0,
+      status: 'idle'
+    });
+    let qrCountdownTimer = null;
+    let qrPollTimer = null;
+    let qrPollInFlight = false;
     const currentPage = ref('dashboard');
     const toast = reactive({ show: false, msg: '', type: 'info', timer: null });
 
     // ----- 导航 -----
-    const pages = [
+    const currentAccount = ref(readStoredJson('adminAccount', null));
+    const allPages = [
       { id: 'dashboard', name: '数据看板', icon: '📊' },
       { id: 'orders', name: '订单管理', icon: '📦' },
       { id: 'refunds', name: '退款管理', icon: '🔄' },
       { id: 'products', name: '商品管理', icon: '🏷️' },
-      { id: 'agents', name: '代理管理', icon: '👥' },
+      { id: 'inventory', name: '库存管理', icon: '🧮' },
+      { id: 'agents', name: '分销员管理', icon: '👥' },
+      { id: 'invites', name: '分销邀请', icon: '🔗' },
       { id: 'withdrawals', name: '提现审批', icon: '💰' },
+      { id: 'finance', name: '经营收支', icon: '📈' },
       { id: 'messages', name: '客服消息', icon: '💬' },
+      { id: 'accounts', name: '后台账号', icon: '🔐' },
       { id: 'settings', name: '系统设置', icon: '⚙️' }
     ];
+    const rolePages = {
+      owner: allPages.map(page => page.id),
+      operations: ['dashboard', 'orders', 'products', 'inventory', 'agents', 'invites', 'messages', 'settings'],
+      finance: ['dashboard', 'orders', 'refunds', 'withdrawals', 'finance', 'settings']
+    };
+    const pages = computed(() => allPages.filter(page => {
+      const role = currentAccount.value && currentAccount.value.role;
+      return !role || (rolePages[role] || []).includes(page.id);
+    }));
 
     // ----- Dashboard -----
-    const stats = ref({});
-    const recentOrders = ref([]);
+    const cachedDashboard = readStoredJson('adminDashboardCache', {});
+    const stats = ref(cachedDashboard.stats || {});
+    const recentOrders = ref(cachedDashboard.recentOrders || []);
+    const finance = ref({ daily: [] });
+    const inventory = ref([]);
+    const invites = ref([]);
+    const inviteForm = reactive({ name: '', phone: '' });
+    const accounts = ref([]);
+    const accountForm = reactive({ username: '', displayName: '', role: 'operations', password: '' });
 
     // ----- Orders -----
     const orders = ref([]);
@@ -74,7 +158,7 @@ const App = {
       { label: '已收货', value: 'received' },
       { label: '退款中', value: 'refunding' },
       { label: '已退款', value: 'refunded' },
-      { label: '已取消', value: 'cancelled' }
+      { label: '已关闭', value: 'closed' }
     ];
     const shipModal = reactive({ show: false, orderId: '', orderNo: '', company: '', trackingNo: '' });
     const orderDetailModal = reactive({ show: false, data: null });
@@ -95,8 +179,16 @@ const App = {
 
     // ----- Settings -----
     const settings = ref({});
+    const fullReduction = reactive({ enabled: false, rules: [] });
     const pwdForm = reactive({ oldPassword: '', newPassword: '' });
     const newOpenId = ref('');
+    const migration = reactive({ preview: null, previewing: false, running: false });
+    const transactionCleanup = reactive({
+      preview: null,
+      previewing: false,
+      running: false,
+      confirmText: ''
+    });
 
     // ----- Agents -----
     const agents = ref([]);
@@ -128,7 +220,7 @@ const App = {
       { label: '已拒绝', value: 'rejected' },
       { label: '全部', value: 'all' }
     ];
-    const refundModal = reactive({ show: false, data: null, approve: true, adminNote: '' });
+    const refundModal = reactive({ show: false, data: null, approve: true, adminNote: '', returnReceived: false, restock: false });
     const processingAction = ref(false);
 
     // ===== 工具函数 =====
@@ -155,7 +247,7 @@ const App = {
     function statusText(status) {
       const map = {
         pending: '待付款', paid: '待发货', shipped: '已发货', received: '已收货',
-        refunding: '退款中', refunded: '已退款', cancelled: '已取消'
+        refunding: '退款中', refunded: '已退款', cancelled: '已取消', closed: '已关闭'
       };
       return map[status] || status;
     }
@@ -165,29 +257,155 @@ const App = {
       return order.items.map(i => `${i.name} x${i.quantity}`).join(', ');
     }
 
-    // ===== 登录 =====
-    async function doLogin() {
-      if (!loginPassword.value) { loginError.value = '请输入密码'; return; }
-      loading.value = true;
-      loginError.value = '';
-      await ensureAnonymousLogin();
-      const res = await callAdmin('login', { password: loginPassword.value });
-      loading.value = false;
-      if (res.success) {
-        localStorage.setItem('adminToken', res.token);
-        isLoggedIn.value = true;
-        loginPassword.value = '';
-        showToast('登录成功');
-        loadDashboard();
-      } else {
-        loginError.value = res.error || '登录失败';
+    // ===== 微信扫码登录 =====
+    function stopQrTimers() {
+      if (qrCountdownTimer) clearInterval(qrCountdownTimer);
+      if (qrPollTimer) clearInterval(qrPollTimer);
+      qrCountdownTimer = null;
+      qrPollTimer = null;
+      qrPollInFlight = false;
+    }
+
+    function updateQrCountdown() {
+      if (!qrLogin.expiresAt) {
+        qrLogin.secondsLeft = 0;
+        return;
+      }
+      qrLogin.secondsLeft = Math.max(0, Math.ceil((new Date(qrLogin.expiresAt).getTime() - Date.now()) / 1000));
+      if (qrLogin.secondsLeft === 0 && qrLogin.status === 'pending') {
+        qrLogin.status = 'expired';
+        loginError.value = '二维码已过期，请刷新后重试';
+        stopQrTimers();
       }
     }
 
-    function logout() {
+    async function finishQrLogin(result) {
+      qrLogin.authenticating = true;
+      qrLogin.status = 'authenticating';
+      stopQrTimers();
+      try {
+        let transportReady = false;
+        if (result.cloudbaseTicket) {
+          try {
+            await auth.signOut().catch(() => {});
+            await auth.setCustomSignFunc(() => Promise.resolve(result.cloudbaseTicket));
+            await auth.signInWithCustomTicket();
+            transportReady = !!(await auth.getLoginState());
+          } catch (customError) {
+            console.warn('自定义登录不可用，切换匿名传输身份:', customError);
+          }
+        }
+        if (!transportReady) {
+          await auth.signOut().catch(() => {});
+          const anonymous = await ensureAnonymousLogin();
+          if (!anonymous.success) throw new Error('ANONYMOUS_LOGIN_NOT_ESTABLISHED');
+        }
+        localStorage.setItem('adminToken', result.adminToken);
+        localStorage.setItem('adminAccount', JSON.stringify(result.account || {}));
+        currentAccount.value = result.account || {};
+        isLoggedIn.value = true;
+        loginError.value = '';
+        qrLogin.status = 'authenticated';
+        showToast('微信扫码登录成功');
+        await loadDashboard();
+      } catch (err) {
+        console.error('自定义登录失败:', err);
+        qrLogin.status = 'error';
+        loginError.value = '微信身份登录失败，请刷新二维码后重试';
+      } finally {
+        qrLogin.authenticating = false;
+      }
+    }
+
+    async function pollQrLogin() {
+      if (qrPollInFlight || document.hidden || qrLogin.status !== 'pending') return;
+      qrPollInFlight = true;
+      try {
+        const result = await callAdminQrAuth('pollQrLogin', {
+          publicId: qrLogin.publicId,
+          pollSecret: qrLogin.pollSecret
+        });
+        if (result && result.success && result.status === 'authenticated') {
+          await finishQrLogin(result);
+        } else if (result && ['expired', 'consumed'].includes(result.status)) {
+          qrLogin.status = result.status;
+          loginError.value = result.error || '二维码不可用，请刷新后重试';
+          stopQrTimers();
+        }
+      } finally {
+        qrPollInFlight = false;
+      }
+    }
+
+    function startQrTimers() {
+      stopQrTimers();
+      updateQrCountdown();
+      qrCountdownTimer = setInterval(updateQrCountdown, 1000);
+      qrPollTimer = setInterval(pollQrLogin, 2000);
+    }
+
+    async function startQrLogin() {
+      if (qrLogin.loading || isLoggedIn.value) return;
+      stopQrTimers();
+      Object.assign(qrLogin, {
+        loading: true,
+        authenticating: false,
+        qrDataUrl: '',
+        publicId: '',
+        pollSecret: '',
+        expiresAt: null,
+        secondsLeft: 0,
+        status: 'loading'
+      });
+      loginError.value = '';
+      const authResult = await ensureAnonymousLogin();
+      if (!authResult.success) {
+        qrLogin.loading = false;
+        qrLogin.status = 'error';
+        loginError.value = authResult.error;
+        return;
+      }
+      const result = await callAdminQrAuth('createQrLogin');
+      qrLogin.loading = false;
+      if (!result || !result.success) {
+        qrLogin.status = 'error';
+        loginError.value = (result && result.error) || '二维码生成失败';
+        return;
+      }
+      Object.assign(qrLogin, {
+        qrDataUrl: result.qrDataUrl || '',
+        publicId: result.publicId,
+        pollSecret: result.pollSecret,
+        expiresAt: result.expiresAt,
+        status: 'pending'
+      });
+      if (!qrLogin.qrDataUrl) {
+        qrLogin.status = 'error';
+        loginError.value = '小程序码生成失败，请确认 adminQrAuth 云函数具备微信开放接口权限';
+        return;
+      }
+      startQrTimers();
+    }
+
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        if (qrPollTimer) clearInterval(qrPollTimer);
+        qrPollTimer = null;
+      } else if (!isLoggedIn.value && qrLogin.status === 'pending' && !qrPollTimer) {
+        qrPollTimer = setInterval(pollQrLogin, 2000);
+        pollQrLogin();
+      }
+    }
+
+    async function logout() {
+      await callAdmin('logout');
+      await auth.signOut().catch(() => {});
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminAccount');
+      currentAccount.value = null;
       isLoggedIn.value = false;
       currentPage.value = 'dashboard';
+      startQrLogin();
     }
 
     // ===== 页面切换 =====
@@ -198,9 +416,13 @@ const App = {
         case 'orders': loadOrders(); break;
         case 'refunds': loadRefunds(); break;
         case 'products': loadProducts(); break;
+        case 'inventory': loadInventory(); break;
         case 'agents': loadAgents(); break;
+        case 'invites': loadInvites(); break;
         case 'withdrawals': loadWithdrawals(); break;
+        case 'finance': loadFinance(); break;
         case 'messages': loadMessageUsers(); break;
+        case 'accounts': loadAccounts(); break;
         case 'settings': loadSettings(); break;
       }
     }
@@ -208,14 +430,27 @@ const App = {
     // ===== Dashboard =====
     async function loadDashboard() {
       const res = await callAdmin('dashboard');
-      if (res.success) {
-        stats.value = res.stats;
+      if (!res.success) return false;
+
+      stats.value = res.stats || {};
+      if (res.account) {
+        currentAccount.value = res.account;
+        localStorage.setItem('adminAccount', JSON.stringify(res.account));
       }
-      // 同时加载最近订单
-      const orderRes = await callAdmin('orderList', { pageSize: 10 });
-      if (orderRes.success) {
-        recentOrders.value = orderRes.data;
+
+      // 新版 dashboard 一次返回最近订单；兼容尚未重部署的旧云函数。
+      if (Array.isArray(res.recentOrders)) {
+        recentOrders.value = res.recentOrders;
+      } else {
+        const orderRes = await callAdmin('orderList', { pageSize: 10 });
+        if (orderRes.success) recentOrders.value = orderRes.data;
       }
+      localStorage.setItem('adminDashboardCache', JSON.stringify({
+        stats: stats.value,
+        recentOrders: recentOrders.value,
+        cachedAt: Date.now()
+      }));
+      return true;
     }
 
     // ===== Orders =====
@@ -329,6 +564,74 @@ const App = {
       }
     }
 
+    // ===== 库存 =====
+    async function loadInventory() {
+      const res = await callAdmin('inventoryList');
+      if (res.success) inventory.value = res.data || [];
+    }
+
+    async function adjustInventory(product) {
+      const input = prompt(`调整「${product.name}」总库存（正数入库，负数出库）`, '0');
+      if (input === null) return;
+      const quantity = Number(input);
+      if (!Number.isInteger(quantity) || quantity === 0) { showToast('请输入非零整数', 'error'); return; }
+      const reason = prompt('请输入库存调整原因', '人工盘点');
+      if (!reason) return;
+      const res = await callAdmin('adjustInventory', { productId: product._id, quantity, reason });
+      if (res.success) { showToast('库存已调整'); loadInventory(); }
+      else showToast(res.error || '调整失败', 'error');
+    }
+
+    // ===== 经营收支 =====
+    async function loadFinance() {
+      const res = await callAdmin('financeOverview');
+      if (res.success) finance.value = res.data || { daily: [] };
+    }
+
+    // ===== 分销邀请 =====
+    async function loadInvites() {
+      const res = await callAdmin('inviteList');
+      if (res.success) invites.value = res.data || [];
+    }
+
+    async function createInvite() {
+      const res = await callAdmin('createInvite', { name: inviteForm.name, phone: inviteForm.phone });
+      if (!res.success) { showToast(res.error || '邀请生成失败', 'error'); return; }
+      inviteForm.name = '';
+      inviteForm.phone = '';
+      await navigator.clipboard.writeText(res.invitePath).catch(() => {});
+      showToast('邀请路径已生成并复制');
+      loadInvites();
+    }
+
+    async function revokeInvite(invite) {
+      if (!confirm('确定撤销这条邀请？')) return;
+      const res = await callAdmin('revokeInvite', { id: invite._id });
+      if (res.success) { showToast('邀请已撤销'); loadInvites(); }
+      else showToast(res.error || '撤销失败', 'error');
+    }
+
+    // ===== 后台账号 =====
+    async function loadAccounts() {
+      const res = await callAdmin('accountList');
+      if (res.success) accounts.value = res.data || [];
+    }
+
+    async function createAccount() {
+      const res = await callAdmin('createAccount', { ...accountForm });
+      if (!res.success) { showToast(res.error || '账号创建失败', 'error'); return; }
+      Object.assign(accountForm, { username: '', displayName: '', role: 'operations', password: '' });
+      showToast('后台账号已创建');
+      loadAccounts();
+    }
+
+    async function toggleAccount(account) {
+      const status = account.status === 'active' ? 'disabled' : 'active';
+      const res = await callAdmin('updateAccount', { id: account._id, status });
+      if (res.success) loadAccounts();
+      else showToast(res.error || '账号更新失败', 'error');
+    }
+
     // ===== Messages =====
     async function loadMessageUsers() {
       const res = await callAdmin('messageUsers');
@@ -376,6 +679,12 @@ const App = {
       const res = await callAdmin('getSettings');
       if (res.success) {
         settings.value = res.settings;
+        const fr = (res.settings && res.settings.fullReduction) || {};
+        fullReduction.enabled = fr.enabled === true;
+        fullReduction.rules = (Array.isArray(fr.rules) ? fr.rules : []).map(rule => ({
+          thresholdYuan: (Number(rule.threshold) || 0) / 100,
+          discountYuan: (Number(rule.discount) || 0) / 100
+        }));
       }
     }
 
@@ -417,6 +726,42 @@ const App = {
       }
     }
 
+    // ===== 满减规则管理 =====
+    function addFullReductionRule() {
+      if (fullReduction.rules.length >= 5) {
+        showToast('最多 5 条规则', 'error');
+        return;
+      }
+      fullReduction.rules.push({ thresholdYuan: null, discountYuan: null });
+    }
+
+    function removeFullReductionRule(idx) {
+      fullReduction.rules.splice(idx, 1);
+    }
+
+    async function saveFullReduction() {
+      const rules = fullReduction.rules.map(rule => ({
+        threshold: Math.round((Number(rule.thresholdYuan) || 0) * 100),
+        discount: Math.round((Number(rule.discountYuan) || 0) * 100)
+      }));
+      if (fullReduction.enabled) {
+        const valid = rules.filter(r => r.threshold > 0 && r.discount > 0 && r.discount < r.threshold);
+        if (valid.length !== rules.length || valid.length === 0) {
+          showToast('每条规则需满足：门槛与优惠均为正数，且优惠小于门槛', 'error');
+          return;
+        }
+      }
+      const res = await callAdmin('setFullReduction', {
+        fullReduction: { enabled: fullReduction.enabled, rules }
+      });
+      if (res.success) {
+        showToast(res.message || '满减设置已保存');
+        loadSettings();
+      } else {
+        showToast(res.error || '保存失败', 'error');
+      }
+    }
+
     // ===== 佣金比例保存 =====
     async function saveCommissionRate() {
       const rate = settings.value.commissionRate;
@@ -433,6 +778,80 @@ const App = {
         showToast(res.message || '佣金比例已保存');
       } else {
         showToast(res.error || '保存失败', 'error');
+      }
+    }
+
+    async function previewMigration() {
+      migration.previewing = true;
+      const res = await callAdmin('migrationPreview');
+      migration.previewing = false;
+      if (res.success) {
+        migration.preview = res.data;
+        showToast('迁移预检完成');
+      } else {
+        showToast(res.error || '迁移预检失败', 'error');
+      }
+    }
+
+    async function runMigration() {
+      if (!migration.preview) {
+        showToast('请先执行迁移预检', 'error');
+        return;
+      }
+      const confirmed = confirm('将按预检结果更新线上数据。请确认已完成数据库备份，并继续执行 A/B/C V1 迁移。');
+      if (!confirmed) return;
+      migration.running = true;
+      const res = await callAdmin('runMigration', { confirm: 'MIGRATE_ABC_V1' });
+      migration.running = false;
+      if (res.success) {
+        const result = res.data || res.result || {};
+        showToast(`迁移完成：分销员 ${result.agents || 0}，商品 ${result.products || 0}，订单 ${result.orders || 0}`);
+        await previewMigration();
+      } else {
+        showToast(res.error || '迁移失败', 'error');
+      }
+    }
+
+    async function previewTransactionCleanup() {
+      transactionCleanup.previewing = true;
+      const res = await callAdmin('transactionCleanupPreview');
+      transactionCleanup.previewing = false;
+      if (res.success) {
+        transactionCleanup.preview = res.data;
+        transactionCleanup.confirmText = '';
+        showToast('测试交易数据预检完成');
+      } else {
+        showToast(res.error || '清理预检失败', 'error');
+      }
+    }
+
+    async function purgeTestTransactions() {
+      if (!transactionCleanup.preview) {
+        showToast('请先执行清理预检', 'error');
+        return;
+      }
+      if (transactionCleanup.confirmText !== '清空测试订单') {
+        showToast('请输入“清空测试订单”进行确认', 'error');
+        return;
+      }
+      const orderCount = Number(transactionCleanup.preview.orders) || 0;
+      const confirmed = confirm(`将永久删除 ${orderCount} 条订单及其关联交易数据，此操作不可恢复。确定继续吗？`);
+      if (!confirmed) return;
+      transactionCleanup.running = true;
+      const res = await callAdmin('purgeTestTransactions', {
+        confirm: 'PURGE_TEST_TRANSACTIONS',
+        expectedOrderCount: orderCount
+      });
+      transactionCleanup.running = false;
+      if (res.success) {
+        localStorage.removeItem('adminDashboardCache');
+        transactionCleanup.preview = null;
+        transactionCleanup.confirmText = '';
+        showToast(`已清理 ${orderCount} 条测试订单`);
+        await loadDashboard();
+      } else {
+        showToast(res.error || '清理失败', 'error');
+        await previewTransactionCleanup();
       }
     }
 
@@ -460,11 +879,11 @@ const App = {
     }
 
     async function approveAgent(agent, approve) {
-      const name = (agent.agentInfo && agent.agentInfo.name) || agent.nickName || '该代理';
-      if (!confirm(`确定${approve ? '通过' : '拒绝'}「${name}」的代理申请？`)) return;
+      const name = (agent.agentInfo && agent.agentInfo.name) || agent.nickName || '该分销员';
+      if (!confirm(`确定${approve ? '通过' : '拒绝'}「${name}」的分销员申请？`)) return;
       const res = await callAdmin('approveAgent', { userId: agent._id, approve });
       if (res.success) {
-        showToast(approve ? '已通过代理申请' : '已拒绝代理申请');
+        showToast(approve ? '已通过分销员申请' : '已拒绝分销员申请');
         loadAgents();
         loadDashboard();
       } else {
@@ -501,6 +920,9 @@ const App = {
       }
       if (wd.alipayInfo && wd.alipayInfo.account) {
         return `支付宝 ${wd.alipayInfo.account.slice(-4)}`;
+      }
+      if (wd.account) {
+        return `收款账号 ${wd.account}`;
       }
       return wd.method || '未填写';
     }
@@ -564,6 +986,8 @@ const App = {
       refundModal.data = rf;
       refundModal.approve = approve;
       refundModal.adminNote = '';
+      refundModal.returnReceived = rf.type !== 'return_refund';
+      refundModal.restock = rf.type === 'refund_only';
       refundModal.show = true;
     }
 
@@ -579,7 +1003,9 @@ const App = {
       const res = await callAdmin('processRefund', {
         refundId: refundModal.data._id,
         approve: refundModal.approve,
-        adminNote: refundModal.adminNote
+        adminNote: refundModal.adminNote,
+        returnReceived: refundModal.returnReceived,
+        restock: refundModal.restock
       });
       processingAction.value = false;
       if (res.success) {
@@ -593,17 +1019,36 @@ const App = {
     }
 
     // ===== 初始化 =====
-    onMounted(() => {
+    onMounted(async () => {
+      const loadingShell = document.getElementById('loading-shell');
+      if (loadingShell) loadingShell.remove();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
       if (isLoggedIn.value) {
-        ensureAnonymousLogin().then(() => loadDashboard());
+        const state = await auth.getLoginState().catch(() => null);
+        const validSession = state ? await loadDashboard() : false;
+        if (!validSession) {
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminAccount');
+          currentAccount.value = null;
+          isLoggedIn.value = false;
+          await auth.signOut().catch(() => {});
+          startQrLogin();
+        }
+      } else {
+        startQrLogin();
       }
+    });
+
+    onBeforeUnmount(() => {
+      stopQrTimers();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     });
 
     return {
       // 全局
-      isLoggedIn, loading, loginPassword, loginError, currentPage, pages, toast,
+      isLoggedIn, loading, loginError, qrLogin, currentPage, pages, toast, currentAccount,
       // dashboard
-      stats, recentOrders,
+      stats, recentOrders, finance, inventory, invites, inviteForm, accounts, accountForm,
       // orders
       orders, orderFilter, orderFilters, shipModal, orderDetailModal,
       // products
@@ -617,16 +1062,21 @@ const App = {
       // messages
       messageUsers, currentChatUser, currentChatUserName, chatMessages, replyText, chatBox,
       // settings
-      settings, pwdForm, newOpenId,
+      settings, pwdForm, newOpenId, migration, transactionCleanup,
       // methods
-      doLogin, logout, switchPage,
+      startQrLogin, logout, switchPage,
       loadDashboard, loadOrders, switchOrderFilter, openShipModal, confirmShip, viewOrder,
       loadProducts, openProductModal, saveProduct, toggleProduct, deleteProduct,
+      loadInventory, adjustInventory, loadFinance,
+      loadInvites, createInvite, revokeInvite,
+      loadAccounts, createAccount, toggleAccount,
       loadAgents, switchAgentFilter, approveAgent, agentStatusText, agentStatusClass,
       loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal,
       loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, openRefundModal, viewRefund, confirmRefund,
       loadMessageUsers, selectChatUser, sendReply,
       loadSettings, changePassword, addAdminOpenId, removeAdminOpenId, saveCommissionRate,
+      fullReduction, addFullReductionRule, removeFullReductionRule, saveFullReduction,
+      previewMigration, runMigration, previewTransactionCleanup, purgeTestTransactions,
       // utils
       formatPrice, formatTime, statusText, orderItemsText
     };

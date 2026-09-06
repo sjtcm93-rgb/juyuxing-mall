@@ -49,7 +49,8 @@ const getOrderStatusText = status => {
     received: '已收货',
     refunding: '退款中',
     refunded: '已退款',
-    cancelled: '已取消'
+    cancelled: '已取消',
+    closed: '已关闭'
   }
   return map[status] || '未知状态'
 }

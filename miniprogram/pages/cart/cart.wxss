@@ -139,3 +139,29 @@
 }
 .checkout-btn[disabled] { background: var(--color-text-disabled); }
 .checkout-btn::after { border: none; }
+
+/* 满减进度条（2026-09-03） */
+.cart-promotion {
+  margin: 20rpx 24rpx 0;
+  padding: 20rpx 24rpx;
+  background: var(--color-warm-soft);
+  border-radius: var(--radius-md);
+}
+.cart-promotion-tip {
+  font-size: 24rpx;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.cart-promotion-bar {
+  height: 10rpx;
+  background: rgba(232, 115, 12, 0.15);
+  border-radius: 5rpx;
+  margin-top: 14rpx;
+  overflow: hidden;
+}
+.cart-promotion-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-soft));
+  border-radius: 5rpx;
+  transition: width 0.3s;
+}

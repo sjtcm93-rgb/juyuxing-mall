@@ -22,4 +22,4 @@
 .sp-btn { flex:1; height:88rpx; line-height:88rpx; border-radius:44rpx; font-size:var(--fs-md); border:none; }
 .sp-btn::after { border:none; }
 .sp-btn-cart { background:#FFFFFF; color:var(--color-primary-dark); border:2rpx solid var(--color-primary); }
-.sp-btn-buy { background:linear-gradient(135deg, var(--color-primary), var(--color-primary-light)); color:#FFFFFF; }
+.sp-btn-buy { background:linear-gradient(135deg, var(--color-primary), var(--color-primary-bright)); color:#FFFFFF; }
