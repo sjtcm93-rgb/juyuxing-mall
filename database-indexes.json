@@ -72,7 +72,8 @@
       "indexes": [
         { "name": "refund_request_unique", "unique": true, "fields": [{ "name": "idempotencyKey", "direction": "asc" }] },
         { "name": "refund_user_time", "fields": [{ "name": "userId", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] },
-        { "name": "refund_status_time", "fields": [{ "name": "status", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] }
+        { "name": "refund_status_time", "fields": [{ "name": "status", "direction": "asc" }, { "name": "createTime", "direction": "desc" }] },
+        { "name": "refund_queue_time", "fields": [{ "name": "status", "direction": "asc" }, { "name": "processTime", "direction": "asc" }] }
       ]
     },
     {

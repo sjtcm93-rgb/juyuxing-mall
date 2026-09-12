@@ -11,7 +11,7 @@
     <view wx:elif="{{confirmed}}" class="state-block">
       <view class="state-icon success-icon">✓</view>
       <view class="state-title">登录已确认</view>
-      <view class="state-desc">电脑端将自动进入管理后台，现在可以关闭此页面。</view>
+      <view class="state-desc">电脑端将自动进入管理后台。如需处理已批准退款，请保留此页面。</view>
     </view>
 
     <view wx:elif="{{error}}" class="state-block">
@@ -39,5 +39,11 @@
     </view>
   </view>
 
+  <view wx:if="{{account && (account.role === 'owner' || account.role === 'finance')}}" class="auth-card">
+    <view class="state-title">已批准退款</view>
+    <view class="state-desc">仅处理后台已批准的申请。受理、超时或转人工均不等于退款成功。</view>
+    <button class="secondary-btn" bindtap="processRefundQueue" loading="{{processingRefunds}}" disabled="{{processingRefunds}}">处理并核对退款</button>
+    <view wx:if="{{refundResult}}" class="state-desc">{{refundResult}}</view>
+  </view>
   <view class="security-note">开发版 {{buildVersion}} · 扫码不会向电脑端展示你的微信 OpenID；绑定标识仅保存在当前手机剪贴板</view>
 </view>

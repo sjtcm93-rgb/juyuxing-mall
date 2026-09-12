@@ -188,14 +188,15 @@ Page({
       const res = await API.getRefundDetail(refundId, { silent: true });
       if (res && res.success && res.data) {
         const r = res.data;
-        const statusMap = { pending: '审核中', approved: '已同意', rejected: '已拒绝' };
+        const statusMap = { pending: '审核中', pending_auto: '已批准，等待执行', processing: '退款核对中',
+          channel_processing: '微信退款处理中', manual_review: '退款待商家核查', approved: '已退款', rejected: '已拒绝' };
         this.setData({
           refundDetail: {
             reason: r.reason || '',
             description: r.description || '',
             adminNote: r.adminNote || '',
             status: r.status,
-            statusText: statusMap[r.status] || r.status || '未知'
+            statusText: r.refundChannel === 'wechat_manual' ? '退款结果待商家核对' : (statusMap[r.status] || '处理中')
           }
         });
       }

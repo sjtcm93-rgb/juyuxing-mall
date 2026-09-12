@@ -85,4 +85,11 @@ page {
   /* primary-bright：品牌渐变浅端（与 primary 组成 135deg 渐变，白字） */
   --color-primary-bright: #FF9A3D;
   --color-secondary:      var(--color-leaf);
+
+  /* Approved homepage render palette; scoped consumers only. */
+  --color-showcase-primary: #FF4B0A;
+  --color-showcase-title: #00594F;
+  --color-showcase-sub: #677594;
+  --color-showcase-muted: #B7B4C5;
+  --color-showcase-bg: #FAF8F5;
 }

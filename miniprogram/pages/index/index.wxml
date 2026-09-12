@@ -56,15 +56,21 @@
     </block>
 
     <block wx:else>
-      <view class="product-grid">
+      <view class="product-grid {{products[0].name === '小紫瓶' ? 'product-grid-reference' : ''}}">
         <goods-card
           wx:for="{{products}}"
           wx:key="_id"
           wx:for-item="p"
           goods="{{p}}"
           mode="grid"
-          show-badge="{{index < 3}}"
-          badge-text="{{index === 0 ? '新品' : (index === 1 ? '热销' : '推荐')}}"
+          wide="{{true}}"
+          show-badge="{{true}}"
+          badge-text="{{index === 0 ? '纯草本配方更安心' : (index === 1 ? '热销推荐' : '安心好物')}}"
+          detail-text="{{index === 0 ? '用于全年龄段皮肤不适的舒缓' : ''}}"
+          action-text="立即购买"
+          display-image="{{p.name === '小紫瓶' ? '/images/product-xiaoziping-card.png' : ''}}"
+          dynamic="{{index === 0}}"
+          reference-art="{{p.name === '小紫瓶'}}"
           bind:click="onGoodsClick"
           bind:action="onGoodsAction"
         />

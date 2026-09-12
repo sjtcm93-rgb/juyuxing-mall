@@ -12,7 +12,7 @@
   </script>
   <title>橘与杏 管理后台</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=abc-v3">
+  <link rel="stylesheet" href="style.css?v=abc-v12">
   <script defer src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"></script>
   <script defer src="vendor/vue.global.prod.js"></script>
 </head>
@@ -413,6 +413,24 @@
       <!-- ===== 退款管理 ===== -->
       <div v-if="currentPage === 'refunds'" class="page-refunds">
         <h2 class="page-title">退款管理</h2>
+        <p class="refund-query-note">退款异常时请先查询微信结果，不要重复退款。查询不会修改订单、库存或账本。</p>
+        <p class="refund-query-note">审批通过不等于已退款。使用手机入口执行并核对，只有渠道确认成功才入账；旧的“人工处理”记录需核对商户平台，不能视为已到账。</p>
+        <button class="btn-default" @click="openRefundOperatorQr">打开手机退款入口</button>
+        <section v-if="refundOperatorQr.show" class="section-card refund-diagnostic">
+          <strong>店主 / 财务微信扫码</strong>
+          <p>扫码进入后台登录确认页，点击“处理并核对退款”。无需再次确认电脑登录；二维码过期请重新生成。</p>
+          <p v-if="refundOperatorQr.loading">正在生成二维码…</p>
+          <p v-if="refundOperatorQr.error" class="refund-error">{{ refundOperatorQr.error }}</p>
+          <img v-if="refundOperatorQr.image" :src="refundOperatorQr.image" class="qr-image" alt="手机退款操作入口" />
+          <button class="btn-sm btn-default" @click="openRefundOperatorQr" :disabled="refundOperatorQr.loading">重新生成</button>
+          <button class="btn-sm btn-default" @click="refundOperatorQr.show = false">收起</button>
+        </section>
+        <section v-for="(info, id) in refundDiagnostics" :key="id" class="section-card refund-diagnostic" aria-live="polite">
+          <strong>退款诊断 · {{ info.orderNo }}</strong>
+          <pre :class="{ 'refund-error': info.isError }">{{ info.text }}</pre>
+          <button class="btn-sm btn-default" @click="copyRefundDiagnostic(id)">复制诊断信息</button>
+          <span class="refund-query-note">本次页面会话保留，刷新前请复制保存。</span>
+        </section>
         <div class="filter-tabs">
           <button
             v-for="f in refundFilters"
@@ -430,6 +448,7 @@
                 <th>金额(元)</th>
                 <th>原因</th>
                 <th>状态</th>
+                <th>渠道</th>
                 <th>申请时间</th>
                 <th>操作</th>
               </tr>
@@ -440,7 +459,8 @@
                 <td class="td-products">{{ rf.order ? orderItemsText(rf.order) : '-' }}</td>
                 <td class="td-price">{{ formatPrice(rf.order && rf.order.totalFee) }}</td>
                 <td class="td-products">{{ rf.reason || '-' }}</td>
-                <td><span :class="['status-tag', refundStatusClass(rf.status)]">{{ refundStatusText(rf.status) }}</span></td>
+                <td><span :class="['status-tag', refundStatusClass(rf.status)]">{{ rf.refundChannel === 'wechat_manual' ? '历史人工记录待核账' : refundStatusText(rf.status) }}</span></td>
+                <td><span v-if="refundChannelLabel(rf)" :class="['status-tag', refundChannelClass(rf)]">{{ refundChannelLabel(rf) }}</span><span v-else>-</span></td>
                 <td class="td-time">{{ formatTime(rf.createTime) }}</td>
                 <td class="td-actions">
                   <template v-if="rf.status === 'pending'">
@@ -448,6 +468,9 @@
                     <button class="btn-sm btn-danger" @click="openRefundModal(rf, false)">拒绝</button>
                   </template>
                   <button v-else class="btn-sm btn-default" @click="viewRefund(rf)">详情</button>
+                  <button class="btn-sm btn-default" @click="queryRefundStatus(rf)" :disabled="!!queryingRefundId || processingAction">
+                    {{ queryingRefundId === rf._id ? '查询中…' : '查询微信退款（只读）' }}
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -476,8 +499,37 @@
             <h3 class="section-title">佣金比例</h3>
             <div class="form-group">
               <input v-model.number="settings.commissionRate" type="number" step="0.01" min="0" max="1" class="form-input" />
-              <p class="settings-hint">当前佣金比例：{{ Math.round((settings.commissionRate === undefined ? 0.15 : settings.commissionRate) * 100) }}%</p>
+              <p class="settings-hint">当前佣金比例：{{ Math.round((settings.commissionRate === undefined ? 0.33 : settings.commissionRate) * 100) }}%（输入 0.01~1，例如 0.33 表示 33%）</p>
               <button class="btn-primary" @click="saveCommissionRate" :disabled="settings.commissionRate === undefined || settings.commissionRate === null" style="margin-top: 12px;">保存佣金比例</button>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <h3 class="section-title">历史微信支付直连凭证（诊断用途）</h3>
+            <p class="settings-hint" v-if="settings.payApiDirect && settings.payApiDirect.configured">
+              已保留直连凭证{{ settings.payApiDirect.updateTime ? '（' + formatTime(settings.payApiDirect.updateTime) + '）' : '' }}。当前退款执行不使用此通道，请到退款管理使用手机入口处理。
+            </p>
+            <p class="settings-hint" v-else>
+              当前退款流程不要求上传直连证书，也不保证直连可以查询 CloudBase 服务商订单。仅在明确需要诊断时配置；不要为解决退款问题盲目上传密钥。
+            </p>
+            <div class="form-group">
+              <label>APIv2 密钥（32位）</label>
+              <input v-model.trim="payApiForm.apiV2Key" type="password" class="form-input" placeholder="商户平台 → 账户中心 → API安全 → APIv2密钥" maxlength="32" />
+              <label style="margin-top:10px;">商户 API 证书（apiclient_cert.p12）</label>
+              <input type="file" accept=".p12" @change="onPayCertFileChange" class="form-input" style="padding: 6px;" />
+              <p class="settings-hint" v-if="payApiForm.certFileName">已选择：{{ payApiForm.certFileName }}（{{ payApiForm.certSizeKB }} KB）</p>
+              <label style="margin-top:10px;">证书密码（默认为商户号，一般不用填）</label>
+              <input v-model.trim="payApiForm.certPassword" type="text" class="form-input" placeholder="留空则默认使用商户号" />
+              <button class="btn-primary" @click="savePayApiConfig" :disabled="savingPayApi || !payApiForm.apiV2Key || !payApiForm.certBase64" style="margin-top: 12px;">
+                {{ savingPayApi ? '保存中…' : '保存直连凭证' }}
+              </button>
+              <button v-if="settings.payApiDirect && settings.payApiDirect.configured" class="btn-danger" @click="clearPayApiConfig" :disabled="savingPayApi" style="margin-top: 12px; margin-left: 8px;">清除凭证</button>
+              <button v-if="settings.payApiDirect && settings.payApiDirect.configured" class="btn-default" @click="debugPayApi" :disabled="debuggingPayApi" style="margin-top: 12px; margin-left: 8px;">
+                {{ debuggingPayApi ? '诊断中…' : '🔧 一键诊断直连' }}
+              </button>
+              <div v-if="payApiDebug" class="refund-diagnostic" style="margin-top: 12px; text-align: left;">
+                <pre style="font-size: 12px; white-space: pre-wrap; word-break: break-all;">{{ payApiDebug }}</pre>
+              </div>
             </div>
           </div>
 
@@ -721,24 +773,39 @@
   <!-- ===== 退款处理弹窗 ===== -->
   <div v-if="refundModal.show" class="modal-overlay" @click.self="refundModal.show = false">
     <div class="modal-box">
-      <h3 class="modal-title">{{ refundModal.approve ? '同意退款' : '拒绝退款' }}</h3>
+      <h3 class="modal-title">{{ refundModal.readOnly ? '退款详情' : (refundModal.approve ? '同意退款' : '拒绝退款') }}</h3>
       <div class="order-detail" v-if="refundModal.data">
         <div class="detail-row"><span class="detail-label">订单号</span><span class="detail-value td-mono">{{ (refundModal.data.order && refundModal.data.order.orderNo) || refundModal.data.orderId }}</span></div>
         <div class="detail-row"><span class="detail-label">金额</span><span class="detail-value td-price">{{ formatPrice(refundModal.data.order && refundModal.data.order.totalFee) }} 元</span></div>
         <div class="detail-row"><span class="detail-label">原因</span><span class="detail-value">{{ refundModal.data.reason || '-' }}</span></div>
         <div class="detail-row" v-if="refundModal.data.description"><span class="detail-label">描述</span><span class="detail-value">{{ refundModal.data.description }}</span></div>
+        <div class="detail-row" v-if="refundModal.data.refundChannel"><span class="detail-label">退款渠道</span><span class="detail-value"><span :class="['status-tag', refundChannelClass(refundModal.data)]">{{ refundChannelLabel(refundModal.data) }}</span></span></div>
+      </div>
+      <div v-if="refundModal.data && refundModal.data.refundChannel === 'wechat_manual'" class="refund-manual-banner">
+        <strong>历史人工处理记录：不能据此确认已退款</strong>
+        <p>请先核对商户平台实际退款结果和本地账本，不要直接重复退款。这类历史记录不会自动改账。</p>
+      </div>
+      <div v-if="refundModal.data && refundModal.data.lastProcessError" class="refund-manual-banner">
+        <strong>最近一次处理结果</strong>
+        <p>{{ refundModal.data.lastProcessError }}</p>
       </div>
       <div class="form-group">
         <label>管理员备注（选填）</label>
         <input v-model="refundModal.adminNote" class="form-input" placeholder="处理说明" />
       </div>
-      <div class="form-group" v-if="refundModal.approve && refundModal.data && refundModal.data.type === 'return_refund'">
+      <div v-if="refundModal.data && refundDiagnostics[refundModal.data._id]" class="refund-diagnostic" aria-live="polite">
+        <pre>{{ refundDiagnostics[refundModal.data._id].text }}</pre>
+        <button class="btn-sm btn-default" @click="copyRefundDiagnostic(refundModal.data._id)">复制诊断信息</button>
+      </div>
+      <p class="refund-query-note">查询失败或暂未查到不代表退款失败。请勿为重现报错而再次退款。</p>
+      <div class="form-group" v-if="!refundModal.readOnly && refundModal.approve && refundModal.data && refundModal.data.type === 'return_refund'">
         <label><input type="checkbox" v-model="refundModal.returnReceived" /> 已确认收到退回商品</label>
         <label><input type="checkbox" v-model="refundModal.restock" /> 商品验收合格并回库存</label>
       </div>
       <div class="modal-actions">
         <button class="btn-default" @click="refundModal.show = false">取消</button>
-        <button :class="refundModal.approve ? 'btn-primary' : 'btn-danger'" @click="confirmRefund" :disabled="processingAction || (refundModal.approve && refundModal.data && refundModal.data.type === 'return_refund' && !refundModal.returnReceived)">
+        <button class="btn-default" @click="queryRefundStatus(refundModal.data)" :disabled="!!queryingRefundId || processingAction">{{ queryingRefundId ? '查询中…' : '只读查询退款' }}</button>
+        <button v-if="!refundModal.readOnly" :class="refundModal.approve ? 'btn-primary' : 'btn-danger'" @click="confirmRefund" :disabled="processingAction || !!queryingRefundId || (refundModal.approve && refundModal.data && refundModal.data.type === 'return_refund' && !refundModal.returnReceived)">
           {{ processingAction ? '处理中...' : (refundModal.approve ? '确认退款' : '确认拒绝') }}
         </button>
       </div>
@@ -750,6 +817,6 @@
 
 </div>
 
-  <script defer src="app.js?v=abc-v10"></script>
+  <script defer src="app.js?v=abc-v12"></script>
 </body>
 </html>

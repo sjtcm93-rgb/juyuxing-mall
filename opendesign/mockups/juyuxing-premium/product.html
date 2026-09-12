@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>橘与杏 · Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F1EB;
+  --bg-pale: #FAF7F2;
+  --bg-soft: #EFE9DF;
+  --surface: #FFFFFF;
+  --ink: #1F1B16;
+  --ink-soft: #3A332B;
+  --text-2: #7A6F62;
+  --text-3: #A89F92;
+  --line: #E8E2D8;
+  --line-soft: #F0EBE2;
+  --accent: #5C7868;
+  --accent-2: #B8845C;
+  --accent-3: #2D4A3E;
+  --serif: "Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;
+  --sans: "Inter","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  --track: 0.18em;
+  --radius-s: 2px;
+  --radius-m: 4px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+body {
+  font-family: var(--sans);
+  background: #E5DFD3;
+  color: var(--ink);
+  display:flex; justify-content:center; align-items:flex-start;
+  padding:32px 16px; min-height:100vh;
+}
+.phone {
+  width:390px; min-height:844px; background:var(--bg);
+  border-radius:46px;
+  box-shadow:0 30px 80px rgba(31,27,22,.22), 0 8px 24px rgba(31,27,22,.10);
+  overflow:hidden; position:relative; display:flex; flex-direction:column;
+}
+.statusbar { display:flex; justify-content:space-between; align-items:center; padding:18px 32px 6px; font-size:13px; font-weight:600; color:var(--ink); }
+.statusbar .right { display:flex; gap:6px; align-items:center; }
+.topnav { display:flex; align-items:center; justify-content:space-between; padding:8px 18px 16px; }
+.topnav .icon-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+.topnav .icon-btn svg { stroke:var(--ink); }
+.topnav .brand { font-family:var(--serif); font-size:16px; font-weight:500; letter-spacing:.18em; color:var(--ink); text-transform:uppercase; }
+.screen { overflow-y:auto; flex:1; scrollbar-width:none; }
+.screen::-webkit-scrollbar{display:none;}
+
+/* HERO ART */
+.hero-art {
+  margin:0 24px; height:460px; position:relative; overflow:hidden;
+  background:linear-gradient(160deg, #F0E9DA 0%, #E5DCC9 100%);
+  border-radius:var(--radius-m);
+}
+.hero-art::before {
+  content:""; position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(184,132,92,.14), transparent 55%),
+    radial-gradient(ellipse at 25% 75%, rgba(45,74,62,.10), transparent 55%);
+}
+.hero-art .seal {
+  position:absolute; top:18px; right:18px; z-index:3;
+  width:54px; height:54px; border-radius:50%;
+  border:1px solid var(--accent-3); color:var(--accent-3);
+  font-family:var(--serif); font-size:10px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(245,241,235,.85); backdrop-filter:blur(4px);
+  transform:rotate(-6deg); line-height:1.15; text-align:center; letter-spacing:.08em;
+}
+.hero-art .number-mark {
+  position:absolute; top:24px; left:24px;
+  font-family:var(--serif); font-size:13px; letter-spacing:.18em;
+  color:var(--accent-3);
+}
+.hero-art .gallery-dots {
+  position:absolute; bottom:18px; left:50%; transform:translateX(-50%);
+  display:flex; gap:6px; z-index:3;
+}
+.hero-art .gallery-dots .d {
+  width:5px; height:5px; border-radius:50%; background:rgba(31,27,22,.2);
+}
+.hero-art .gallery-dots .d.on { background:var(--ink); width:18px; border-radius:3px; }
+.hero-art .bottle { position:relative; z-index:2; }
+
+/* INFO */
+.info { padding:32px 28px 0; }
+.info .eyebrow-row { display:flex; align-items:center; gap:12px; }
+.info .eyebrow-row .eyebrow {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--accent-2); font-weight:500;
+  display:flex; align-items:center; gap:8px;
+}
+.info .eyebrow-row .eyebrow::before { content:""; width:18px; height:1px; background:var(--accent-2); }
+.info .eyebrow-row .stock {
+  font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--accent);
+}
+.info h1 {
+  font-family:var(--serif); font-size:36px; font-weight:400; line-height:1.15;
+  margin-top:14px; color:var(--ink); letter-spacing:-.01em;
+}
+.info h1 em { font-style:italic; color:var(--accent-3); font-weight:300; }
+.info .latin {
+  font-family:var(--serif); font-style:italic; font-size:13px;
+  color:var(--text-3); margin-top:6px; letter-spacing:.04em;
+}
+.info .desc {
+  font-size:13px; line-height:1.8; color:var(--text-2);
+  margin-top:18px; max-width:330px;
+}
+.info .price-row {
+  display:flex; align-items:baseline; justify-content:space-between;
+  margin-top:24px; padding-top:24px; border-top:1px solid var(--line);
+}
+.info .price-row .left { display:flex; align-items:baseline; gap:10px; }
+.info .price-row .pr {
+  font-family:var(--serif); font-size:34px; color:var(--ink); font-weight:400;
+}
+.info .price-row .pr small { font-size:14px; color:var(--text-2); vertical-align:top; margin-right:2px; }
+.info .price-row .original {
+  font-family:var(--serif); font-size:16px; color:var(--text-3);
+  text-decoration:line-through;
+}
+.info .price-row .vol {
+  font-size:10px; color:var(--text-3); letter-spacing:.18em; text-transform:uppercase;
+}
+
+/* SPEC */
+.spec {
+  margin:32px 28px 0; padding:20px 0;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+.spec .row { display:flex; align-items:center; justify-content:space-between; }
+.spec .row + .row { margin-top:14px; }
+.spec .label {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3); font-weight:500; width:80px;
+}
+.spec .chips { display:flex; gap:6px; flex:1; flex-wrap:wrap; }
+.spec .chip {
+  padding:8px 14px; font-size:11px; letter-spacing:.04em;
+  border:1px solid var(--line); border-radius:var(--radius-s);
+  color:var(--ink); background:transparent;
+}
+.spec .chip.on { background:var(--ink); color:#FAF7F2; border-color:var(--ink); }
+.spec .qty { display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:var(--radius-s); }
+.spec .qty .b {
+  width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  color:var(--ink); font-size:14px;
+}
+.spec .qty .v { width:36px; text-align:center; font-family:var(--serif); font-size:14px; color:var(--ink); }
+
+/* INGREDIENTS */
+.ing { margin:40px 28px 0; }
+.ing .head {
+  display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:18px;
+}
+.ing .head .eyebrow {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--accent-2); font-weight:500;
+}
+.ing .head h2 {
+  font-family:var(--serif); font-size:24px; font-weight:400; color:var(--ink);
+  margin-top:6px;
+}
+.ing .head h2 em { font-style:italic; color:var(--accent-3); }
+.ing .head .num {
+  font-family:var(--serif); font-size:11px; color:var(--text-3); letter-spacing:.18em;
+}
+.ing .list { display:flex; flex-direction:column; }
+.ing .list .item {
+  display:flex; align-items:flex-start; gap:16px; padding:18px 0;
+  border-top:1px solid var(--line);
+}
+.ing .list .item:last-child { border-bottom:1px solid var(--line); }
+.ing .list .item .dot {
+  width:8px; height:8px; border-radius:50%; background:var(--accent-3);
+  margin-top:6px; flex-shrink:0;
+}
+.ing .list .item .text .nm {
+  font-family:var(--serif); font-size:17px; color:var(--ink); font-weight:500;
+}
+.ing .list .item .text .nm em { font-style:italic; color:var(--accent-3); font-weight:400; }
+.ing .list .item .text .latin {
+  font-family:var(--serif); font-style:italic; font-size:11px;
+  color:var(--text-3); margin-top:2px;
+}
+.ing .list .item .text .ds {
+  font-size:12px; color:var(--text-2); line-height:1.7; margin-top:6px;
+}
+
+/* USAGE */
+.use { margin:40px 28px 0; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); text-align:center; }
+.use .mark {
+  font-family:var(--serif); font-size:10px; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--accent-2);
+}
+.use h3 {
+  font-family:var(--serif); font-size:28px; font-weight:300; color:var(--ink);
+  margin-top:14px; line-height:1.2;
+}
+.use h3 em { font-style:italic; color:var(--accent-3); }
+.use p {
+  font-size:12.5px; line-height:1.85; color:var(--text-2);
+  margin:14px auto 0; max-width:300px;
+}
+.use .steps {
+  display:flex; justify-content:center; gap:32px; margin-top:28px;
+}
+.use .steps .st { text-align:center; }
+.use .steps .st .num {
+  font-family:var(--serif); font-size:24px; font-style:italic; color:var(--accent-3);
+  font-weight:300;
+}
+.use .steps .st .lb {
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3); margin-top:4px;
+}
+
+/* TABBAR */
+.tabbar {
+  display:flex; justify-content:space-around; padding:14px 0 28px;
+  background:rgba(245,241,235,.96); backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);
+}
+.tabbar .tab {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3);
+}
+.tabbar .tab.active { color:var(--ink); }
+.tabbar .tab svg { stroke:currentColor; }
+.tabbar .tab .dot { width:4px; height:4px; border-radius:50%; background:var(--accent-2); margin-top:2px; }
+
+/* BOTTOM CTA */
+.cta {
+  position:absolute; left:0; right:0; bottom:0; z-index:5;
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px 22px;
+  background:rgba(245,241,235,.98); backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+}
+.cta .icon-stack { display:flex; gap:14px; padding:0 6px; }
+.cta .icon-stack .ic { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.cta .icon-stack .ic span { font-size:8.5px; letter-spacing:var(--track); text-transform:uppercase; color:var(--text-3); }
+.cta .icon-stack .ic svg { stroke:var(--ink); }
+.cta .btn-cart {
+  flex:1; padding:14px 0; background:transparent; border:1px solid var(--ink);
+  font-size:11px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--ink); border-radius:var(--radius-s); font-weight:500;
+}
+.cta .btn-buy {
+  flex:1.2; padding:14px 0; background:var(--ink); border:none;
+  font-size:11px; letter-spacing:var(--track); text-transform:uppercase;
+  color:#FAF7F2; border-radius:var(--radius-s); font-weight:500;
+}
+</style>
+</head>
+<body>
+<div class="phone" style="position:relative;">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="16" height="10" viewBox="0 0 16 10"><path d="M1 8h2M5 6h2M9 4h2M13 2h2" stroke="currentColor" stroke-width="1.2"/></svg>
+      <svg width="14" height="10" viewBox="0 0 14 10"><path d="M1 4h12" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2.5" fill="currentColor"/></svg>
+    </span>
+  </div>
+  <div class="topnav">
+    <span class="icon-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.4"><path d="M15 6l-6 6 6 6"/></svg>
+    </span>
+    <div class="brand">N° 01 · 草本精华</div>
+    <span class="icon-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.4"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><path d="M6 8a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v3a3 3 0 0 1-3 3H9a3 3 0 0 0-3 3"/></svg>
+    </span>
+  </div>
+  <div class="screen">
+    <div class="hero-art">
+      <span class="number-mark">N° 01</span>
+      <div class="seal">est.<br>2014</div>
+      <svg class="leaves" style="position:absolute;bottom:-10px;left:-10px;z-index:1;" width="120" height="120" viewBox="0 0 120 120" opacity=".7">
+        <path d="M30 110 Q15 60 5 10" stroke="#5C7868" stroke-width=".6" fill="none"/>
+        <ellipse cx="22" cy="80" rx="10" ry="16" fill="#8BA888" opacity=".6" transform="rotate(-30 22 80)"/>
+        <ellipse cx="14" cy="40" rx="8" ry="13" fill="#B5C9B0" opacity=".7" transform="rotate(-60 14 40)"/>
+      </svg>
+      <svg class="bottle" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);" width="170" height="320" viewBox="0 0 120 240">
+        <defs>
+          <linearGradient id="bgg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FAF7F2"/><stop offset=".5" stop-color="#EFE3D2"/><stop offset="1" stop-color="#B8845C"/>
+          </linearGradient>
+        </defs>
+        <rect x="48" y="6" width="24" height="14" fill="#2D4A3E" rx="2"/>
+        <path d="M50 20 Q40 30 40 50 L40 220 Q40 230 50 230 L70 230 Q80 230 80 220 L80 50 Q80 30 70 20 Z" fill="url(#bgg)" stroke="#2D4A3E" stroke-width="1"/>
+        <rect x="42" y="80" width="36" height="100" fill="#FAF7F2" opacity=".96"/>
+        <text x="60" y="115" font-family="Cormorant Garamond, serif" font-size="14" text-anchor="middle" fill="#2D4A3E" font-style="italic">橘与杏</text>
+        <text x="60" y="135" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#7A6F62" letter-spacing="2">JǓ YǓ XÌNG</text>
+        <line x1="48" y1="148" x2="72" y2="148" stroke="#B8845C" stroke-width=".5"/>
+        <text x="60" y="160" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#3A332B" letter-spacing="1.5">THE SERUM</text>
+        <text x="60" y="172" font-family="Inter, sans-serif" font-size="4" text-anchor="middle" fill="#7A6F62">N° 01 · 30 ml</text>
+      </svg>
+      <div class="gallery-dots">
+        <span class="d on"></span><span class="d"></span><span class="d"></span><span class="d"></span>
+      </div>
+    </div>
+
+    <div class="info">
+      <div class="eyebrow-row">
+        <span class="eyebrow">The Signature</span>
+        <span class="stock">· 现货</span>
+      </div>
+      <h1>小紫瓶 <em>·</em><br>草本精华液</h1>
+      <div class="latin">Lithospermum · Coptis · Lonicera</div>
+      <p class="desc">紫草、黄连、金银花三味古方，配以现代低温萃取工艺。日夜修护，舒缓泛红，温和有度。</p>
+      <div class="price-row">
+        <div class="left">
+          <span class="pr"><small>¥</small>248</span>
+          <span class="original">¥328</span>
+        </div>
+        <span class="vol">30 ML · N° 01</span>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="row">
+        <span class="label">规格</span>
+        <div class="chips">
+          <span class="chip on">30 ml</span>
+          <span class="chip">50 ml</span>
+        </div>
+      </div>
+      <div class="row">
+        <span class="label">数量</span>
+        <div class="qty">
+          <span class="b">−</span>
+          <span class="v">1</span>
+          <span class="b">+</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="ing">
+      <div class="head">
+        <div>
+          <div class="eyebrow">The Composition</div>
+          <h2>三味 <em>古方</em></h2>
+        </div>
+        <span class="num">— 03 / 03</span>
+      </div>
+      <div class="list">
+        <div class="item">
+          <span class="dot"></span>
+          <div class="text">
+            <div class="nm">紫草 <em>Lithospermum</em></div>
+            <div class="latin">Radix Arnebiae</div>
+            <div class="ds">凉血活血，古方用于舒缓泛红与不适。</div>
+          </div>
+        </div>
+        <div class="item">
+          <span class="dot"></span>
+          <div class="text">
+            <div class="nm">黄连 <em>Coptis</em></div>
+            <div class="latin">Rhizoma Coptidis</div>
+            <div class="ds">清热燥湿，平衡皮脂，修护日间损伤。</div>
+          </div>
+        </div>
+        <div class="item">
+          <span class="dot"></span>
+          <div class="text">
+            <div class="nm">金银花 <em>Lonicera</em></div>
+            <div class="latin">Flos Lonicerae</div>
+            <div class="ds">清热解毒，温和不刺激，敏感期亦可。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="use">
+      <div class="mark">· THE RITUAL ·</div>
+      <h3>三步 <em>回归平衡</em></h3>
+      <p>洁面后取 3-5 滴于掌心，按压面部至吸收。早晚使用，搭配柔肤水与面霜效果更佳。</p>
+      <div class="steps">
+        <div class="st"><div class="num">I</div><div class="lb">Cleansing</div></div>
+        <div class="st"><div class="num">II</div><div class="lb">Tonifying</div></div>
+        <div class="st"><div class="num">III</div><div class="lb">Nourishing</div></div>
+      </div>
+    </section>
+
+    <div style="height:120px;"></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-9z"/></svg>
+      Home
+    </div>
+    <div class="tab active">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      Discover
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M5 7h14l-1.4 11.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+      Bag · 2
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+      Account
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="icon-stack">
+      <div class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.6z"/></svg>
+        <span>Save</span>
+      </div>
+      <div class="ic">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M5 7h14l-1.4 11.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+        <span>Bag</span>
+      </div>
+    </div>
+    <button class="btn-cart">加入购物袋</button>
+    <button class="btn-buy">立即购买</button>
+  </div>
+</div>
+</body>
+</html>

@@ -15,9 +15,9 @@ async function getCommissionRate() {
     if (cfgRes && cfgRes.data && typeof cfgRes.data.commissionRate === 'number') return cfgRes.data.commissionRate;
     const adminRes = await db.collection('admin_config').doc('admin').get().catch(() => null);
     const cfg = (adminRes && adminRes.data) || {};
-    return typeof cfg.commissionRate === 'number' ? cfg.commissionRate : 0.15;
+    return typeof cfg.commissionRate === 'number' ? cfg.commissionRate : 0.33;
   } catch (e) {
-    return 0.15;
+    return 0.33;
   }
 }
 // 模拟支付是高风险开发能力，必须同时满足数据库开关与云函数环境变量。
@@ -38,7 +38,9 @@ async function resolvePaymentConfig() {
 }
 
 exports.main = async (event, context) => {
-  const { OPENID } = cloud.getWXContext();
+  const ctx = cloud.getWXContext();
+  const OPENID = ctx.OPENID || '';
+  if (!OPENID) return { success: false, error: '缺少可信微信身份，请从小程序重新登录' };
 
   switch (event.action) {
     case 'request': {

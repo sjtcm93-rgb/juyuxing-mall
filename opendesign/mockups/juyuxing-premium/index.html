@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>橘与杏 · Apothecary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #E8E1D4; --bg-2: #DCD3BF; --ink: #1F1B16; --ink-soft: #3A332B;
+  --text-2: #7A6F62; --text-3: #A89F92; --line: #C4BBA9;
+  --accent: #5C7868; --accent-2: #B8845C; --accent-3: #2D4A3E;
+  --serif: "Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;
+  --sans: "Inter","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  --track: 0.18em;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+body {
+  font-family: var(--sans); background: var(--bg);
+  color: var(--ink); padding:60px 40px; min-height:100vh;
+}
+.wrap { max-width:2400px; margin:0 auto; }
+
+/* HEADER */
+.head {
+  text-align:center; margin-bottom:80px; position:relative;
+}
+.head .mark {
+  font-family:var(--serif); font-size:11px; letter-spacing:.4em;
+  text-transform:uppercase; color:var(--accent-2);
+}
+.head .mark::before, .head .mark::after {
+  content:""; display:inline-block; width:36px; height:1px;
+  background:var(--accent-2); vertical-align:middle; margin:0 16px;
+}
+.head h1 {
+  font-family:var(--serif); font-size:96px; font-weight:300;
+  letter-spacing:-.02em; color:var(--ink); margin-top:18px; line-height:1;
+}
+.head h1 em { font-style:italic; color:var(--accent-3); font-weight:300; }
+.head .sub {
+  font-size:14px; color:var(--text-2); margin-top:18px; letter-spacing:.04em;
+  max-width:600px; margin-left:auto; margin-right:auto; line-height:1.7;
+}
+.head .meta {
+  display:flex; justify-content:center; gap:32px; margin-top:32px;
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3);
+}
+.head .meta span b { font-family:var(--serif); font-weight:500; color:var(--ink); font-size:14px; letter-spacing:0; margin-right:6px; font-style:italic; }
+
+/* GRID */
+.grid {
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:32px;
+}
+.frame {
+  display:flex; flex-direction:column; align-items:center;
+}
+.frame .label {
+  margin-bottom:18px; text-align:center;
+}
+.frame .label .num {
+  font-family:var(--serif); font-style:italic; font-size:11px;
+  color:var(--accent-3); letter-spacing:.18em;
+}
+.frame .label .nm {
+  font-family:var(--serif); font-size:22px; font-weight:400;
+  color:var(--ink); margin-top:4px; letter-spacing:.04em;
+}
+.frame .label .sub {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3); margin-top:6px;
+}
+.phone-frame {
+  width:100%; max-width:390px; aspect-ratio:390/844; background:var(--bg);
+  border-radius:46px;
+  box-shadow:0 40px 100px rgba(31,27,22,.28), 0 12px 32px rgba(31,27,22,.14);
+  overflow:hidden;
+  transform:scale(0.92); transform-origin:top center;
+  position:relative;
+}
+.phone-frame .ph-cover {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+}
+.phone-frame iframe {
+  width:100%; height:100%; border:none;
+  display:block;
+}
+
+/* FOOTER */
+.foot {
+  margin-top:80px; padding-top:40px; border-top:1px solid var(--line);
+  text-align:center;
+}
+.foot p {
+  font-family:var(--serif); font-style:italic; font-size:14px;
+  color:var(--text-2); letter-spacing:.04em;
+}
+.foot .meta { font-size:10px; letter-spacing:var(--track); text-transform:uppercase; color:var(--text-3); margin-top:10px; }
+
+/* RESPONSIVE */
+@media (max-width: 1900px) {
+  .grid { grid-template-columns:repeat(3, 1fr); }
+  .grid .frame:nth-child(4), .grid .frame:nth-child(5) { grid-column:span 1; }
+}
+@media (max-width: 1200px) {
+  .grid { grid-template-columns:repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .grid { grid-template-columns:1fr; }
+  body { padding:40px 20px; }
+  .head h1 { font-size:64px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div class="mark">A modern apothecary</div>
+    <h1>橘 与 杏 <em>apothecary</em></h1>
+    <p class="sub">A high-end herbal skincare studio, rooted in Chinese medicine and quiet ritual.<br>Five screens — one cohesive design language, drawn from Aesop and Le Labo.</p>
+    <div class="meta">
+      <span><b>05</b>Screens</span>
+      <span><b>02</b>Typefaces</span>
+      <span><b>07</b>Tokens</span>
+      <span><b>390 × 844</b>Phone</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="frame">
+      <div class="label">
+        <div class="num">N° 01</div>
+        <div class="nm">Home</div>
+        <div class="sub">Index · Editorial</div>
+      </div>
+      <div class="phone-frame">
+        <iframe src="home.html"></iframe>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="label">
+        <div class="num">N° 02</div>
+        <div class="nm">Product</div>
+        <div class="sub">Detail · Ritual</div>
+      </div>
+      <div class="phone-frame">
+        <iframe src="product.html"></iframe>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="label">
+        <div class="num">N° 03</div>
+        <div class="nm">Discover</div>
+        <div class="sub">Category</div>
+      </div>
+      <div class="phone-frame">
+        <iframe src="category.html"></iframe>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="label">
+        <div class="num">N° 04</div>
+        <div class="nm">Bag</div>
+        <div class="sub">Cart · Checkout</div>
+      </div>
+      <div class="phone-frame">
+        <iframe src="cart.html"></iframe>
+      </div>
+    </div>
+
+    <div class="frame">
+      <div class="label">
+        <div class="num">N° 05</div>
+        <div class="nm">Account</div>
+        <div class="sub">Member</div>
+      </div>
+      <div class="phone-frame">
+        <iframe src="user.html"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p>"Quiet rituals, rooted in Chinese herbs."</p>
+    <div class="meta">© 2026 · 橘与杏 · All rights reserved</div>
+  </footer>
+</div>
+</body>
+</html>

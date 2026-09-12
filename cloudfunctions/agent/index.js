@@ -174,6 +174,12 @@ exports.main = async (event) => {
         return { success: true, data };
       }
 
+      case 'bootstrap': {
+        // [已下线] 原「自助激活分销员」测试后门已于 2026-09-08 移除。
+        // 唯一开通途径：后台生成一次性邀请，分销员在 bind 页 claimInvite。
+        return { success: false, error: '该入口已关闭，请通过正规途径申请分销员' };
+      }
+
       default:
         return { success: false, error: 'unknown action' };
     }

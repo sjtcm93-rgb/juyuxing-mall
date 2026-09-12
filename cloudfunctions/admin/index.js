@@ -1,6 +1,12 @@
+'use strict';
+
 const cloud = require('wx-server-sdk');
+const { queryRefundStatus } = require('./refund-query');
+const { applyRefundEffects } = require('./refund-effects');
+const { loadPayApiConfig, directOrderQuery } = require('./wxpay-direct');
 const crypto = require('crypto');
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
+const APP_ID = 'wx6e685f787f1cd099';
 cloud.init({ env: ENV_ID });
 const db = cloud.database();
 const _ = db.command;
@@ -24,7 +30,7 @@ const ROLE_PERMISSIONS = {
     'messageUsers', 'messageHistory', 'adminReply', 'getSettings', 'setFullReduction', 'changePassword', 'logout'
   ],
   finance: [
-    'checkAdmin', 'me', 'dashboard', 'orderList', 'refundList', 'processRefund',
+    'checkAdmin', 'me', 'dashboard', 'orderList', 'refundList', 'processRefund', 'queryRefundStatus',
     'withdrawalList', 'processWithdrawal', 'financeOverview', 'getSettings', 'changePassword', 'logout'
   ]
 };
@@ -94,83 +100,6 @@ async function generateReferralCode() {
     if (exists.total === 0) return code;
   }
   throw new Error('推广码生成失败');
-}
-
-async function applyRefundEffects(order, refund, shouldRestock) {
-  return withTransaction(async transaction => {
-    const latestOrderRes = await transaction.collection('orders').doc(order._id).get();
-    const latestOrder = latestOrderRes.data;
-    if (!latestOrder) throw new Error('关联订单不存在');
-
-    const refundKey = 'refund:' + latestOrder._id;
-    const cashflowExists = await transaction.collection('cashflow_entries')
-      .where({ idempotencyKey: refundKey })
-      .count();
-    if (cashflowExists.total === 0) {
-      await transaction.collection('cashflow_entries').add({ data: {
-        idempotencyKey: refundKey, type: 'refund', direction: 'out', amount: Number(latestOrder.totalFee) || 0,
-        orderId: latestOrder._id, orderNo: latestOrder.orderNo, refundId: refund._id,
-        source: latestOrder.paymentSource || 'payment', status: 'posted', createTime: db.serverDate()
-      } });
-    }
-
-    let hasPaidCommission = false;
-    if (latestOrder.agentId) {
-      const commissions = await transaction.collection('commissions').where({ orderId: latestOrder._id }).get();
-      for (const commission of commissions.data || []) {
-        if (commission.type === 'reversal') continue;
-        if (commission.status === 'frozen' || commission.status === 'settled') {
-          await transaction.collection('commissions').doc(commission._id).update({
-            data: { status: 'cancelled', cancelReason: 'order_refund', cancelTime: db.serverDate() }
-          });
-        } else if (commission.status === 'paid') {
-          hasPaidCommission = true;
-          const reversalKey = `commission_refund:${refund._id}:${commission._id}`;
-          const exists = await transaction.collection('commissions').where({ idempotencyKey: reversalKey }).count();
-          if (exists.total === 0) {
-            await transaction.collection('commissions').add({ data: {
-              idempotencyKey: reversalKey, type: 'reversal', agentId: commission.agentId,
-              orderId: latestOrder._id, orderNo: latestOrder.orderNo,
-              amount: -Math.abs(Number(commission.amount) || 0), rate: commission.rate || 0,
-              status: 'settled', createTime: db.serverDate(), settleTime: db.serverDate(),
-              source: 'refund', sourceCommissionId: commission._id
-            } });
-          }
-        }
-      }
-    }
-
-    const restockNow = shouldRestock && !latestOrder.inventoryRefunded;
-    if (restockNow) {
-      for (const item of latestOrder.items || []) {
-        const productRes = await transaction.collection('products').doc(item.productId).get().catch(() => null);
-        const product = productRes && productRes.data;
-        if (!product) continue;
-        const quantity = Number(item.quantity) || 0;
-        const specs = Array.isArray(product.specs) ? product.specs.map(spec => ({ ...spec })) : [];
-        const index = specs.findIndex(spec => spec.name === item.spec);
-        if (index >= 0) specs[index].stock = (Number(specs[index].stock) || 0) + quantity;
-        await transaction.collection('products').doc(product._id).update({ data: {
-          stock: (Number(product.stock) || 0) + quantity,
-          sales: Math.max(0, (Number(product.sales) || 0) - quantity),
-          specs, updateTime: db.serverDate()
-        } });
-        await transaction.collection('inventory_adjustments').add({ data: {
-          productId: product._id, productName: product.name, spec: item.spec || '', quantity,
-          beforeStock: Number(product.stock) || 0, afterStock: (Number(product.stock) || 0) + quantity,
-          reason: '售后退款回库', orderId: latestOrder._id, operatorId: 'refund:' + refund._id,
-          createTime: db.serverDate()
-        } });
-      }
-    }
-
-    await transaction.collection('orders').doc(latestOrder._id).update({ data: {
-      status: 'refunded',
-      commissionStatus: latestOrder.agentId ? (hasPaidCommission ? 'reversed' : 'cancelled') : 'none',
-      inventoryRefunded: !!(latestOrder.inventoryRefunded || shouldRestock),
-      refundTime: db.serverDate(), updateTime: db.serverDate()
-    } });
-  });
 }
 
 function createOutRefundNo(refundId) {
@@ -640,7 +569,7 @@ exports.main = async (event, context) => {
         listQueryDocuments('orders', { status: _.in(['paid', 'shipped', 'received']) }),
         db.collection('users').where({ 'agentInfo.status': 'pending' }).count().catch(() => ({ total: 0 })),
         db.collection('withdrawals').where({ status: 'pending' }).count().catch(() => ({ total: 0 })),
-        db.collection('refunds').where({ status: 'pending' }).count().catch(() => ({ total: 0 })),
+        db.collection('refunds').where({ status: _.in(['pending', 'pending_auto', 'processing', 'channel_processing', 'manual_review']) }).count().catch(() => ({ total: 0 })),
         db.collection('orders').orderBy('createTime', 'desc').limit(10).get().catch(() => ({ data: [] }))
       ]);
 
@@ -851,11 +780,17 @@ exports.main = async (event, context) => {
       }
     }
 
+    case 'queryRefundStatus':
+      return queryRefundStatus(cloud, db, event.refundId);
+
     case 'refundList': {
       // 获取退款列表，支持状态筛选
       const statusFilter = event.statusFilter || 'pending';
       let query = {};
-      if (statusFilter !== 'all') {
+      if (statusFilter === 'pending') {
+        // 未完成退款始终保留在待处理列表。
+        query.status = _.in(['pending', 'pending_auto', 'processing', 'channel_processing', 'manual_review']);
+      } else if (statusFilter !== 'all') {
         query.status = statusFilter;
       }
       const res = await db.collection('refunds')
@@ -875,6 +810,8 @@ exports.main = async (event, context) => {
     case 'processRefund': {
       // 处理退款申请（通过/拒绝）
       const { refundId, approve, adminNote } = event;
+      if (typeof approve !== 'boolean' || typeof refundId !== 'string' || !refundId.trim()) return { success: false, error: '退款参数无效' };
+      if (typeof db.runTransaction !== 'function') return { success: false, error: '退款需要数据库事务支持' };
       const rfRes = await db.collection('refunds').doc(refundId).get();
       const rf = rfRes.data;
       if (!rf) return { success: false, error: '退款记录不存在' };
@@ -884,7 +821,7 @@ exports.main = async (event, context) => {
       if (rf.status !== 'pending') return { success: false, error: '该退款申请已处理' };
 
       if (!approve) {
-        return withTransaction(async transaction => {
+        return await withTransaction(async transaction => {
           const latestRefundRes = await transaction.collection('refunds').doc(refundId).get();
           const latestRefund = latestRefundRes.data;
           if (!latestRefund) return { success: false, error: '退款记录不存在' };
@@ -905,6 +842,7 @@ exports.main = async (event, context) => {
       const orderRes = await db.collection('orders').doc(rf.orderId).get().catch(() => null);
       const order = orderRes && orderRes.data;
       if (!order) return { success: false, error: '关联订单不存在' };
+      if (!['refund_only', 'return_refund'].includes(rf.type)) return { success: false, error: '退款类型无效，请核对售后单' };
       if (rf.type === 'return_refund' && !event.returnReceived) {
         return { success: false, error: '退货退款必须先确认已收到退回商品' };
       }
@@ -918,59 +856,44 @@ exports.main = async (event, context) => {
         };
       }
 
-      if (isMockPayment) {
-        await applyRefundEffects(order, rf, shouldRestock);
-        await db.collection('refunds').doc(refundId).update({ data: {
-          status: 'approved', adminNote: adminNote || '', refundChannel: 'mock',
-          returnStatus: rf.type === 'return_refund' ? 'received' : rf.returnStatus,
-          restock: shouldRestock, refundTime: db.serverDate(), processTime: db.serverDate()
-        } });
-        return { success: true, message: '模拟支付退款已完成（无真实资金）' };
-      }
-
       let subMchId = '';
-      try {
+      if (!isMockPayment) {
         const payConfig = await db.collection('pay_config').doc('default').get();
         subMchId = String((payConfig.data && payConfig.data.subMchId) || '').trim();
-      } catch (e) {}
-      if (!subMchId) return { success: false, error: '微信支付商户号未配置，无法发起退款' };
-
-      // 退款单号固定，网络重试不会创建第二笔退款。
-      const outRefundNo = createOutRefundNo(refundId);
-      try {
-        const refundRes = await cloud.cloudPay.refund({
-          subMchId,
-          outTradeNo: order.orderNo,
-          outRefundNo,
-          totalFee: order.totalFee,
-          refundFee: order.totalFee,
-          envId: ENV_ID,
-          functionName: 'payNotify'
-        });
-
-        if (refundRes.returnCode === 'SUCCESS' && refundRes.refundId) {
-          await applyRefundEffects(order, rf, shouldRestock);
-          await db.collection('refunds').doc(refundId).update({
-            data: {
-              status: 'approved',
-              adminNote: adminNote || '',
-              refundId: refundRes.refundId,
-              outRefundNo,
-              refundChannel: 'wechat',
-              returnStatus: rf.type === 'return_refund' ? 'received' : rf.returnStatus,
-              restock: shouldRestock,
-              refundTime: db.serverDate(),
-              processTime: db.serverDate()
-            }
-          });
-          return { success: true, message: '退款已发起，资金将原路退回' };
-        }
-        console.error('退款失败:', refundRes);
-        return { success: false, error: '退款失败: ' + (refundRes.returnMsg || refundRes.errCodeDes || '未知错误') };
-      } catch (refundErr) {
-        console.error('退款异常:', refundErr);
-        return { success: false, error: '退款接口异常: ' + (refundErr.errMsg || refundErr.message || '请稍后重试') };
+        if (!subMchId) return { success: false, error: '微信支付商户号未配置，无法发起退款' };
       }
+      // Approval, rejection and mock completion compete within the same transaction.
+      return await db.runTransaction(async transaction => {
+        const latestRefund = (await transaction.collection('refunds').doc(refundId).get()).data;
+        if (!latestRefund || latestRefund.status !== 'pending') {
+          return { success: false, error: '该退款申请已处理，请刷新状态' };
+        }
+        const latestOrder = (await transaction.collection('orders').doc(latestRefund.orderId).get()).data;
+        if (!latestOrder || latestOrder.status !== 'refunding' ||
+            (latestOrder.refundId && latestOrder.refundId !== refundId) ||
+            latestOrder.totalFee !== order.totalFee || latestOrder.transactionId !== order.transactionId) {
+          return { success: false, error: '订单状态已变化，请重新核对' };
+        }
+        if (!Number.isSafeInteger(latestOrder.totalFee) || latestOrder.totalFee <= 0) {
+          return { success: false, error: '订单金额无效' };
+        }
+        const data = {
+          status: isMockPayment ? 'approved' : 'pending_auto',
+          outRefundNo: latestRefund.outRefundNo || createOutRefundNo(refundId),
+          approvedAmount: latestOrder.totalFee, subMchId, executionVersion: 2,
+          restock: shouldRestock, adminNote: adminNote || '',
+          returnStatus: latestRefund.type === 'return_refund' ? 'received' : (latestRefund.returnStatus || ''),
+          processAttempts: 0, processTime: db.serverDate()
+        };
+        if (isMockPayment) {
+          await applyRefundEffects(transaction, db, latestOrder, latestRefund, shouldRestock);
+          Object.assign(data, { refundChannel: 'mock', refundTime: db.serverDate() });
+        }
+        await transaction.collection('refunds').doc(refundId).update({ data });
+        return isMockPayment
+          ? { success: true, message: '模拟支付退款已完成（无真实资金）' }
+          : { success: true, autoProcessing: true, message: '退款已批准但尚未到账。请店主或财务在小程序后台登录确认页执行“处理并核对退款”。' };
+      });
     }
 
     case 'productList': {
@@ -1347,7 +1270,8 @@ exports.main = async (event, context) => {
         settings: {
           account: actor,
           passwordSet: true,
-          commissionRate: typeof configData.commissionRate === 'number' ? configData.commissionRate : 0.15,
+          commissionRate: typeof payConfig.commissionRate === 'number' ? payConfig.commissionRate
+            : (typeof configData.commissionRate === 'number' ? configData.commissionRate : 0.33),
           fullReduction: configData.fullReduction && typeof configData.fullReduction === 'object'
             ? configData.fullReduction
             : { enabled: false, rules: [] },
@@ -1355,6 +1279,10 @@ exports.main = async (event, context) => {
             mode: payConfig.useMockPay === true ? 'mock_requested' : (subMchId ? 'wechat' : 'unconfigured'),
             merchantConfigured: !!subMchId,
             merchantSuffix: subMchId ? subMchId.slice(-4) : ''
+          },
+          payApiDirect: {
+            configured: payConfig.apiCertConfigured === true && !!String(payConfig.apiV2Key || '').trim(),
+            updateTime: payConfig.apiCertUpdateTime || null
           }
         }
       };
@@ -1366,8 +1294,16 @@ exports.main = async (event, context) => {
       if (isNaN(rate) || rate < 0 || rate > 1) {
         return { success: false, error: '佣金比例必须在 0~1 之间' };
       }
-      await db.collection('admin_config').doc('admin').update({
-        data: { commissionRate: rate }
+      await db.runTransaction(async transaction => {
+        const payConfig = (await transaction.collection('pay_config').doc('default').get()).data;
+        await transaction.collection('admin_config').doc('admin').update({ data: { commissionRate: rate } });
+        if (payConfig) {
+          await transaction.collection('pay_config').doc('default').update({ data: { commissionRate: rate } });
+        } else {
+          await transaction.collection('pay_config').doc('default').set({ data: {
+            commissionRate: rate, useMockPay: false, subMchId: ''
+          } });
+        }
       });
       return { success: true, message: '佣金比例已更新为 ' + Math.round(rate * 100) + '%' };
     }
@@ -1391,6 +1327,119 @@ exports.main = async (event, context) => {
         data: { fullReduction: { enabled, rules } }
       });
       return { success: true, message: enabled ? '满减规则已保存并启用' : '满减已停用（规则已保存）' };
+    }
+
+    case 'savePayApiConfig': {
+      // 保存微信支付 APIv2 直连凭证（密钥 + 证书），用于绕过 CloudBase access_token 直连退款
+      const { apiV2Key, apiCertP12, apiCertPassword } = event;
+      const key = String(apiV2Key || '').trim();
+      if (!key || !/^[0-9a-zA-Z]{32}$/.test(key)) {
+        return { success: false, error: 'APIv2 密钥格式不正确（应为 32 位字母数字）' };
+      }
+      const p12 = String(apiCertP12 || '').trim();
+      if (!p12) {
+        return { success: false, error: '请上传 apiclient_cert.p12 证书文件' };
+      }
+      // 简单校验 base64 可解码
+      let certOk = false;
+      try {
+        const buf = Buffer.from(p12, 'base64');
+        certOk = buf.length > 100;
+      } catch (e) { certOk = false; }
+      if (!certOk) {
+        return { success: false, error: '证书文件内容无效（base64 解码失败）' };
+      }
+      const updateData = {
+        apiV2Key: key,
+        apiCertP12: p12,
+        apiCertConfigured: true,
+        apiCertUpdateTime: db.serverDate()
+      };
+      if (apiCertPassword !== undefined && apiCertPassword !== null) {
+        updateData.apiCertPassword = String(apiCertPassword).trim();
+      }
+      await db.collection('pay_config').doc('default').update({ data: updateData });
+      return { success: true, message: '微信支付 API 直连凭证已保存，退款将优先走直连通道' };
+    }
+
+    case 'clearPayApiConfig': {
+      // 清除直连凭证（回退到 CloudBase cloudPay 路径）
+      await db.collection('pay_config').doc('default').update({
+        data: { apiV2Key: '', apiCertP12: '', apiCertConfigured: false, apiCertPassword: '' }
+      });
+      return { success: true, message: '已清除直连凭证，退款恢复 CloudBase 通道' };
+    }
+
+    case 'debugPayApi': {
+      // 一键诊断直连退款各环节：凭证、证书加载、签名、订单可见性
+      const diagnostics = {};
+      const cfg = await loadPayApiConfig(db);
+      diagnostics.credentialsSaved = !!cfg;
+      if (!cfg) {
+        return { success: false, error: '直连凭证未保存，请先在系统设置录入 APIv2 密钥和证书', diagnostics };
+      }
+      diagnostics.keyLength = cfg.apiV2Key.length;
+      diagnostics.certBase64Length = cfg.apiCertP12.length;
+      diagnostics.certPasswordSet = !!cfg.apiCertPassword;
+      diagnostics.mchId = cfg.subMchId;
+
+      // 环节1：证书加载（云端 Node 环境）
+      try {
+        const tls = require('tls');
+        const pfxBuffer = Buffer.from(cfg.apiCertP12, 'base64');
+        const ctx = tls.createSecureContext({ pfx: pfxBuffer, passphrase: cfg.apiCertPassword });
+        diagnostics.certLoad = 'OK（证书与密码匹配）';
+      } catch (certErr) {
+        diagnostics.certLoad = 'FAIL: ' + String(certErr.message || certErr).slice(0, 200);
+      }
+
+      // 环节2：签名验证 — 用直连订单查询 API 测（免证书，测密钥有效性 + 交易可见性）
+      // 用最近一笔微信支付订单做查询标的
+      let testOrderNo = event.orderNo || '';
+      if (!testOrderNo) {
+        const recentOrder = await db.collection('orders')
+          .where({ paymentSource: _.neq('mockPay') })
+          .orderBy('createTime', 'desc')
+          .limit(1)
+          .get()
+          .catch(() => null);
+        const ord = recentOrder && recentOrder.data && recentOrder.data[0];
+        testOrderNo = ord ? ord.orderNo : '';
+      }
+      diagnostics.testOrderNo = testOrderNo;
+      if (testOrderNo) {
+        try {
+          const wxResp = await directOrderQuery({
+            appId: APP_ID,
+            mchId: cfg.subMchId,
+            apiV2Key: cfg.apiV2Key,
+            outTradeNo: testOrderNo
+          });
+          diagnostics.orderQueryReturnCode = wxResp.return_code || '';
+          diagnostics.orderQueryResultCode = wxResp.result_code || '';
+          diagnostics.orderQueryErrCode = wxResp.err_code || '';
+          diagnostics.orderQueryErrDes = (wxResp.err_code_des || wxResp.return_msg || '').slice(0, 200);
+          if (wxResp.result_code === 'FAIL' && wxResp.err_code === 'SIGN_ERROR') {
+            diagnostics.signature = 'FAIL — APIv2 密钥不正确，请重新核对';
+          } else if (wxResp.result_code === 'FAIL' && /ORDERNOTEXIST|ORDER_NOT_EXIST|INVALID_REQUEST/i.test(wxResp.err_code || '')) {
+            diagnostics.signature = 'OK（密钥有效）';
+            diagnostics.modeCheck = 'FAIL — 订单在直连商户名下查不到，交易可能走的是 CloudBase 服务商通道，直连证书无法退款该类订单';
+          } else if (wxResp.result_code === 'SUCCESS') {
+            diagnostics.signature = 'OK（密钥有效）';
+            diagnostics.modeCheck = 'OK — 订单在直连商户名下可见，直连退款应该可用';
+            diagnostics.orderTradeState = wxResp.trade_state || '';
+            diagnostics.orderTransactionId = wxResp.transaction_id || '';
+          } else {
+            diagnostics.signature = '未知（见上方 err_code）';
+          }
+        } catch (qErr) {
+          diagnostics.orderQueryError = String(qErr.message || qErr).slice(0, 300);
+        }
+      } else {
+        diagnostics.orderQuerySkipped = '没有可测试的真实订单';
+      }
+
+      return { success: true, diagnostics };
     }
 
     case 'changePassword': {

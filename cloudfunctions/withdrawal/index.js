@@ -41,7 +41,9 @@ async function getBalance(database, agentId) {
 }
 
 exports.main = async (event) => {
-  const { OPENID } = cloud.getWXContext();
+  const ctx = cloud.getWXContext();
+  const OPENID = ctx.OPENID || '';
+  if (!OPENID) return { success: false, error: '缺少可信微信身份，请从小程序重新登录' };
   const action = event.action || 'info';
 
   const userRes = await db.collection('users').doc(OPENID).get().catch(() => null);

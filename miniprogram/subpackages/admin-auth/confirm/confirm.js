@@ -15,6 +15,8 @@ Page({
     loading: true,
     confirming: false,
     confirmed: false,
+    processingRefunds: false,
+    refundResult: '',
     error: '',
     selfOpenId: '',
     buildVersion: '1.0.6',
@@ -76,6 +78,31 @@ Page({
       data: this.data.selfOpenId,
       success: () => wx.showToast({ title: '已复制', icon: 'success' })
     });
+  },
+
+  async processRefundQueue() {
+    if (this.data.processingRefunds || !this.data.account ||
+        !['owner', 'finance'].includes(this.data.account.role)) return;
+    const accepted = await new Promise(resolve => wx.showModal({
+      title: '处理并核对退款',
+      content: '将处理最多 3 笔后台已批准的退款，可能产生真实退款。已有提交记录只查询，不重复退款；渠道成功后同步账本。',
+      confirmText: '确认处理',
+      success: result => resolve(!!result.confirm), fail: () => resolve(false)
+    }));
+    if (!accepted) return;
+    this.setData({ processingRefunds: true, refundResult: '' });
+    try {
+      const response = await wx.cloud.callFunction({ name: 'refund-processor', data: { action: 'sweep' } });
+      const result = response && response.result;
+      if (!result || !result.success) throw new Error((result && result.error) || '处理未完成');
+      this.setData({ refundResult: result.processed
+        ? `本次处理 ${result.processed} 笔：成功入账 ${result.completed} 笔，渠道处理中 ${result.waiting} 笔，待核查 ${result.manualReview} 笔。请刷新电脑后台查看；未完成项可在 30 秒后再次核对。`
+        : '暂无可执行的退款，或仍在冷却/处理期间。已批准的退款可在 30 秒后再次核对。' });
+    } catch (err) {
+      this.setData({ refundResult: (err.message || '处理失败') + '；结果未知时不要重复退款，请先核对渠道。' });
+    } finally {
+      this.setData({ processingRefunds: false });
+    }
   },
 
   async confirmLogin() {

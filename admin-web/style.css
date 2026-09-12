@@ -147,6 +147,7 @@ input, select, textarea { font-family: inherit; outline: none; }
 /* Content */
 .content {
   flex: 1; margin-left: 220px; padding: 32px;
+  min-width: 0;
   min-height: 100vh;
 }
 .page-title {
@@ -230,6 +231,28 @@ input, select, textarea { font-family: inherit; outline: none; }
 .status-refunding { background: #FCE4EC; color: #C62828; }
 .status-refunded { background: #FFEBEE; color: #B71C1C; }
 .status-cancelled { background: #ECEFF1; color: #546E7A; }
+
+/* ===== 人工退款横幅 ===== */
+.refund-manual-banner {
+  background: linear-gradient(135deg, #FFF8E1, #FFECB3);
+  border: 1px solid #FFB74D;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 12px 0;
+  font-size: 13px;
+  color: #5D4037;
+}
+.refund-manual-banner strong {
+  color: #E65100;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 6px;
+}
+.refund-manual-banner p {
+  margin: 4px 0 0;
+  line-height: 1.5;
+  word-break: break-all;
+}
 
 /* ===== Buttons ===== */
 .btn-primary {
@@ -427,3 +450,9 @@ input, select, textarea { font-family: inherit; outline: none; }
 .fr-label { font-size: 13px; color: #606266; white-space: nowrap; }
 .fr-input { width: 90px; flex: none; }
 .fr-remove { padding: 4px 10px; font-size: 12px; flex: none; }
+/* Refund diagnostics stay visible until the page is refreshed. */
+.refund-query-note { color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.refund-diagnostic { margin: 12px 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); }
+.refund-diagnostic pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; user-select: text; font: inherit; font-size: 13px; line-height: 1.6; }
+.refund-diagnostic .refund-error { color: #a62d25; }
+.page-refunds > .section-card { overflow-x: auto; }

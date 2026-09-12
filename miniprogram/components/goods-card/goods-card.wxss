@@ -1,3 +1,5 @@
+@import './showcase.wxss';
+
 .gc-card { background:var(--color-card); border-radius:var(--radius-md); overflow:hidden; box-shadow:var(--shadow-sm); }
 .gc-hover { transform:scale(0.98); opacity:0.95; }
 .gc-image-wrap { position:relative; width:100%; padding-top:100%; background:var(--color-bg-soft); }
@@ -13,6 +15,258 @@
 .gc-price-original { font-size:var(--fs-xs); color:var(--color-text-muted); text-decoration:line-through; margin-left:8rpx; }
 .gc-action { width:52rpx; height:52rpx; line-height:52rpx; text-align:center; background:var(--color-primary); color:#FFFFFF; border-radius:50%; font-size:36rpx; font-weight:300; }
 .gc-action-hover { opacity:0.8; }
+
+/* 首页横向主推卡：左侧商品信息，右侧产品立图。 */
+.gc-card-wide {
+  position: relative;
+  min-height: 434rpx;
+  overflow: visible;
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  box-shadow: 0 12rpx 36rpx rgba(74, 49, 29, 0.08);
+}
+
+.gc-wide-copy {
+  position: relative;
+  z-index: 2;
+  width: 64%;
+  min-height: 434rpx;
+  padding: 34rpx 0 28rpx 30rpx;
+}
+
+.gc-wide-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46rpx;
+  padding: 0 22rpx;
+  border-radius: var(--radius-pill);
+  color: #FFFFFF;
+  background: var(--color-primary);
+  font-size: 21rpx;
+  font-weight: 500;
+  line-height: 1.2;
+  box-shadow: 0 6rpx 16rpx rgba(232, 115, 12, 0.16);
+}
+
+.gc-wide-name {
+  display: block;
+  margin-top: 20rpx;
+  color: #254E3F;
+  font-family: var(--font-serif);
+  font-size: 43rpx;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.gc-wide-sub {
+  display: block;
+  margin-top: 10rpx;
+  color: var(--color-text-sub);
+  font-family: var(--font-serif);
+  font-size: 29rpx;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.gc-wide-detail {
+  width: 100%;
+  margin-top: 14rpx;
+  color: var(--color-text-muted);
+  font-size: 21rpx;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gc-wide-price {
+  position: absolute;
+  left: 30rpx;
+  bottom: 70rpx;
+  display: flex;
+  align-items: baseline;
+  color: var(--color-primary);
+}
+
+.gc-wide-symbol {
+  font-family: var(--font-serif);
+  font-size: 40rpx;
+  line-height: 1;
+}
+
+.gc-wide-price-value {
+  margin-left: 2rpx;
+  font-family: var(--font-serif);
+  font-size: 68rpx;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.gc-wide-price-original {
+  margin-left: 18rpx;
+  color: var(--color-text-muted);
+  font-size: 32rpx;
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.gc-wide-visual {
+  position: absolute;
+  z-index: 1;
+  top: -56rpx;
+  right: 10rpx;
+  width: 354rpx;
+  height: 413rpx;
+  overflow: hidden;
+  border-radius: 22rpx 22rpx 16rpx 16rpx;
+}
+
+.gc-wide-image {
+  width: 100%;
+  height: 100%;
+}
+
+.gc-wide-visual-dynamic .gc-wide-image {
+  transform: translateY(-12rpx) scale(0.82, 0.96);
+  transform-origin: 50% 50%;
+}
+
+/* 主推商品动态展示：柔光、残影和商品分层动画。 */
+.gc-wide-visual-dynamic {
+  top: -110rpx;
+  right: -82rpx;
+  width: 450rpx;
+  height: 530rpx;
+  overflow: visible;
+}
+
+.gc-wide-product-stage,
+.gc-wide-product-float {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+}
+
+.gc-wide-visual-dynamic .gc-wide-product-stage {
+  animation: gc-product-enter 720ms cubic-bezier(0.2, 0.9, 0.28, 1.16) both;
+}
+
+.gc-wide-visual-dynamic .gc-wide-product-float {
+  transform-origin: 52% 80%;
+  animation: gc-product-float 4.8s 760ms ease-in-out infinite;
+}
+
+.gc-wide-aura {
+  position: absolute;
+  z-index: 0;
+  top: 88rpx;
+  right: 56rpx;
+  width: 390rpx;
+  height: 390rpx;
+  border-radius: 50%;
+  background: linear-gradient(138deg, rgba(255, 178, 87, 0.25), rgba(240, 198, 182, 0.18) 48%, rgba(188, 169, 231, 0.24));
+  box-shadow: inset 0 0 44rpx rgba(255, 255, 255, 0.72);
+  opacity: 0.84;
+}
+
+.gc-wide-swoop {
+  position: absolute;
+  z-index: 1;
+  top: 268rpx;
+  right: -14rpx;
+  width: 414rpx;
+  height: 144rpx;
+  border-top: 12rpx solid rgba(238, 139, 45, 0.2);
+  border-radius: 50%;
+  transform: rotate(22deg);
+}
+
+.gc-wide-echo {
+  position: absolute;
+  top: 8rpx;
+  left: 20rpx;
+  width: 100%;
+  height: 100%;
+  transform-origin: 52% 80%;
+  pointer-events: none;
+}
+
+.gc-wide-echo-near {
+  z-index: 2;
+  opacity: 0.12;
+  transform: translate3d(42rpx, -2rpx, 0) rotate(3deg) scale(0.8, 0.94);
+}
+
+.gc-wide-echo-far {
+  z-index: 1;
+  opacity: 0.07;
+  transform: translate3d(72rpx, 6rpx, 0) rotate(15deg) scale(0.77, 0.9);
+}
+
+.gc-wide-shadow {
+  position: absolute;
+  z-index: 2;
+  right: 97rpx;
+  bottom: 50rpx;
+  width: 310rpx;
+  height: 74rpx;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 58% 50%, rgba(61, 46, 80, 0.2) 0%, rgba(123, 99, 166, 0.13) 28%, rgba(232, 148, 74, 0.1) 55%, rgba(252, 190, 128, 0.04) 70%, rgba(255, 255, 255, 0) 82%);
+  box-shadow: none;
+  transform-origin: 50% 50%;
+  animation: gc-shadow-follow 4.8s 760ms ease-in-out infinite;
+}
+
+@keyframes gc-product-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(76rpx, -20rpx, 0) scale(0.82);
+  }
+  68% {
+    opacity: 1;
+    transform: translate3d(-8rpx, 4rpx, 0) scale(1.025);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes gc-product-float {
+  0%, 100% { transform: translate3d(0, 1rpx, 0) rotate(-9deg); }
+  50% { transform: translate3d(-3rpx, -10rpx, 0) rotate(-11.5deg); }
+}
+
+@keyframes gc-shadow-follow {
+  0%, 100% {
+    opacity: 0.82;
+    transform: translate3d(0, 0, 0) rotate(-8deg) scale(1, 1);
+  }
+  50% {
+    opacity: 0.56;
+    transform: translate3d(-5rpx, 2rpx, 0) rotate(-10deg) scale(0.86, 0.78);
+  }
+}
+
+.gc-wide-action {
+  position: absolute;
+  z-index: 5;
+  right: 18rpx;
+  bottom: 28rpx;
+  min-width: 156rpx;
+  height: 58rpx;
+  padding: 0 22rpx;
+  box-sizing: border-box;
+  border-radius: var(--radius-pill);
+  color: #FFFFFF;
+  background: var(--color-primary);
+  box-shadow: 0 8rpx 20rpx rgba(232, 115, 12, 0.18);
+  font-size: 25rpx;
+  font-weight: 500;
+  line-height: 58rpx;
+  text-align: center;
+}
 .gc-list { display:flex; padding:24rpx; background:var(--color-card); border-radius:var(--radius-md); margin-bottom:16rpx; box-shadow:var(--shadow-sm); }
 .gc-list-img-wrap { width:180rpx; height:180rpx; border-radius:var(--radius-sm); overflow:hidden; background:var(--color-bg-soft); flex-shrink:0; }
 .gc-list-info { flex:1; margin-left:24rpx; display:flex; flex-direction:column; justify-content:space-between; }

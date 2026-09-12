@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>橘与杏 · Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F1EB;
+  --bg-pale: #FAF7F2;
+  --bg-soft: #EFE9DF;
+  --surface: #FFFFFF;
+  --ink: #1F1B16;
+  --ink-soft: #3A332B;
+  --text-2: #7A6F62;
+  --text-3: #A89F92;
+  --line: #E8E2D8;
+  --line-soft: #F0EBE2;
+  --accent: #5C7868;
+  --accent-2: #B8845C;
+  --accent-3: #2D4A3E;
+  --serif: "Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;
+  --sans: "Inter","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  --track: 0.18em;
+  --radius-s: 2px;
+  --radius-m: 4px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+body {
+  font-family: var(--sans);
+  background: #E5DFD3;
+  color: var(--ink);
+  display:flex; justify-content:center; align-items:flex-start;
+  padding:32px 16px; min-height:100vh;
+}
+.phone {
+  width:390px; min-height:844px; background:var(--bg);
+  border-radius:46px;
+  box-shadow:0 30px 80px rgba(31,27,22,.22), 0 8px 24px rgba(31,27,22,.10);
+  overflow:hidden; position:relative; display:flex; flex-direction:column;
+}
+.statusbar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:18px 32px 6px; font-size:13px; font-weight:600; color:var(--ink);
+}
+.statusbar .right { display:flex; gap:6px; align-items:center; }
+.topnav { display:flex; align-items:center; justify-content:space-between; padding:8px 24px 16px; }
+.topnav .brand {
+  font-family:var(--serif); font-size:22px; font-weight:500; letter-spacing:.06em;
+  color:var(--ink); text-align:center; flex:1;
+}
+.topnav .brand em {
+  font-style:italic; font-weight:400; color:var(--accent-3);
+  display:block; font-size:9px; letter-spacing:0.3em; color:var(--accent-2); margin-top:2px;
+}
+.topnav .icon-btn {
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; position:relative;
+}
+.topnav .icon-btn svg { stroke:var(--ink); }
+.screen { overflow-y:auto; flex:1; scrollbar-width:none; }
+.screen::-webkit-scrollbar{display:none;}
+.hero {
+  position:relative; padding:48px 28px 36px;
+  background:linear-gradient(180deg, var(--bg-pale) 0%, var(--bg) 100%); overflow:hidden;
+}
+.hero::before {
+  content:""; position:absolute; top:-80px; right:-80px;
+  width:240px; height:240px; border-radius:50%;
+  background:radial-gradient(circle, rgba(184,132,92,.10), transparent 70%);
+}
+.hero::after {
+  content:""; position:absolute; bottom:-40px; left:-60px;
+  width:180px; height:180px; border-radius:50%;
+  background:radial-gradient(circle, rgba(92,120,104,.08), transparent 70%);
+}
+.hero-eyebrow {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--accent-2); font-weight:500;
+  display:flex; align-items:center; gap:10px;
+}
+.hero-eyebrow::before { content:""; width:24px; height:1px; background:var(--accent-2); }
+.hero-title {
+  font-family:var(--serif); font-size:56px; line-height:1.05; font-weight:400;
+  color:var(--ink); margin-top:18px; letter-spacing:-.01em;
+}
+.hero-title em { font-style:italic; font-weight:300; color:var(--accent-3); }
+.hero-title small {
+  display:block; font-family:var(--serif); font-size:30px; font-weight:300;
+  color:var(--text-2); margin-top:8px; letter-spacing:.04em;
+}
+.hero-lede { font-size:13px; line-height:1.7; color:var(--text-2); margin-top:22px; max-width:280px; }
+.hero-cta-row { display:flex; align-items:center; gap:18px; margin-top:30px; }
+.btn-ink {
+  display:inline-flex; align-items:center; gap:10px;
+  background:var(--ink); color:#FAF7F2;
+  padding:14px 26px; font-size:12px; letter-spacing:var(--track);
+  text-transform:uppercase; font-weight:500;
+  border-radius:var(--radius-s); border:none;
+}
+.btn-ink svg { stroke:#FAF7F2; }
+.btn-ghost {
+  font-size:11px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--ink); display:flex; align-items:center; gap:6px;
+  border-bottom:1px solid var(--ink); padding-bottom:4px;
+}
+.hero-art {
+  margin:0 24px 0; position:relative; height:300px;
+  background:linear-gradient(135deg, #EDE6D9 0%, #E5DCC9 100%);
+  border-radius:var(--radius-m); overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.hero-art::before {
+  content:""; position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(184,132,92,.12), transparent 50%),
+    radial-gradient(ellipse at 30% 70%, rgba(92,120,104,.10), transparent 50%);
+}
+.hero-art .bottle {
+  position:relative; z-index:1;
+  filter: drop-shadow(0 30px 40px rgba(31,27,22,.18));
+}
+.hero-art .leaves { position:absolute; z-index:0; opacity:.85; }
+.hero-art .seal {
+  position:absolute; top:14px; right:14px; z-index:2;
+  width:46px; height:46px; border-radius:50%;
+  border:1px solid var(--accent-3); color:var(--accent-3);
+  font-family:var(--serif); font-size:11px; font-style:italic;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(245,241,235,.85); backdrop-filter:blur(4px);
+  transform:rotate(-6deg); line-height:1.1; text-align:center;
+}
+.section-head {
+  padding:48px 28px 14px;
+  display:flex; align-items:flex-end; justify-content:space-between;
+}
+.section-head .eyebrow {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--accent-2); font-weight:500;
+}
+.section-head .ttl {
+  font-family:var(--serif); font-size:28px; font-weight:400;
+  color:var(--ink); margin-top:6px; line-height:1.1;
+}
+.section-head .ttl em { font-style:italic; color:var(--accent-3); }
+.section-head .link {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-2); border-bottom:1px solid var(--text-3); padding-bottom:2px;
+}
+.editorial {
+  margin:18px 24px 0; background:var(--surface); border-radius:var(--radius-m);
+  overflow:hidden; border:1px solid var(--line-soft);
+}
+.editorial .img {
+  height:340px; position:relative; overflow:hidden;
+  background:linear-gradient(135deg, #F0E9DA 0%, #E5DCC9 100%);
+  display:flex; align-items:center; justify-content:center;
+}
+.editorial .img .leaf { position:absolute; }
+.editorial .img .bottle { position:relative; z-index:1; }
+.editorial .img .ribbon {
+  position:absolute; top:14px; left:14px;
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--accent-3); font-weight:500;
+  border:1px solid var(--accent-3); padding:5px 10px; border-radius:999px;
+  background:rgba(250,247,242,.85);
+}
+.editorial .img .price-mark {
+  position:absolute; bottom:18px; right:18px;
+  font-family:var(--serif); font-size:42px; font-weight:300;
+  color:var(--ink); line-height:1;
+}
+.editorial .img .price-mark small {
+  font-size:14px; vertical-align:top; color:var(--text-2);
+}
+.editorial .body { padding:24px 24px 28px; }
+.editorial .body .num {
+  font-family:var(--serif); font-size:11px; color:var(--text-3); letter-spacing:.18em;
+}
+.editorial .body .nm {
+  font-family:var(--serif); font-size:24px; font-weight:400; color:var(--ink);
+  margin-top:6px; line-height:1.25;
+}
+.editorial .body .desc {
+  font-size:12px; line-height:1.7; color:var(--text-2);
+  margin-top:10px; max-width:300px;
+}
+.editorial .body .row {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:18px; padding-top:18px; border-top:1px solid var(--line-soft);
+}
+.editorial .body .row .more {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--ink); border-bottom:1px solid var(--ink); padding-bottom:2px;
+}
+.editorial .body .row .swatches { display:flex; gap:6px; }
+.editorial .body .row .swatch {
+  width:14px; height:14px; border-radius:50%; border:1px solid var(--line);
+}
+.grid-2 {
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  padding:14px 24px 0;
+}
+.tile {
+  background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:var(--radius-m); overflow:hidden;
+}
+.tile .img {
+  height:170px; position:relative;
+  background:linear-gradient(140deg, #F0E9DA 0%, #E8DFCB 100%);
+  display:flex; align-items:center; justify-content:center;
+}
+.tile .img.alt { background:linear-gradient(140deg, #EAE3D2 0%, #DDD2BB 100%); }
+.tile .img.cool { background:linear-gradient(140deg, #E5E4D8 0%, #D8D9C7 100%); }
+.tile .img.warm { background:linear-gradient(140deg, #EFE3D2 0%, #E5D2B8 100%); }
+.tile .img .bottle { transform:scale(.7); }
+.tile .body { padding:16px 16px 20px; }
+.tile .body .nm {
+  font-family:var(--serif); font-size:15px; font-weight:500; color:var(--ink);
+  line-height:1.3;
+}
+.tile .body .desc {
+  font-size:10.5px; color:var(--text-3); margin-top:4px; letter-spacing:.04em;
+}
+.tile .body .price-row {
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-top:14px;
+}
+.tile .body .price-row .pr {
+  font-family:var(--serif); font-size:18px; color:var(--ink); font-weight:400;
+}
+.tile .body .price-row .pr small {
+  font-size:11px; color:var(--text-2); vertical-align:top;
+}
+.tile .body .price-row .vol {
+  font-size:10px; color:var(--text-3); letter-spacing:.1em; text-transform:uppercase;
+}
+.philosophy {
+  margin:56px 24px 0; padding:48px 0 56px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  position:relative; text-align:center;
+}
+.philosophy .mark {
+  font-family:var(--serif); font-size:10px; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--accent-2);
+}
+.philosophy h2 {
+  font-family:var(--serif); font-size:38px; line-height:1.15; font-weight:300;
+  color:var(--ink); margin-top:18px; letter-spacing:-.01em;
+}
+.philosophy h2 em { font-style:italic; color:var(--accent-3); }
+.philosophy p {
+  font-size:13px; line-height:1.85; color:var(--text-2);
+  margin-top:20px; max-width:300px; margin-left:auto; margin-right:auto;
+}
+.philosophy .signature {
+  margin-top:28px; font-family:var(--serif); font-style:italic;
+  color:var(--ink); font-size:13px;
+}
+.ritual { margin:48px 24px 0; }
+.ritual-img {
+  height:280px; border-radius:var(--radius-m); overflow:hidden; position:relative;
+  background:linear-gradient(160deg, #E5DCC9 0%, #DDD0B6 100%);
+  display:flex; align-items:center; justify-content:center;
+}
+.ritual-img .steps {
+  position:absolute; left:20px; bottom:20px; right:20px;
+  display:flex; gap:6px; z-index:2;
+}
+.ritual-img .steps .pill {
+  flex:1; padding:10px 8px; text-align:center;
+  background:rgba(245,241,235,.92); backdrop-filter:blur(6px);
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--ink); border-radius:999px;
+}
+.ritual-img .steps .pill em {
+  display:block; font-family:var(--serif); font-size:14px; font-style:normal;
+  font-weight:400; color:var(--accent-3); margin-bottom:2px;
+}
+.ritual-text { margin-top:24px; }
+.ritual-text h3 {
+  font-family:var(--serif); font-size:24px; font-weight:400; color:var(--ink);
+}
+.ritual-text h3 em { font-style:italic; color:var(--accent-3); }
+.ritual-text p {
+  font-size:12.5px; line-height:1.85; color:var(--text-2);
+  margin-top:10px; max-width:300px;
+}
+.foot {
+  margin-top:48px; padding:36px 28px 28px;
+  background:var(--ink); color:#E8E2D8;
+}
+.foot .brand {
+  font-family:var(--serif); font-size:24px; font-weight:400; letter-spacing:.06em;
+}
+.foot .brand em { color:#B8845C; font-style:italic; font-size:13px; margin-left:6px; letter-spacing:.2em; }
+.foot .tag {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase;
+  color:#A89F92; margin-top:14px; line-height:1.8;
+}
+.foot .links {
+  display:flex; flex-wrap:wrap; gap:16px 24px; margin-top:28px;
+  padding-top:24px; border-top:1px solid #3A332B;
+}
+.foot .links a {
+  font-size:11px; color:#E8E2D8; text-decoration:none;
+  letter-spacing:.04em;
+}
+.foot .copy {
+  font-size:10px; color:#7A6F62; margin-top:24px;
+  letter-spacing:var(--track); text-transform:uppercase;
+}
+.tabbar {
+  display:flex; justify-content:space-around;
+  padding:14px 0 28px;
+  background:rgba(245,241,235,.96);
+  backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);
+}
+.tabbar .tab {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase;
+  color:var(--text-3);
+}
+.tabbar .tab.active { color:var(--ink); }
+.tabbar .tab svg { stroke:currentColor; }
+.tabbar .tab .dot {
+  width:4px; height:4px; border-radius:50%; background:var(--accent-2);
+  margin-top:2px;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="16" height="10" viewBox="0 0 16 10"><path d="M1 8h2M5 6h2M9 4h2M13 2h2" stroke="currentColor" stroke-width="1.2"/></svg>
+      <svg width="14" height="10" viewBox="0 0 14 10"><path d="M1 4h12" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2.5" fill="currentColor"/></svg>
+    </span>
+  </div>
+  <div class="topnav">
+    <span class="icon-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </span>
+    <div class="brand">橘 与 杏<em>EST. CHENGDU</em></div>
+    <span class="icon-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.4"><path d="M5 7h14l-1.4 11.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+      <span style="position:absolute;top:6px;right:6px;width:5px;height:5px;background:var(--accent-2);border-radius:50%;"></span>
+    </span>
+  </div>
+  <div class="screen">
+    <section class="hero">
+      <div class="hero-eyebrow">A modern apothecary</div>
+      <h1 class="hero-title">
+        Quiet <em>rituals</em>,
+        <small>rooted in</small>
+        <small>Chinese herbs.</small>
+      </h1>
+      <p class="hero-lede">橘与杏 以纯天然草本配方，做全家安心的肌肤日常护理。温润日常，自然疗愈。</p>
+      <div class="hero-cta-row">
+        <button class="btn-ink">Shop the ritual
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+        <span class="btn-ghost">Our story</span>
+      </div>
+    </section>
+    <div class="hero-art">
+      <svg class="leaves" style="top:0;left:0;" width="80" height="80" viewBox="0 0 80 80"><path d="M40 80 Q20 40 5 5" stroke="#5C7868" stroke-width=".8" fill="none" opacity=".6"/><ellipse cx="20" cy="50" rx="8" ry="14" fill="#8BA888" opacity=".7" transform="rotate(-30 20 50)"/><ellipse cx="35" cy="30" rx="6" ry="10" fill="#B5C9B0" opacity=".6" transform="rotate(-50 35 30)"/></svg>
+      <svg class="bottle" width="120" height="240" viewBox="0 0 120 240">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FAF7F2"/><stop offset=".4" stop-color="#E8DFCB"/><stop offset="1" stop-color="#B8845C"/>
+          </linearGradient>
+        </defs>
+        <rect x="48" y="6" width="24" height="14" fill="#3A332B" rx="2"/>
+        <path d="M50 20 Q40 30 40 50 L40 220 Q40 230 50 230 L70 230 Q80 230 80 220 L80 50 Q80 30 70 20 Z" fill="url(#bg)" stroke="#3A332B" stroke-width="1"/>
+        <rect x="42" y="80" width="36" height="100" fill="#FAF7F2" opacity=".95"/>
+        <text x="60" y="115" font-family="Cormorant Garamond, serif" font-size="14" text-anchor="middle" fill="#2D4A3E" font-style="italic">橘与杏</text>
+        <text x="60" y="135" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#7A6F62" letter-spacing="2">JǓ YǓ XÌNG</text>
+        <line x1="48" y1="148" x2="72" y2="148" stroke="#B8845C" stroke-width=".5"/>
+        <text x="60" y="160" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#3A332B" letter-spacing="1.5">THE RITUAL</text>
+        <text x="60" y="172" font-family="Inter, sans-serif" font-size="4" text-anchor="middle" fill="#7A6F62">N° 01 · 30 ml</text>
+      </svg>
+      <div class="seal">est.<br>2014</div>
+    </div>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">The signature</div>
+        <h2 class="ttl">The <em>Ritual</em></h2>
+      </div>
+      <span class="link">View all</span>
+    </div>
+    <div class="editorial">
+      <div class="img">
+        <svg style="position:absolute;left:-10px;bottom:-10px;" width="100" height="100" viewBox="0 0 100 100" opacity=".7"><ellipse cx="30" cy="80" rx="20" ry="6" fill="#8BA888" opacity=".5"/><path d="M30 80 Q25 40 15 10" stroke="#5C7868" stroke-width=".6" fill="none"/><ellipse cx="22" cy="50" rx="10" ry="16" fill="#B5C9B0" opacity=".7" transform="rotate(-30 22 50)"/><ellipse cx="15" cy="20" rx="8" ry="13" fill="#8BA888" opacity=".6" transform="rotate(-60 15 20)"/></svg>
+        <span class="ribbon">New · 小紫瓶</span>
+        <svg class="bottle" width="100" height="220" viewBox="0 0 120 240">
+          <rect x="48" y="6" width="24" height="14" fill="#2D4A3E" rx="2"/>
+          <path d="M50 20 Q40 30 40 50 L40 220 Q40 230 50 230 L70 230 Q80 230 80 220 L80 50 Q80 30 70 20 Z" fill="#EFE3D2" stroke="#2D4A3E" stroke-width="1"/>
+          <rect x="42" y="80" width="36" height="100" fill="#FAF7F2" opacity=".95"/>
+          <text x="60" y="115" font-family="Cormorant Garamond, serif" font-size="13" text-anchor="middle" fill="#2D4A3E" font-style="italic">橘与杏</text>
+          <text x="60" y="135" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#7A6F62" letter-spacing="2">SERUM N° 01</text>
+        </svg>
+        <div class="price-mark"><small>¥</small>248</div>
+      </div>
+      <div class="body">
+        <div class="num">N° 01 — 编辑甄选</div>
+        <h3 class="nm">小紫瓶 · 草本精华液</h3>
+        <p class="desc">紫草、黄连、金银花三味古方，配以现代低温萃取工艺。日夜修护，温和有度。</p>
+        <div class="row">
+          <span class="more">Discover</span>
+          <div class="swatches">
+            <span class="swatch" style="background:#EFE3D2;"></span>
+            <span class="swatch" style="background:#DDD0B6;"></span>
+            <span class="swatch" style="background:#B8845C;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">The collection</div>
+        <h2 class="ttl">Shop <em>apothecary</em></h2>
+      </div>
+      <span class="link">All 12</span>
+    </div>
+    <div class="grid-2">
+      <div class="tile">
+        <div class="img">
+          <svg class="bottle" width="50" height="120" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#FAF7F2" stroke="#2D4A3E" stroke-width=".8"/>
+            <text x="30" y="80" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#2D4A3E" font-style="italic">N° 02</text>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="nm">洁面慕斯</div>
+          <div class="desc">氨基酸 · 银杏</div>
+          <div class="price-row">
+            <span class="pr"><small>¥</small>128</span>
+            <span class="vol">150 ml</span>
+          </div>
+        </div>
+      </div>
+      <div class="tile">
+        <div class="img alt">
+          <svg class="bottle" width="50" height="120" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#E8DFCB" stroke="#5C7868" stroke-width=".8"/>
+            <text x="30" y="80" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#5C7868" font-style="italic">N° 03</text>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="nm">柔肤水</div>
+          <div class="desc">玫瑰 · 薏仁</div>
+          <div class="price-row">
+            <span class="pr"><small>¥</small>168</span>
+            <span class="vol">200 ml</span>
+          </div>
+        </div>
+      </div>
+      <div class="tile">
+        <div class="img cool">
+          <svg class="bottle" width="50" height="120" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#D8D9C7" stroke="#5C7868" stroke-width=".8"/>
+            <text x="30" y="80" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#5C7868" font-style="italic">N° 04</text>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="nm">面霜</div>
+          <div class="desc">艾草 · 当归</div>
+          <div class="price-row">
+            <span class="pr"><small>¥</small>298</span>
+            <span class="vol">50 g</span>
+          </div>
+        </div>
+      </div>
+      <div class="tile">
+        <div class="img warm">
+          <svg class="bottle" width="50" height="120" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#E5D2B8" stroke="#B8845C" stroke-width=".8"/>
+            <text x="30" y="80" font-family="Cormorant Garamond, serif" font-size="6" text-anchor="middle" fill="#B8845C" font-style="italic">N° 05</text>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="nm">身体油</div>
+          <div class="desc">山茶 · 杏仁</div>
+          <div class="price-row">
+            <span class="pr"><small>¥</small>218</span>
+            <span class="vol">100 ml</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <section class="philosophy">
+      <div class="mark">· PHILOSOPHY ·</div>
+      <h2>The apothecary <em>reimagined</em>.</h2>
+      <p>我们相信，温和的力量源于万物有时的耐心。拒绝激素，拒绝刺激性添加 — 让每一寸肌肤回到最初的秩序。</p>
+      <div class="signature">— Dr. 林 · 创始人</div>
+    </section>
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">The ritual</div>
+        <h2 class="ttl">Three <em>moments</em></h2>
+      </div>
+    </div>
+    <div class="ritual">
+      <div class="ritual-img">
+        <svg width="100" height="180" viewBox="0 0 100 180" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">
+          <rect x="40" y="20" width="20" height="140" fill="#FAF7F2" stroke="#2D4A3E" stroke-width=".8" rx="3"/>
+          <rect x="42" y="80" width="16" height="50" fill="#E8DFCB"/>
+        </svg>
+        <div class="steps">
+          <div class="pill"><em>I</em>Cleansing</div>
+          <div class="pill"><em>II</em>Tonifying</div>
+          <div class="pill"><em>III</em>Nourishing</div>
+        </div>
+      </div>
+      <div class="ritual-text">
+        <h3>晨 · 夜 <em>三步</em></h3>
+        <p>从洁面到柔肤，再到精华与面霜 — 完整的草本护肤仪式，让肌肤每日回归平衡。</p>
+      </div>
+    </div>
+    <footer class="foot">
+      <div class="brand">橘 与 杏 <em>apothecary</em></div>
+      <div class="tag">A modern apothecary<br>rooted in Chinese herbs</div>
+      <div class="links">
+        <a>Shop</a><a>Story</a><a>Rituals</a><a>Journal</a><a>Stockists</a><a>Contact</a>
+      </div>
+      <div class="copy">© 2026 橘与杏 · All rights reserved</div>
+    </footer>
+  </div>
+  <div class="tabbar">
+    <div class="tab active">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-9z"/></svg>
+      Home
+      <span class="dot"></span>
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      Discover
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M5 7h14l-1.4 11.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+      Bag · 2
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+      Account
+    </div>
+  </div>
+</div>
+</body>
+</html>

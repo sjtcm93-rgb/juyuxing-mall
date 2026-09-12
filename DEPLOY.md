@@ -13,6 +13,7 @@ node scripts/e2e-mock.js
 node scripts/page-load-logic-test.js
 node scripts/admin-qr-auth-test.js
 node scripts/release-gap-test.js
+node scripts/refund-diagnostics-test.js
 npm run lint:functions
 ```
 
@@ -37,3 +38,5 @@ npm run lint:functions
 需要部署的函数以 `cloudbaserc.json` 为准。`init`、`updateProductDesc`、`uploadProductImage` 是初始化/维护函数，不在正式部署清单中。
 
 部署及数据库写入需要环境管理员在微信开发者工具或 CloudBase 控制台确认；密钥、密码、OpenID 不得写入仓库或聊天记录。
+
+退款还需部署 `refund-processor`、导入 `refund_queue_time` 索引，并按 `docs/ABC-DEPLOYMENT.md` 第 9 节执行。审批通过不代表退款到账。

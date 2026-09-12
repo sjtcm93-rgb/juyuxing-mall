@@ -79,13 +79,19 @@ Page({
     else toast('已登录', 'success');
   },
 
+
   getUserProfile() {
     wx.getUserProfile({
       desc: '用于完善个人资料',
       success: async (res) => {
         const { nickName, avatarUrl } = res.userInfo;
         try {
-          const ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
+          // 推荐关系绑定需用户显式确认（合规要求，同一推荐码只问一次）
+          let ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
+          if (ref) {
+            const agreed = await getApp().confirmReferralBinding(ref);
+            if (!agreed) ref = null;
+          }
           const loginRes = await API.login({ ref, nickName, avatarUrl });
           if (loginRes && loginRes.openId) {
             wx.setStorageSync('openId', loginRes.openId);
@@ -127,7 +133,12 @@ Page({
   async loginWithOpenIdOnly() {
     if (wx.getStorageSync('openId')) return;
     try {
-      const ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
+      // 推荐关系绑定需用户显式确认（合规要求，同一推荐码只问一次）
+      let ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
+      if (ref) {
+        const agreed = await getApp().confirmReferralBinding(ref);
+        if (!agreed) ref = null;
+      }
       const res = await API.login({ ref });
       if (res && res.openId) {
         wx.setStorageSync('openId', res.openId);

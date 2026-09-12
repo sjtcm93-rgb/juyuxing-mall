@@ -294,6 +294,9 @@ async function main() {
   step('新环境默认关闭模拟支付', payConfig && payConfig.useMockPay === false && !payConfig.subMchId);
   // 后续主链路显式切换为测试模式，仍需环境变量二次授权。
   payConfig.useMockPay = true;
+  // This historical E2E fixture uses an explicitly configured 15% rate, not the 33% default.
+  // The default and configuration precedence are covered by commission-policy-test.js.
+  payConfig.commissionRate = 0.15;
 
   // 验证 6 个分类 + 3 张券被 seed
   const cats = (await call('category', { action: 'list' })).result;
@@ -700,8 +703,10 @@ async function main() {
   step('处理退款', processedRefund.success, 'msg=' + (processedRefund.message || ''));
   const orderFinal = db._store.orders.find(o => o._id === orderId);
   step('订单状态=refunded', orderFinal.status === 'refunded', '实际=' + orderFinal.status);
-  const reversal = db._store.commissions.find(item => item.orderId === orderId && item.type === 'reversal');
+  const reversal = db._store.commissions.find(item => item.orderId === orderId && item.type === 'reversal' && item.amount === -1000);
   step('已提现佣金生成负向冲销', reversal && reversal.amount === -1000 && reversal.status === 'settled');
+  const reversals = db._store.commissions.filter(item => item.orderId === orderId && item.type === 'reversal');
+  step('结算后退款保留原流水并全额冲销', reversals.reduce((sum, item) => sum + item.amount, 0) === -1920);
   step('退款、佣金支出现金流各一笔',
     db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'refund:' + orderId).length === 1 &&
     db._store.cashflow_entries.filter(entry => entry.idempotencyKey === 'commission_payout:' + wdId).length === 1);
@@ -769,6 +774,32 @@ async function main() {
   const financeView = (await call('admin', { action: 'financeOverview', adminToken: financeLogin.token })).result;
   const financeProductEdit = (await call('admin', { action: 'toggleProductStatus', adminToken: financeLogin.token, id: productId, status: 'off' })).result;
   step('财务可查看经营收支但不可修改商品', financeView.success && !financeProductEdit.success && financeProductEdit.code === 'FORBIDDEN');
+  const queryRefund = refundList.data[0];
+  const queryOrder = db._store.orders.find(item => item._id === queryRefund.orderId);
+  const originalQueryOrder = { ...queryOrder };
+  const queryPayConfig = db._store.pay_config.find(item => item._id === 'default');
+  const originalSubMchId = queryPayConfig.subMchId;
+  queryPayConfig.subMchId = 'test-query-merchant';
+  const originalRefundApi = cloud.cloudPay.refund;
+  let refundQueryCalls = 0;
+  let refundWriteCalls = 0;
+  Object.assign(queryOrder, { paymentSource: 'wechatPay', transactionId: 'WX_QUERY_TEST' });
+  const querySnapshot = JSON.stringify(db._store);
+  cloud.cloudPay.refund = async () => { refundWriteCalls++; throw new Error('只读查询禁止退款'); };
+  cloud.cloudPay.queryRefund = async params => {
+    refundQueryCalls++;
+    return { returnCode: 'SUCCESS', resultCode: 'SUCCESS', refundCount: 1,
+      outRefundNo0: params.outRefundNo, refundStatus0: 'SUCCESS', refundFee0: queryOrder.totalFee };
+  };
+  const opsQuery = (await call('admin', { action: 'queryRefundStatus', refundId: queryRefund._id, adminToken: opsLogin.token })).result;
+  step('运营无权查询渠道退款且不调用支付渠道', !opsQuery.success && opsQuery.code === 'FORBIDDEN' && refundQueryCalls === 0);
+  const financeQuery = (await call('admin', { action: 'queryRefundStatus', refundId: queryRefund._id, adminToken: financeLogin.token })).result;
+  step('财务可只读查询微信退款结果', financeQuery.success && financeQuery.data.status === 'SUCCESS');
+  step('退款查询不重复退款、不改数据库', refundWriteCalls === 0 && refundQueryCalls === 1 && JSON.stringify(db._store) === querySnapshot);
+  Object.assign(queryOrder, originalQueryOrder);
+  queryPayConfig.subMchId = originalSubMchId;
+  cloud.cloudPay.refund = originalRefundApi;
+  delete cloud.cloudPay.queryRefund;
   step('经营现金流汇总正确', financeView.data.receipts === 33500 && financeView.data.refunds === 12800 &&
     financeView.data.commissionPaid === 1000 && financeView.data.netCashflow === 19700,
   JSON.stringify(financeView.data));

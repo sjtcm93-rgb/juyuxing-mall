@@ -30,12 +30,14 @@ Component({
         stock = (specs[0] && typeof specs[0].stock === 'number') ? specs[0].stock : 999;
         name = specs[0] ? specs[0].name : '';
       }
+      // 规格价优先，缺失时回退商品主价（与服务端口径一致）
+      var price = (specs[0] && Number(specs[0].price)) || Number(g.price) || 0;
       this.setData({
         selectedSpec: idx,
         currentQty: 1,
         maxStock: stock,
         specName: name,
-        priceYuan: ((Number(g.price) || 0) / 100).toFixed(2),
+        priceYuan: (price / 100).toFixed(2),
         cover: (g.images && g.images[0]) || ''
       });
     },
@@ -46,11 +48,13 @@ Component({
       var g = this.data.goods || {};
       var specs = g.specs || [];
       var stock = (specs[idx] && typeof specs[idx].stock === 'number') ? specs[idx].stock : 999;
+      var price = (specs[idx] && Number(specs[idx].price)) || Number(g.price) || 0;
       this.setData({
         selectedSpec: idx,
         maxStock: stock,
         specName: (specs[idx] && specs[idx].name) || '',
-        currentQty: 1
+        currentQty: 1,
+        priceYuan: (price / 100).toFixed(2)
       });
     },
     dec() { if (this.data.currentQty > 1) this.setData({ currentQty: this.data.currentQty - 1 }); },

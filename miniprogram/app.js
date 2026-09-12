@@ -29,6 +29,7 @@ App({
         });
         this.globalData.cloudReady = true;
         console.log('[云开发] 初始化成功');
+        // 退款由已绑定的店主/财务在后台登录确认页显式执行，不借消费者启动触发。
       } else {
         console.warn('[云开发] 当前环境不支持云开发，请在微信开发者工具中开通');
       }
@@ -116,5 +117,34 @@ App({
     const options = typeof wx.getEnterOptionsSync === 'function' ? wx.getEnterOptionsSync() : {};
     const query = (options && options.query) || {};
     return query.ref || wx.getStorageSync('pendingReferrer') || null;
+  },
+
+  // 推荐关系绑定前的显式确认（合规要求：不静默绑定）。
+  // 同一推荐码只询问一次，结果缓存在本地。
+  confirmReferralBinding(ref) {
+    return new Promise((resolve) => {
+      if (!ref) { resolve(false); return; }
+      const key = 'refConsent_' + String(ref).trim().toUpperCase();
+      const saved = wx.getStorageSync(key);
+      if (saved === 'agreed') { resolve(true); return; }
+      if (saved === 'refused') { resolve(false); return; }
+      wx.showModal({
+        title: '邀请确认',
+        content: '您经由好友分享的邀请进入「橘与杏」。同意后，您之后的订单将计入该好友的推广业绩；不影响商品价格与您的任何权益。',
+        confirmText: '同意',
+        cancelText: '暂不',
+        success: (res) => {
+          if (res.confirm) {
+            wx.setStorageSync(key, 'agreed');
+            resolve(true);
+          } else {
+            wx.setStorageSync(key, 'refused');
+            wx.removeStorageSync('pendingReferrer');
+            resolve(false);
+          }
+        },
+        fail: () => resolve(false)
+      });
+    });
   }
 })

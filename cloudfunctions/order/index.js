@@ -114,9 +114,9 @@ async function getCommissionRate(database = db) {
     if (payRes && payRes.data && typeof payRes.data.commissionRate === 'number') return payRes.data.commissionRate;
     const adminRes = await database.collection('admin_config').doc('admin').get().catch(() => null);
     const cfg = (adminRes && adminRes.data) || {};
-    return typeof cfg.commissionRate === 'number' ? cfg.commissionRate : 0.15;
+    return typeof cfg.commissionRate === 'number' ? cfg.commissionRate : 0.33;
   } catch (e) {
-    return 0.15;
+    return 0.33;
   }
 }
 
@@ -175,7 +175,9 @@ async function settleCommission(orderId) {
 }
 
 exports.main = async (event) => {
-  const { OPENID } = cloud.getWXContext();
+  const ctx = cloud.getWXContext();
+  const OPENID = ctx.OPENID || '';
+  if (!OPENID) return { success: false, error: '缺少可信微信身份，请从小程序重新登录' };
   try {
     switch (event.action) {
       case 'create': {
@@ -228,7 +230,14 @@ exports.main = async (event) => {
           if (!Number.isInteger(actualTotalFee) || actualTotalFee < 1) {
             throw new Error('应付金额必须至少为0.01元');
           }
-          if (typeof totalFee === 'number' && totalFee !== actualTotalFee) throw new Error('订单金额不一致，请刷新后重试');
+          // 安全设计：以服务端计算的金额为准，忽略客户端传的 totalFee，
+          // 避免多规格不同价商品在客户端算错金额时下不了单。
+          // 客户端传的金额仅用于比对告警（不再作为下单硬性条件）。
+          if (typeof totalFee === 'number' && Number(totalFee) !== actualTotalFee) {
+            console.warn('[order] 客户端金额与服务端不一致, 已采用服务端金额:', {
+              orderNo, clientTotal: totalFee, serverTotal: actualTotalFee
+            });
+          }
           for (const update of productUpdates) {
             const latestRes = await transaction.collection('products').doc(update.product._id).get();
             const latestSpec = findSpec(latestRes.data, update.specName);

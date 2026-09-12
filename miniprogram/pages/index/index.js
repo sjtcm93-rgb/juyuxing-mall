@@ -301,9 +301,13 @@ Page({
     if (ref) {
       wx.setStorageSync('pendingReferrer', ref);
       if (wx.getStorageSync('openId')) {
-        API.login({ action: 'login', ref }, { silent: true }).then(result => {
-          if (result && result.success) wx.removeStorageSync('pendingReferrer');
-        }).catch(() => {});
+        // 已登录用户：绑定前需用户显式确认（同一推荐码只问一次）
+        getApp().confirmReferralBinding(ref).then(agreed => {
+          if (!agreed) return;
+          API.login({ action: 'login', ref }, { silent: true }).then(result => {
+            if (result && result.success) wx.removeStorageSync('pendingReferrer');
+          }).catch(() => {});
+        });
       }
     }
   },

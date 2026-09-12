@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>购物袋 — 橘与杏</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="frame">
+
+  <div class="status-bar"><span>9:41</span><span class="right">
+    <svg width="16" height="11" viewBox="0 0 16 11"><path d="M0 8h2v3H0zM4 5h2v6H4zM8 2h2v9H8zM12 0h2v11h-2z" fill="currentColor"/></svg>
+    <svg width="14" height="11" viewBox="0 0 14 11"><path d="M7 9.5a1 1 0 100-2 1 1 0 000 2zM3 5.5a5.5 5.5 0 018 0l-1 1a4 4 0 00-6 0l-1-1zM0 2.5a9.5 9.5 0 0114 0l-1 1a8 8 0 00-12 0l-1-1z" fill="currentColor"/></svg>
+    <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0" y="1" width="18" height="9" rx="2" stroke="currentColor" fill="none"/><rect x="2" y="3" width="14" height="5" fill="currentColor"/><rect x="19" y="3.5" width="2" height="4" rx="1" fill="currentColor"/></svg>
+  </span></div>
+
+  <div class="topbar">
+    <div class="left">
+      <span class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 6l-6 6 6 6"/></svg></span>
+    </div>
+    <div class="brand" style="text-align:center">购物袋<small>SHOPPING BAG</small></div>
+    <div class="right">
+      <span class="link-arrow" style="font-size:11px;">编辑</span>
+    </div>
+  </div>
+
+  <!-- editorial header -->
+  <section style="padding: 16px var(--pad) 0;">
+    <div class="eyebrow">— &nbsp; YOUR SELECTION &nbsp; —</div>
+    <h1 class="display" style="font-size:54px; margin-top:14px;">The <em>bag.</em></h1>
+    <div style="display:flex; gap:24px; margin-top:18px; font-size:12px; color:var(--ink-mid);">
+      <span><span style="font-family:var(--serif); font-size:18px; color:var(--ink); font-weight:500;">3</span> 件商品</span>
+      <span><span style="font-family:var(--serif); font-size:18px; color:var(--ink); font-weight:500;">2</span> 种本草</span>
+    </div>
+  </section>
+
+  <!-- cart items -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div style="display:flex; flex-direction:column; gap:0; border-top:1px solid var(--linen);">
+
+      <article style="display:grid; grid-template-columns: 100px 1fr; gap:18px; padding:24px 0; border-bottom:1px solid var(--linen);">
+        <div style="background:linear-gradient(180deg, #E0D5C0 0%, #C8B898 100%); aspect-ratio: 4/5; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:46%;">
+            <ellipse cx="100" cy="180" rx="32" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M85 40 L85 28 Q85 24 89 24 L111 24 Q115 24 115 28 L115 40 Q125 50 125 75 L125 165 Q125 175 115 175 L85 175 Q75 175 75 165 L75 75 Q75 50 85 40 Z" fill="#3F4D3D"/>
+            <rect x="87" y="14" width="26" height="14" rx="1" fill="#2A2A24"/>
+            <rect x="82" y="100" width="36" height="50" fill="#FBF6EC"/>
+            <text x="100" y="120" text-anchor="middle" font-family="Noto Serif SC" font-size="6" font-weight="500" fill="#1B1A17" letter-spacing="1.6">小紫瓶</text>
+          </svg>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="eyebrow" style="font-size:9px;">N° 01 / THE SERUM</div>
+            <div class="display" style="font-size:18px; margin-top:4px;">小紫瓶 · 草本精华液</div>
+            <div class="caption" style="font-size:12px; margin-top:2px;">Lithospermum · Coptis</div>
+            <span class="chip" style="margin-top:8px; padding:3px 10px; font-size:10px;">30 ml</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+            <span class="price" style="font-family:var(--serif); font-size:20px; color:var(--clay); font-weight:500;"><sup style="font-size:10px; vertical-align:super;">¥</sup>248</span>
+            <div style="display:flex; align-items:center; gap:14px; padding:6px 12px; border:1px solid var(--linen);">
+              <button style="width:18px; color:var(--ink-mid); font-size:16px;">−</button>
+              <span style="font-family:var(--serif); font-size:14px; min-width:18px; text-align:center;">1</span>
+              <button style="width:18px; color:var(--ink); font-size:16px;">+</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article style="display:grid; grid-template-columns: 100px 1fr; gap:18px; padding:24px 0; border-bottom:1px solid var(--linen);">
+        <div style="background:linear-gradient(180deg, #DCD0B8 0%, #BFA77E 100%); aspect-ratio: 4/5; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:50%;">
+            <ellipse cx="100" cy="180" rx="35" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M82 50 Q70 60 70 90 L70 165 Q70 175 80 175 L120 175 Q130 175 130 165 L130 90 Q130 60 118 50 Z" fill="#FBF6EC" stroke="#1B1A17" stroke-width="0.6"/>
+            <ellipse cx="100" cy="48" rx="22" ry="6" fill="#5C4A35"/>
+            <rect x="78" y="95" width="44" height="58" fill="#FBF6EC"/>
+            <text x="100" y="118" text-anchor="middle" font-family="Noto Serif SC" font-size="6" font-weight="500" fill="#1B1A17" letter-spacing="1.6">柔肤水</text>
+          </svg>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="eyebrow" style="font-size:9px;">N° 02 / TONER</div>
+            <div class="display" style="font-size:18px; margin-top:4px;">柔肤水 · 玫瑰</div>
+            <div class="caption" style="font-size:12px; margin-top:2px;">Rose · Damascena</div>
+            <span class="chip" style="margin-top:8px; padding:3px 10px; font-size:10px;">200 ml</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+            <span class="price" style="font-family:var(--serif); font-size:20px; color:var(--clay); font-weight:500;"><sup style="font-size:10px; vertical-align:super;">¥</sup>168</span>
+            <div style="display:flex; align-items:center; gap:14px; padding:6px 12px; border:1px solid var(--linen);">
+              <button style="width:18px; color:var(--ink-mid); font-size:16px;">−</button>
+              <span style="font-family:var(--serif); font-size:14px; min-width:18px; text-align:center;">1</span>
+              <button style="width:18px; color:var(--ink); font-size:16px;">+</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article style="display:grid; grid-template-columns: 100px 1fr; gap:18px; padding:24px 0; border-bottom:1px solid var(--linen);">
+        <div style="background:linear-gradient(180deg, #DCD0B8 0%, #BFA77E 100%); aspect-ratio: 4/5; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:50%;">
+            <ellipse cx="100" cy="180" rx="35" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M82 50 Q70 60 70 90 L70 165 Q70 175 80 175 L120 175 Q130 175 130 165 L130 90 Q130 60 118 50 Z" fill="#FBF6EC" stroke="#1B1A17" stroke-width="0.6"/>
+            <ellipse cx="100" cy="48" rx="22" ry="6" fill="#5C4A35"/>
+            <rect x="78" y="95" width="44" height="58" fill="#FBF6EC"/>
+            <text x="100" y="118" text-anchor="middle" font-family="Noto Serif SC" font-size="6" font-weight="500" fill="#1B1A17" letter-spacing="1.6">面霜</text>
+          </svg>
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div class="eyebrow" style="font-size:9px;">N° 04 / CREAM</div>
+            <div class="display" style="font-size:18px; margin-top:4px;">面霜 · 艾草</div>
+            <div class="caption" style="font-size:12px; margin-top:2px;">Mugwort · Artemisia</div>
+            <span class="chip" style="margin-top:8px; padding:3px 10px; font-size:10px;">50 g</span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+            <span class="price" style="font-family:var(--serif); font-size:20px; color:var(--clay); font-weight:500;"><sup style="font-size:10px; vertical-align:super;">¥</sup>298</span>
+            <div style="display:flex; align-items:center; gap:14px; padding:6px 12px; border:1px solid var(--linen);">
+              <button style="width:18px; color:var(--ink-mid); font-size:16px;">−</button>
+              <span style="font-family:var(--serif); font-size:14px; min-width:18px; text-align:center;">1</span>
+              <button style="width:18px; color:var(--ink); font-size:16px;">+</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- order summary -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div class="eyebrow-cn" style="text-align:center; font-size:10px;">· &nbsp; 订单摘要 &nbsp; ·</div>
+    <h2 class="display" style="font-size:28px; margin-top:10px; text-align:center;">Order <em>summary</em></h2>
+    <div style="margin-top:28px; border-top:1px solid var(--linen);">
+      <div style="display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--linen); font-size:13px;">
+        <span class="body">商品小计</span>
+        <span style="font-family:var(--serif);">¥ 714</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--linen); font-size:13px;">
+        <span class="body">配送</span>
+        <span style="font-family:var(--serif);">¥ 12</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--linen); font-size:13px;">
+        <span class="body">会员折扣</span>
+        <span style="font-family:var(--serif); color:var(--sage);">− ¥ 36</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:18px 0; align-items:baseline;">
+        <span class="display" style="font-size:16px;">应付总额</span>
+        <span style="font-family:var(--serif); font-size:30px; color:var(--ink); font-weight:500;"><sup style="font-size:12px; vertical-align:super;">¥</sup>690</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- note -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div style="background: var(--cream); padding:24px; text-align:center; border:1px dashed var(--linen);">
+      <div class="eyebrow-cn" style="font-size:10px;">· &nbsp; 一 则 提 示 &nbsp; ·</div>
+      <p class="display" style="font-size:22px; margin-top:8px;">满 <em>¥ 600</em> 包邮</p>
+      <p class="body" style="font-size:12px; margin-top:8px;">再购 ¥ 16 即享顺丰包邮服务，<br>并解锁会员 9 折礼遇。</p>
+    </div>
+  </section>
+
+  <!-- coupon -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 0; border-top:1px solid var(--linen); border-bottom:1px solid var(--linen);">
+      <div>
+        <div class="eyebrow-cn" style="font-size:10px;">优惠</div>
+        <span class="body" style="font-size:13px; margin-top:4px; display:block;">已选 · 满 500 减 30</span>
+      </div>
+      <span class="link-arrow" style="font-size:10px;">3 张可用 ›</span>
+    </div>
+  </section>
+
+  <div style="height: 130px;"></div>
+</div>
+
+<!-- sticky bottom -->
+<div class="sticky-bottom" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+  <div style="display:flex; align-items:baseline; gap:8px;">
+    <span class="eyebrow-cn" style="font-size:9px;">SUBTOTAL · 3 ITEMS</span>
+  </div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <span style="font-family:var(--serif); font-size:30px; color:var(--ink); font-weight:500; line-height:1;"><sup style="font-size:12px; vertical-align:super; margin-right:2px;">¥</sup>690</span>
+    <button class="btn btn-clay" style="padding:14px 22px;">CHECKOUT →</button>
+  </div>
+</div>
+</body>
+</html>

@@ -20,7 +20,13 @@ Page({
     if (options.ref) {
       const ref = String(options.ref).trim().toUpperCase();
       wx.setStorageSync('pendingReferrer', ref);
-      if (wx.getStorageSync('openId')) API.login({ action: 'login', ref }, { silent: true }).catch(() => {});
+      if (wx.getStorageSync('openId')) {
+        // 已登录用户：绑定前需用户显式确认（同一推荐码只问一次）
+        getApp().confirmReferralBinding(ref).then(agreed => {
+          if (!agreed) return;
+          API.login({ action: 'login', ref }, { silent: true }).catch(() => {});
+        });
+      }
     }
     if (options.id) {
       this.loadProduct(options.id);
@@ -56,6 +62,16 @@ Page({
       loadedFromServer: true,
       loading: false
     });
+    this.updateSpecPrice(this.data.specName);
+  },
+
+  // 主价格区跟随所选规格（规格价优先，回退商品主价，与服务端口径一致）
+  updateSpecPrice(specName) {
+    const p = this.data.product;
+    if (!p) return;
+    const spec = (p.specs || []).find(s => s && s.name === specName);
+    const price = Number(spec && spec.price) || Number(p.price) || 0;
+    this.setData({ currentPrice: price, currentPriceText: (price / 100).toFixed(2) });
   },
 
   async checkFav(productId) {
@@ -84,12 +100,14 @@ Page({
       quantity: quantity,
       showSpecPicker: false
     });
+    this.updateSpecPrice(specName);
     this.buyNow();
   },
 
   onSpecAddCart(e) {
     const { specName, quantity } = e.detail;
     this.setData({ specName: specName, quantity: quantity, showSpecPicker: false });
+    this.updateSpecPrice(specName);
     this.addToCart();
   },
 
@@ -101,11 +119,14 @@ Page({
       // 取已存在的购物车追加
       const cur = await API.getCart({ silent: true });
       const exist = (cur && cur.items) || [];
+      const specName = this.data.specName || (p.specs && p.specs[0] && p.specs[0].name) || '';
+      // 与服务端口径一致：优先规格价，缺失时回退商品主价
+      const spec = (p.specs || []).find(s => s && s.name === specName);
       const newItem = {
         productId: p._id,
         name: p.name,
-        spec: this.data.specName || (p.specs && p.specs[0] && p.specs[0].name) || '',
-        price: Number(p.price) || 0,
+        spec: specName,
+        price: Number(spec && spec.price) || Number(p.price) || 0,
         quantity: this.data.quantity,
         image: (p.images && p.images[0]) || ''
       };

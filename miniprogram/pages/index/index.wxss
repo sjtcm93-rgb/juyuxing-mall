@@ -1,49 +1,49 @@
 /* 首页样式 - 品牌暖橙 v3（按 2026-09-02 原型升级） */
 .home-wrap {
-  background: #F5F6F8;
+  background: var(--color-showcase-bg);
 }
 
 /* ===== 顶部渐变区：品牌 + 搜索 + 双入口 ===== */
 .home-top {
-  padding: 32rpx 24rpx 8rpx;
-  background: linear-gradient(180deg, rgba(232, 115, 12, 0.12) 0%, rgba(245, 246, 248, 0) 100%);
+  padding: 22rpx 38rpx 0;
+  background: transparent;
 }
 
 .home-brand-row {
   display: flex;
   align-items: baseline;
-  gap: 16rpx;
-  padding: 0 8rpx 24rpx;
+  gap: 20rpx;
+  padding: 0 0 32rpx;
 }
 
 .home-brand-name {
-  font-size: 40rpx;
+  font-size: 46rpx;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-showcase-primary);
   letter-spacing: 2rpx;
 }
 
 .home-brand-tag {
   font-size: 24rpx;
-  color: var(--color-text-muted);
+  color: var(--color-showcase-muted);
   letter-spacing: 2rpx;
 }
 
 /* 搜索框（点击跳搜索页） */
 .search-bar {
-  height: 72rpx;
+  height: 76rpx;
   background: #FFFFFF;
   border-radius: 36rpx;
-  margin: 0 8rpx 20rpx;
+  margin: 0 0 24rpx;
   padding: 0 28rpx;
   display: flex;
   align-items: center;
   gap: 12rpx;
-  box-shadow: 0 4rpx 16rpx rgba(232, 115, 12, 0.08);
+  box-shadow: none;
 }
 
 .search-bar-hover { opacity: 0.85; }
-.search-bar-icon-only { justify-content: center; padding: 0; }
+.search-bar-icon-only { justify-content: flex-start; padding: 0 32rpx; }
 
 .search-icon {
   width: 32rpx;
@@ -60,25 +60,27 @@
 .promo-row {
   display: flex;
   gap: 16rpx;
-  margin: 0 8rpx 24rpx;
+  margin: 0;
 }
 
 .promo-card {
   flex: 1;
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 20rpx;
+  border-radius: 24rpx;
+  min-width: 0;
+  height: 118rpx;
+  padding: 20rpx 16rpx;
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  box-shadow: var(--shadow-sm);
+  gap: 14rpx;
+  box-shadow: none;
 }
 
 .promo-card-hover { opacity: 0.85; transform: scale(0.98); }
 
 .promo-icon {
-  width: 64rpx;
-  height: 64rpx;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 16rpx;
   flex-shrink: 0;
   background: var(--color-warm-soft);
@@ -93,14 +95,14 @@
 }
 
 .promo-title {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .promo-desc {
-  font-size: 20rpx;
-  color: var(--color-text-muted);
+  font-size: 22rpx;
+  color: var(--color-showcase-muted);
   margin-top: 4rpx;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -162,19 +164,41 @@
   text-transform: uppercase;
 }
 
-/* ===== 双列商品网格 ===== */
+/* ===== 首页全宽商品卡片 ===== */
 .product-section { padding-bottom: 16rpx; }
 
 .product-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  padding: 0 24rpx 8rpx;
+  flex-direction: column;
+  gap: 24rpx;
+  padding: 0 38rpx 24rpx;
 }
 
 .product-grid goods-card {
-  width: calc((100% - 16rpx) / 2);
+  width: 100%;
+  margin-top: 0;
 }
+
+.product-section .section-header {
+  position: relative;
+  z-index: 4;
+  padding-top: 54rpx;
+  padding-bottom: 0;
+  padding-right: 40rpx;
+  padding-left: 40rpx;
+  line-height: 52rpx;
+  pointer-events: none;
+}
+
+.product-section .section-title {
+  color: var(--color-showcase-title);
+  font-size: 42rpx;
+  letter-spacing: 2rpx;
+}
+
+.product-section .section-subtitle { font-size: 24rpx; color: var(--color-showcase-muted); }
+.product-grid-reference { margin-top: -52rpx; }
+.product-grid goods-card + goods-card { margin-top: 52rpx; }
 
 .loading-more {
   display: flex;
@@ -200,32 +224,36 @@
   text-align: center;
   font-size: 24rpx;
   color: var(--color-text-faint);
-  padding: 32rpx 0 48rpx;
+  padding: 32rpx 0;
 }
 
 /* ===== 品牌故事 ===== */
+.story-section { margin-top: 0; }
+.story-section .section-header { padding-top: 0; }
 .story-content {
   margin: 0 24rpx;
   position: relative;
-  padding: 40rpx 36rpx;
+  padding: 24rpx 36rpx 26rpx;
   background: #FFFFFF;
   border-radius: var(--radius-lg);
 }
 
 .story-quote-mark {
-  font-size: 80rpx;
+  position: absolute;
+  top: 16rpx;
+  left: 18rpx;
+  font-size: 48rpx;
   color: var(--color-primary-soft);
   line-height: 1;
-  margin-bottom: -10rpx;
   font-family: Georgia, serif;
 }
 
 .story-text {
   color: var(--color-text-sub);
   font-size: 28rpx;
-  line-height: 1.9;
+  line-height: 1.75;
   display: block;
-  margin-bottom: 16rpx;
+  margin-bottom: 10rpx;
   text-align: justify;
 }
 
@@ -233,7 +261,7 @@
   display: inline-block;
   color: var(--color-primary);
   font-size: 26rpx;
-  margin-top: 8rpx;
+  margin-top: 4rpx;
   font-weight: 500;
 }
 

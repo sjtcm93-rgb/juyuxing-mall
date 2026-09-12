@@ -51,13 +51,17 @@ Page({
     if (res && res.success && res.data) {
       const refund = res.data;
       const statusMap = {
-        pending: '处理中',
-        approved: '已通过',
+        pending: '审核中',
+        pending_auto: '已批准，等待执行',
+        processing: '退款核对中',
+        channel_processing: '微信退款处理中',
+        manual_review: '退款待商家核查',
+        approved: '已退款',
         rejected: '已拒绝'
       };
       this.setData({
         refund: refund,
-        refundStatusText: statusMap[refund.status] || refund.status,
+        refundStatusText: refund.refundChannel === 'wechat_manual' ? '退款结果待商家核对' : (statusMap[refund.status] || '处理中'),
         refundCreateTime: refund.createTime ? formatTime(refund.createTime) : ''
       });
       // 同时加载关联订单信息

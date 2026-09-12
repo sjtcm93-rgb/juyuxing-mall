@@ -110,7 +110,10 @@ Page({
     if (!options.silent) this.setData({ loading: true, loadError: '' });
     const res = await API.getCart({ silent: !!options.silent });
     if (res && res.success) {
-      const items = res.items || [];
+      let items = res.items || [];
+      // 校正价格：云端可能存的是旧主价或缓存规格价，
+      // 强制按当前商品规格价重算（规格价优先，回退主价），避免下单报「订单金额不一致」
+      items = await this.normalizeCartPrices(items);
       this.writeCartCache(items);
       this.applyCartItems(items);
     } else {
@@ -118,6 +121,29 @@ Page({
         this.setData({ loading: false, loadError: (res && res.error) || '加载失败' });
       }
     }
+  },
+
+  // 与服务端口径一致：规格价优先，缺失时回退商品主价
+  async normalizeCartPrices(items) {
+    const cache = {};
+    const out = [];
+    for (const it of (items || [])) {
+      let spec = null;
+      try {
+        if (cache[it.productId]) {
+          spec = cache[it.productId];
+        } else {
+          const r = await API.getProduct(it.productId, { silent: true });
+          spec = r && r.success ? r.data : null;
+          cache[it.productId] = spec;
+        }
+      } catch (e) {}
+      const price = spec
+        ? (Number((spec.specs || []).find(s => s && s.name === (it.spec || '')) && (spec.specs || []).find(s => s.name === (it.spec || '')).price) || Number(spec.price) || 0)
+        : (Number(it.price) || 0);
+      out.push({ ...it, price });
+    }
+    return out;
   },
 
   recalcTotal() {

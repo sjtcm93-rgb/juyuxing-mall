@@ -21,8 +21,8 @@
     <!-- 商品信息 -->
     <view class="product-info-section card">
       <view class="price-area">
-        <text class="current-price">¥{{ product.priceText }}</text>
-        <text wx:if="{{product.originalPrice && product.originalPrice > product.price}}" class="original-price">¥{{ product.originalPriceText }}</text>
+        <text class="current-price">¥{{ currentPriceText || product.priceText }}</text>
+        <text wx:if="{{product.originalPrice && product.originalPrice > (currentPrice || product.price)}}" class="original-price">¥{{ product.originalPriceText }}</text>
         <text class="sales-count">已售 {{product.sales || 0}} 件</text>
       </view>
       <text class="product-name">{{product.name}}</text>

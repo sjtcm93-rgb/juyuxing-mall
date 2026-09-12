@@ -37,9 +37,9 @@ Page({
         this.setData({ loading: false, loadError: '结算商品为空，请重新选择' });
         return;
       }
-      this.setData({ fromCart: true, items: decorateList(items) });
-      this.calcTotal();
+      // 不预先渲染旧价格，避免「先显示 0.01 闪一下」；交给 fetchItemsDetail 按规格价校正后再渲染
       this.fetchItemsDetail(items);
+      this.setData({ fromCart: true });
     } else if (options.productId) {
       this.setData({ productId: options.productId });
       this.fetchProductDetail(options.productId, Number(options.quantity) || 1, options.specName || '');
@@ -60,6 +60,13 @@ Page({
     }
   },
 
+  // 与服务端 order 云函数口径一致：优先取规格价，规格价缺失时回退商品主价
+  resolveSpecPrice(p, specName) {
+    const specs = (p && p.specs) || [];
+    const spec = specName ? specs.find(s => s && s.name === specName) : null;
+    return Number(spec && spec.price) || Number(p.price) || 0;
+  },
+
   async fetchProductDetail(productId, quantity, specName) {
     const res = await API.getProduct(productId);
     if (!res || !res.success || !res.data) {
@@ -71,7 +78,7 @@ Page({
       productId: p._id,
       name: p.name,
       spec: specName || (p.specs && p.specs[0] && p.specs[0].name) || '',
-      price: Number(p.price) || 0,
+      price: this.resolveSpecPrice(p, specName),
       quantity: quantity,
       image: (p.images && p.images[0]) || ''
     };
@@ -97,7 +104,7 @@ Page({
             productId: p._id,
             name: p.name,
             spec: it.spec || (p.specs && p.specs[0] && p.specs[0].name) || '',
-            price: Number(p.price) || 0,
+            price: this.resolveSpecPrice(p, it.spec),
             quantity: Math.min(Number(it.quantity) || 1, (p.specs && p.specs[0] && p.specs[0].stock) || 9999),
             image: (p.images && p.images[0]) || ''
           });

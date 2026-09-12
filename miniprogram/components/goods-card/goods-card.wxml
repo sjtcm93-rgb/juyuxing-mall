@@ -1,4 +1,55 @@
-<view wx:if="{{mode === 'grid'}}" class="gc-card" bindtap="onTap" hover-class="gc-hover">
+<!-- Reference artwork uses a 768 × 600 design canvas. All commerce fields remain live. -->
+<view wx:if="{{mode === 'grid' && wide && referenceArt && !artworkError}}" class="gc-art {{dynamic ? 'gc-art-animated' : ''}}" bindtap="onTap" aria-role="button" aria-label="查看{{goods.name}}商品详情">
+  <image class="gc-art-plate" src="/images/showcase/xiaoziping-plate-v1.jpg" mode="scaleToFill" binderror="onArtworkError" aria-hidden="true"></image>
+  <image class="gc-art-reference-scene" src="/images/showcase/approved-reference.jpg" mode="scaleToFill" binderror="onArtworkError" aria-hidden="true"></image>
+  <view class="gc-art-residual-fade" aria-hidden="true"></view>
+  <view class="gc-art-shadow-cleanup" aria-hidden="true"></view>
+  <view class="gc-art-contact-shadow" aria-hidden="true"></view>
+  <view class="gc-art-bottle" aria-hidden="true">
+    <image class="gc-art-bottle-source" src="/images/showcase/approved-reference.jpg" mode="scaleToFill" binderror="onArtworkError"></image>
+  </view>
+  <view wx:if="{{showBadge && badgeText}}" class="gc-art-badge">{{badgeText}}</view>
+  <text class="gc-art-name">{{goods.name || '商品已下架'}}</text>
+  <text wx:if="{{goods.subtitle}}" class="gc-art-sub">{{goods.subtitle}}</text>
+  <view wx:if="{{specText || detailText}}" class="gc-art-detail-blend" aria-hidden="true"></view>
+  <view wx:if="{{specText || detailText}}" class="gc-art-detail"><text wx:if="{{specText}}">{{specText}}</text><text wx:if="{{specText && detailText}}"> · </text><text wx:if="{{detailText}}">{{detailText}}</text></view>
+  <view class="gc-art-price {{widePriceYuan.length > 5 ? 'gc-art-price-long' : ''}}">
+    <text class="gc-art-currency">¥</text><text class="gc-art-amount">{{widePriceYuan}}</text>
+    <text wx:if="{{wideOriginalYuan}}" class="gc-art-original">¥{{wideOriginalYuan}}</text>
+  </view>
+  <button wx:if="{{showAction}}" class="gc-art-buy" catchtap="onAction" hover-class="gc-action-hover" aria-label="购买{{goods.name}}">{{actionText}}</button>
+</view>
+
+<view wx:elif="{{mode === 'grid' && wide}}" class="gc-card gc-card-wide" bindtap="onTap" hover-class="gc-hover">
+  <view class="gc-wide-copy">
+    <view wx:if="{{showBadge && badgeText}}" class="gc-wide-badge">{{badgeText}}</view>
+    <text class="gc-wide-name">{{goods.name || '商品已下架'}}</text>
+    <text wx:if="{{goods.subtitle}}" class="gc-wide-sub">{{goods.subtitle}}</text>
+    <view wx:if="{{specText || detailText}}" class="gc-wide-detail">
+      <text wx:if="{{specText}}">{{specText}}</text><text wx:if="{{specText && detailText}}"> · </text><text wx:if="{{detailText}}">{{detailText}}</text>
+    </view>
+    <view class="gc-wide-price">
+      <text class="gc-wide-symbol">¥</text>
+      <text class="gc-wide-price-value">{{widePriceYuan}}</text>
+      <text wx:if="{{wideOriginalYuan}}" class="gc-wide-price-original">¥{{wideOriginalYuan}}</text>
+    </view>
+  </view>
+  <view class="gc-wide-visual {{dynamic ? 'gc-wide-visual-dynamic' : ''}}">
+    <view wx:if="{{dynamic}}" class="gc-wide-aura"></view>
+    <view wx:if="{{dynamic}}" class="gc-wide-swoop"></view>
+    <image wx:if="{{dynamic}}" class="gc-wide-echo gc-wide-echo-far" src="{{coverImage}}" mode="aspectFit"></image>
+    <image wx:if="{{dynamic}}" class="gc-wide-echo gc-wide-echo-near" src="{{coverImage}}" mode="aspectFit"></image>
+    <view wx:if="{{dynamic}}" class="gc-wide-shadow"></view>
+    <view class="gc-wide-product-stage">
+      <view class="gc-wide-product-float">
+        <image class="gc-wide-image" src="{{coverImage}}" mode="aspectFit" lazy-load="{{true}}"></image>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{showAction}}" class="gc-wide-action" catchtap="onAction" hover-class="gc-action-hover">{{actionText}}</view>
+</view>
+
+<view wx:elif="{{mode === 'grid'}}" class="gc-card" bindtap="onTap" hover-class="gc-hover">
   <view class="gc-image-wrap">
     <image class="gc-image" src="{{coverImage}}" mode="aspectFill" lazy-load="{{true}}"></image>
     <view wx:if="{{showBadge && badgeText}}" class="gc-badge">{{badgeText}}</view>

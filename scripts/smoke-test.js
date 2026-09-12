@@ -75,6 +75,8 @@ const required = [
   'admin-web/app.js',
   'scripts/admin-qr-auth-test.js',
   'scripts/release-gap-test.js',
+  'scripts/refund-diagnostics-test.js',
+  'cloudfunctions/admin/refund-query.js',
   'scripts/migrate-abc.js',
   // 配置
   'project.config.json',
@@ -193,12 +195,12 @@ if (projectConfig.appid && cloudbaserc.envId && envIdMatch &&
 console.log('▶ 关键业务规则');
 
 const orderSrc = read('cloudfunctions/order/index.js');
-// 佣金比例：支持硬编码常量（COMMISSION_RATE = 0.15）或动态读取（getCommissionRate 默认 0.15）
+// 新规则默认 33%，显式配置的历史比例由 E2E 与 commission-policy-test 覆盖。
 const COMMISSION_RATE_MATCH = orderSrc.match(/COMMISSION_RATE\s*=\s*([\d.]+)/);
 const DYNAMIC_RATE_MATCH = orderSrc.match(/commissionRate[^\d]*([\d.]+)/);
 const rate = COMMISSION_RATE_MATCH ? parseFloat(COMMISSION_RATE_MATCH[1]) : (DYNAMIC_RATE_MATCH ? parseFloat(DYNAMIC_RATE_MATCH[1]) : null);
-if (rate === 0.15) ok('佣金比例 = 15%');
-else fail('佣金比例', '应为 0.15，实际 ' + rate);
+if (rate === 0.33) ok('默认佣金比例 = 33%');
+else fail('佣金比例', '默认应为 0.33，实际 ' + rate);
 
 const agentSrc = read('cloudfunctions/agent/index.js');
 if (agentSrc.includes('generateReferralCode') && agentSrc.includes('crypto.randomInt') &&

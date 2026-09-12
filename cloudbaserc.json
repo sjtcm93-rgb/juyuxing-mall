@@ -60,7 +60,10 @@
       "name": "pay",
       "timeout": 10,
       "memorySize": 256,
-      "triggers": []
+      "triggers": [],
+      "envVariables": {
+        "ALLOW_MOCK_PAY": "false"
+      }
     },
     {
       "name": "payNotify",
@@ -115,6 +118,12 @@
           "config": "0 */5 * * * * *"
         }
       ]
+    },
+    {
+      "name": "refund-processor",
+      "timeout": 60,
+      "memorySize": 256,
+      "triggers": []
     }
   ]
 }

@@ -7,17 +7,21 @@
 - 项目路径: /Users/orange/Documents/橘与杏商城/
 
 ## 技术架构
-- 微信原生小程序 + 云开发
-- 17 个云函数: init, login, product, cart, order, pay, payNotify, agent, commission, withdrawal, admin, category, chat, coupon, favorite
-- 24 个前端页面
-- admin-web: 独立 HTML/JS/CSS 管理后台
+- 微信原生小程序 A 端 + B 端 admin-web + C 端代理分销分包，三端架构
+- 23 个云函数（含 init/login/product/cart/order/pay/payNotify/agent/commission/withdrawal/admin/category/chat/coupon/favorite/promotion/maintenance/adminQrAuth/refund-processor/admin-refund-http 退役/uploadProductImage/updateProductDesc）
+- A 端主包精简（移除分销/后台/店铺编辑入口）
+- C 端 subpackages/distributor（仅 B 端邀请激活）
+- B 端 admin-web（admin_owner/admin_operator/admin_finance 三角色权限隔离）
 
 ## 关键设计决策
-- 佣金比例: 从硬编码 0.15 改为从 admin_config 动态读取（默认 0.15）
-- Mock 支付模式: pay 云函数直接落 paid + 创建佣金，不走 payNotify 回调
-- payNotify 仅用于真实微信支付回调 + 幂等性验证
-- 管理员权限: admin_config.admin 文档的 adminOpenIds 数组 + openId 字段（兼容）
-- admin-web 登录: 密码哈希(SHA-256) + webToken(24h过期)
+- A/B/C 三端架构：消费者精简 / 后台扫码登录 / 代理邀请激活
+- 佣金比例：从 admin_config 动态读取（默认 33%，commission-policy-test 验证）
+- 支付：useMockPay=false + ALLOW_MOCK_PAY=false 双开关；mock 需同时开启才生效
+- 退款一致性：申请 → 同意 pending_auto → 店主/财务扫码 → queryRefundStatus 只读 → 微信 SUCCESS 后事务同步
+- 旧 admin-refund-http 已退役返回 410 REFUND_ENDPOINT_RETIRED
+- 管理员权限：数据库账号体系 + 角色字段；admin_operator 不能审提现 / admin_finance 不能改商品库存 / 仅 admin_owner 管账号；历史 admin_config.adminOpenIds 已不再用于登录
+- B 端登录：匿名登录 + adminQrAuth 自定义登录 Ticket；2 分钟票据；二维码先落主包首页再中转 subpackages/admin-auth/confirm/confirm
+- ALLOW_ADMIN_BOOTSTRAP 环境变量已失效，店主账号必须在数据库迁移或账号管理流程中绑定 wechatOpenId
 
 ## 测试体系
 - scripts/smoke-test.js: 156 项静态检查 + 业务规则验证

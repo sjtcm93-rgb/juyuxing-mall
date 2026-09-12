@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>确认订单 — 橘与杏</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="frame">
+
+  <div class="status-bar"><span>9:41</span><span class="right">
+    <svg width="16" height="11" viewBox="0 0 16 11"><path d="M0 8h2v3H0zM4 5h2v6H4zM8 2h2v9H8zM12 0h2v11h-2z" fill="currentColor"/></svg>
+    <svg width="14" height="11" viewBox="0 0 14 11"><path d="M7 9.5a1 1 0 100-2 1 1 0 000 2zM3 5.5a5.5 5.5 0 018 0l-1 1a4 4 0 00-6 0l-1-1zM0 2.5a9.5 9.5 0 0114 0l-1 1a8 8 0 00-12 0l-1-1z" fill="currentColor"/></svg>
+    <svg width="22" height="11" viewBox="0 0 22 11"><rect x="0" y="1" width="18" height="9" rx="2" stroke="currentColor" fill="none"/><rect x="2" y="3" width="14" height="5" fill="currentColor"/><rect x="19" y="3.5" width="2" height="4" rx="1" fill="currentColor"/></svg>
+  </span></div>
+
+  <div class="topbar">
+    <div class="left">
+      <a href="cart.html" class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M15 6l-6 6 6 6"/></svg></a>
+    </div>
+    <div class="brand" style="text-align:center">确认订单<small>CHECKOUT · 02 / 03</small></div>
+    <div class="right">
+      <span style="width:20px"></span>
+    </div>
+  </div>
+
+  <section style="padding: 16px var(--pad) 0;">
+    <div class="eyebrow">— &nbsp; SHIPPING &nbsp; —</div>
+    <h1 class="display" style="font-size:42px; margin-top:12px;">Where to<br><em>send it.</em></h1>
+  </section>
+
+  <!-- address card -->
+  <section style="padding: 28px var(--pad) 0;">
+    <div class="card shad" style="padding:0; overflow:hidden;">
+      <div style="padding:24px 22px 18px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 22s8-7 8-13a8 8 0 10-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg>
+          <span class="eyebrow-cn" style="font-size:10px;">配送地址</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px; margin-top:14px;">
+          <span style="font-family:var(--serif-cn); font-size:22px; font-weight:500;">林 玉</span>
+          <span style="font-family:var(--mono); font-size:14px; color:var(--ink-mid);">138 ****  6024</span>
+          <span class="chip" style="padding:2px 8px; font-size:9px; border-color:var(--sage); color:var(--sage);">默认</span>
+        </div>
+        <p class="body" style="font-size:14px; margin-top:8px; line-height:1.6;">
+          上海市 徐汇区 衡山路 1234 弄<br>
+          嘉汇广场 · 8 号楼 · 2501 室
+        </p>
+      </div>
+      <div style="display:flex; border-top:1px solid var(--linen);">
+        <button style="flex:1; padding:14px; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink); border-right:1px solid var(--linen);">其他地址</button>
+        <button style="flex:1; padding:14px; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink);">+ 新增</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- delivery method -->
+  <section style="padding: 28px var(--pad) 0;">
+    <div style="border-top:1px solid var(--linen); padding:18px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="eyebrow-cn" style="font-size:10px;">配送方式</div>
+          <span class="body" style="font-size:13px; margin-top:4px; display:block;">顺丰速运 · 预计 1-2 日送达</span>
+        </div>
+        <span style="font-family:var(--serif); font-size:16px;">¥ 12</span>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--linen); border-bottom:1px solid var(--linen); padding:18px 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div class="eyebrow-cn" style="font-size:10px;">支付方式</div>
+          <span class="body" style="font-size:13px; margin-top:4px; display:block;">微信支付</span>
+        </div>
+        <span class="link-arrow" style="font-size:10px;">更换 ›</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- items -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:20px;">
+      <div>
+        <div class="eyebrow-cn" style="font-size:10px;">商品清单</div>
+        <h2 class="display" style="font-size:24px; margin-top:6px;">3 <em>items</em></h2>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--linen);">
+      <div style="display:grid; grid-template-columns: 70px 1fr auto; gap:14px; padding:18px 0; border-bottom:1px solid var(--linen); align-items:center;">
+        <div style="background:linear-gradient(180deg, #E0D5C0 0%, #C8B898 100%); aspect-ratio: 1/1; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:55%;">
+            <ellipse cx="100" cy="180" rx="32" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M85 40 L85 28 Q85 24 89 24 L111 24 Q115 24 115 28 L115 40 Q125 50 125 75 L125 165 Q125 175 115 175 L85 175 Q75 175 75 165 L75 75 Q75 50 85 40 Z" fill="#3F4D3D"/>
+            <rect x="87" y="14" width="26" height="14" rx="1" fill="#2A2A24"/>
+            <rect x="82" y="100" width="36" height="50" fill="#FBF6EC"/>
+          </svg>
+        </div>
+        <div>
+          <div class="display" style="font-size:15px;">小紫瓶 · 草本精华液</div>
+          <div class="caption" style="font-size:11px; margin-top:2px;">30 ml × 1</div>
+        </div>
+        <span style="font-family:var(--serif); font-size:16px; color:var(--clay); font-weight:500;">¥ 248</span>
+      </div>
+      <div style="display:grid; grid-template-columns: 70px 1fr auto; gap:14px; padding:18px 0; border-bottom:1px solid var(--linen); align-items:center;">
+        <div style="background:linear-gradient(180deg, #DCD0B8 0%, #BFA77E 100%); aspect-ratio: 1/1; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:55%;">
+            <ellipse cx="100" cy="180" rx="35" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M82 50 Q70 60 70 90 L70 165 Q70 175 80 175 L120 175 Q130 175 130 165 L130 90 Q130 60 118 50 Z" fill="#FBF6EC" stroke="#1B1A17" stroke-width="0.6"/>
+            <ellipse cx="100" cy="48" rx="22" ry="6" fill="#5C4A35"/>
+            <rect x="78" y="95" width="44" height="58" fill="#FBF6EC"/>
+          </svg>
+        </div>
+        <div>
+          <div class="display" style="font-size:15px;">柔肤水 · 玫瑰</div>
+          <div class="caption" style="font-size:11px; margin-top:2px;">200 ml × 1</div>
+        </div>
+        <span style="font-family:var(--serif); font-size:16px; color:var(--clay); font-weight:500;">¥ 168</span>
+      </div>
+      <div style="display:grid; grid-template-columns: 70px 1fr auto; gap:14px; padding:18px 0; border-bottom:1px solid var(--linen); align-items:center;">
+        <div style="background:linear-gradient(180deg, #DCD0B8 0%, #BFA77E 100%); aspect-ratio: 1/1; position:relative;">
+          <svg viewBox="0 0 200 200" style="position:absolute; left:50%; top:50%; transform: translate(-50%,-50%); width:55%;">
+            <ellipse cx="100" cy="180" rx="35" ry="3" fill="rgba(0,0,0,0.1)"/>
+            <path d="M82 50 Q70 60 70 90 L70 165 Q70 175 80 175 L120 175 Q130 175 130 165 L130 90 Q130 60 118 50 Z" fill="#FBF6EC" stroke="#1B1A17" stroke-width="0.6"/>
+            <ellipse cx="100" cy="48" rx="22" ry="6" fill="#5C4A35"/>
+            <rect x="78" y="95" width="44" height="58" fill="#FBF6EC"/>
+          </svg>
+        </div>
+        <div>
+          <div class="display" style="font-size:15px;">面霜 · 艾草</div>
+          <div class="caption" style="font-size:11px; margin-top:2px;">50 g × 1</div>
+        </div>
+        <span style="font-family:var(--serif); font-size:16px; color:var(--clay); font-weight:500;">¥ 298</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- coupon -->
+  <section style="padding: 16px var(--pad) 0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 0; border-top:1px solid var(--linen); border-bottom:1px solid var(--linen);">
+      <div>
+        <div class="eyebrow-cn" style="font-size:10px;">优惠券</div>
+        <span class="body" style="font-size:13px; margin-top:4px; display:block;">满 500 减 30</span>
+      </div>
+      <span class="link-arrow" style="font-size:10px;">已选 ›</span>
+    </div>
+  </section>
+
+  <!-- note -->
+  <section style="padding: 24px var(--pad) 0;">
+    <div class="eyebrow-cn" style="font-size:10px;">订单备注</div>
+    <textarea placeholder="选填 · 请勿撕开包装以便礼品赠送" style="width:100%; margin-top:12px; background:var(--cream); border:1px solid var(--linen); padding:14px 16px; font-family:var(--sans); font-size:13px; color:var(--ink); resize:none; height:64px;"></textarea>
+  </section>
+
+  <!-- summary -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div class="eyebrow-cn" style="text-align:center; font-size:10px;">· &nbsp; 价 格 明 细 &nbsp; ·</div>
+    <div style="margin-top:20px; border-top:1px solid var(--linen);">
+      <div style="display:flex; justify-content:space-between; padding:12px 0; font-size:13px;">
+        <span class="body">商品总额</span>
+        <span style="font-family:var(--serif);">¥ 714.00</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:12px 0; font-size:13px; border-top:1px dashed var(--linen);">
+        <span class="body">配送</span>
+        <span style="font-family:var(--serif);">¥ 12.00</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:12px 0; font-size:13px; border-top:1px dashed var(--linen);">
+        <span class="body">会员折扣</span>
+        <span style="font-family:var(--serif); color:var(--sage);">− ¥ 36.00</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:12px 0; font-size:13px; border-top:1px dashed var(--linen);">
+        <span class="body">优惠券</span>
+        <span style="font-family:var(--serif); color:var(--sage);">− ¥ 30.00</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; padding:22px 0 0; align-items:baseline; border-top:1px solid var(--ink);">
+        <span class="display" style="font-size:18px;">实付</span>
+        <span style="font-family:var(--serif); font-size:34px; color:var(--ink); font-weight:500;"><sup style="font-size:14px; vertical-align:super; margin-right:2px;">¥</sup>660</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- trust -->
+  <section style="padding: 32px var(--pad) 0;">
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px; padding:24px 18px; background:var(--cream); text-align:center;">
+      <div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="margin:0 auto;"><path d="M12 2L4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6l-8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+        <div class="small" style="margin-top:8px;">7 天<br>无理由退换</div>
+      </div>
+      <div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="margin:0 auto;"><rect x="3" y="6" width="14" height="12" rx="1"/><path d="M17 10h3v6h-3M7 18v2M13 18v2"/></svg>
+        <div class="small" style="margin-top:8px;">顺丰<br>包邮速达</div>
+      </div>
+      <div>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="margin:0 auto;"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg>
+        <div class="small" style="margin-top:8px;">全程<br>溯源保真</div>
+      </div>
+    </div>
+  </section>
+
+  <div style="height: 130px;"></div>
+</div>
+
+<!-- sticky bottom -->
+<div class="sticky-bottom" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+  <div>
+    <div class="eyebrow-cn" style="font-size:9px;">实付</div>
+    <div style="font-family:var(--serif); font-size:30px; color:var(--ink); font-weight:500; line-height:1.1;"><sup style="font-size:12px; vertical-align:super; margin-right:2px;">¥</sup>660</div>
+  </div>
+  <button class="btn btn-clay" style="padding:16px 28px; font-size:12px;">提交订单</button>
+</div>
+</body>
+</html>

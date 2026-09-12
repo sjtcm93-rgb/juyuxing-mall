@@ -1,0 +1,149 @@
+/* Artwork canvas: 768 × 600; homepage column: 674rpx.
+ * Image coordinates and live text share this single scale (674 / 768).
+ * Explicit box sizing avoids component style-isolation changing the layout.
+ */
+.gc-art {
+  position: relative;
+  width: 100%;
+  height: 526.5625rpx;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  line-height: 1.2;
+  isolation: isolate;
+  overflow: hidden;
+}
+.gc-art-plate { position: absolute; left: -1.5%; top: 5.5%; width: 103%; height: 100%; pointer-events: none; border-radius: 24rpx; }
+.gc-art-bottle {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 76% 82%;
+  pointer-events: none;
+}
+/* Original render pixels, clipped to the foreground bottle contour.
+ * This preserves the approved material and logo without stretching a new bottle.
+ */
+.gc-art-bottle-source, .gc-art-reference-scene {
+  position: absolute;
+  width: 111.0677%;
+  height: 307.3333%;
+  left: -5.599%;
+  top: -108.3333%;
+  clip-path: polygon(59.3200% 37.6898%, 60.4924% 37.2560%, 62.7198% 36.9306%, 66.4713% 36.6052%, 70.9261% 36.3883%, 74.2087% 36.3341%, 76.7878% 36.4425%, 77.8429% 36.7137%, 78.1946% 37.4729%, 84.5252% 60.1410%, 84.5252% 60.6291%, 83.8218% 61.0087%, 82.5322% 61.2798%, 80.3048% 61.5510%, 77.1395% 61.7679%, 73.6225% 61.9306%, 70.5744% 61.9848%, 67.8781% 61.9306%, 66.0023% 61.7679%, 65.4162% 61.4425%, 59.2028% 38.3948%);
+  pointer-events: none;
+}
+.gc-art-reference-scene {
+  z-index: 1;
+  -webkit-mask-image: linear-gradient(to right, transparent 39%, #000 48%);
+  mask-image: linear-gradient(to right, transparent 39%, #000 48%);
+  clip-path: polygon(evenodd, 5.0410% 35.2495%, 95.0762% 35.2495%, 95.0762% 67.7874%, 5.0410% 67.7874%, 5.0410% 35.2495%, 5.0410% 35.2495%, 53.1067% 35.2495%, 53.1067% 39.0456%, 5.0410% 39.0456%, 5.0410% 35.2495%, 5.0410% 35.2495%, 7.9719% 42.1909%, 38.6870% 42.1909%, 38.6870% 45.4447%, 7.9719% 45.4447%, 7.9719% 42.1909%, 5.0410% 35.2495%, 7.9719% 46.1497%, 30.1290% 46.1497%, 30.1290% 49.8915%, 7.9719% 49.8915%, 7.9719% 46.1497%, 5.0410% 35.2495%, 7.9719% 50.4881%, 45.1348% 50.4881%, 45.1348% 53.1996%, 7.9719% 53.1996%, 7.9719% 50.4881%, 5.0410% 35.2495%, 7.9719% 53.7419%, 64.2440% 53.7419%, 64.2440% 56.0738%, 7.9719% 56.0738%, 7.9719% 53.7419%, 5.0410% 35.2495%, 7.8546% 58.1887%, 39.2732% 58.1887%, 39.2732% 63.4490%, 7.8546% 63.4490%, 7.8546% 58.1887%, 5.0410% 35.2495%, 70.2227% 62.3102%, 93.0832% 62.3102%, 93.0832% 66.4317%, 70.2227% 66.4317%, 70.2227% 62.3102%, 5.0410% 35.2495%, 59.3200% 37.6898%, 60.4924% 37.2560%, 62.7198% 36.9306%, 66.4713% 36.6052%, 70.9261% 36.3883%, 74.2087% 36.3341%, 76.7878% 36.4425%, 77.8429% 36.7137%, 78.1946% 37.4729%, 84.5252% 60.1410%, 84.5252% 60.6291%, 83.8218% 61.0087%, 82.5322% 61.2798%, 80.3048% 61.5510%, 77.1395% 61.7679%, 73.6225% 61.9306%, 70.5744% 61.9848%, 67.8781% 61.9306%, 66.0023% 61.7679%, 65.4162% 61.4425%, 59.2028% 38.3948%, 59.3200% 37.6898%, 5.0410% 35.2495%);
+}
+.gc-art-residual-fade {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, rgba(248, 246, 249, .58) 6%, rgba(250, 248, 247, .74) 48%, rgba(251, 246, 244, .52) 86%);
+  clip-path: polygon(59.4% 6%, 61% 4.8%, 64% 3.8%, 68% 2.8%, 73% 2.1%, 77% 2%, 80.5% 2.7%, 82% 4.5%, 89% 76.5%, 89% 79%, 87.5% 80.5%, 84% 82%, 79% 83%, 73% 83.5%, 68% 82.5%, 66% 80.5%, 59% 9%);
+  filter: blur(8rpx);
+  pointer-events: none;
+}
+.gc-art-shadow-cleanup {
+  position: absolute;
+  z-index: 2;
+  left: 44%;
+  top: 72.5%;
+  width: 48%;
+  height: 14%;
+  background: radial-gradient(ellipse at 58% 56%, #faf9f7 0%, rgba(250, 249, 247, .98) 44%, rgba(250, 248, 247, .88) 60%, rgba(251, 246, 244, .38) 74%, rgba(251, 246, 244, 0) 88%);
+  filter: blur(7rpx);
+  pointer-events: none;
+}
+.gc-art-contact-shadow {
+  position: absolute;
+  z-index: 2;
+  left: 68%;
+  top: 80.1%;
+  width: 18.5%;
+  height: 2.2%;
+  background: radial-gradient(ellipse, rgba(46, 39, 56, .15) 0%, rgba(46, 39, 56, .08) 43%, rgba(46, 39, 56, 0) 74%);
+  pointer-events: none;
+}
+.gc-art-badge, .gc-art-name, .gc-art-sub, .gc-art-detail, .gc-art-price, .gc-art-buy { position: absolute; z-index: 3; box-sizing: border-box; }
+.gc-art-badge {
+  left: 3.90625%; top: 21.8333%; height: 8.6667%;
+  padding: 0 18rpx;
+  border-radius: var(--radius-pill);
+  background: var(--color-showcase-primary);
+  color: var(--color-card);
+  font-size: 23rpx;
+  letter-spacing: 1rpx;
+  display: flex; align-items: center;
+}
+.gc-art-name {
+  left: 3.90625%; top: 34.1667%; max-width: 52%;
+  font-size: 50rpx; font-weight: 700; line-height: 1.2;
+  letter-spacing: 2rpx; color: var(--color-showcase-title);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc-art-sub {
+  left: 3.90625%; top: 47.5%; max-width: 58%;
+  font-size: 32rpx; line-height: 1.25; font-weight: 500;
+  color: var(--color-showcase-sub);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc-art-detail-blend {
+  position: absolute;
+  z-index: 2;
+  left: 3.90625%;
+  top: 55.5%;
+  width: 55%;
+  height: 7.5%;
+  background: radial-gradient(ellipse at 82% 50%, rgba(250, 249, 247, .96) 0%, rgba(250, 249, 247, .82) 25%, rgba(251, 246, 244, .45) 45%, rgba(252, 241, 237, .15) 61%, rgba(252, 241, 237, 0) 74%);
+  filter: blur(4rpx);
+  pointer-events: none;
+}
+.gc-art-detail {
+  left: 3.90625%; top: 57.5%; width: 61%;
+  font-size: 22rpx; line-height: 1.4; color: var(--color-showcase-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gc-art-price {
+  left: 3.90625%; top: 70.5%; height: 16%; max-width: 61%;
+  display: flex; align-items: baseline;
+  color: var(--color-showcase-primary);
+  white-space: nowrap;
+}
+.gc-art-currency { font-size: 43rpx; font-family: var(--font-sans); }
+.gc-art-amount { font: 400 91rpx/1 Georgia, 'Times New Roman', serif; letter-spacing: -3rpx; }
+.gc-art-original { margin-left: 25rpx; font-size: 36rpx; color: var(--color-showcase-muted); text-decoration: line-through; }
+.gc-art-price-long .gc-art-amount { font-size: 65rpx; letter-spacing: -1rpx; }
+.gc-art-price-long .gc-art-original { font-size: 26rpx; margin-left: 12rpx; }
+.gc-art-buy {
+  left: 74%; top: 86%; width: 22.5%; height: 9.8%;
+  margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--radius-pill);
+  color: var(--color-card); background: linear-gradient(135deg, #ff5b12 0%, var(--color-showcase-primary) 62%, #f43e00 100%);
+  font-family: var(--font-sans); font-size: 27rpx; font-weight: 400; line-height: 1;
+  letter-spacing: .5rpx;
+  box-shadow: 0 8rpx 18rpx rgba(244, 69, 5, .16);
+}
+.gc-art-buy::after { border: 0; }
+.gc-art-animated .gc-art-bottle { animation: art-bottle-float 4.8s ease-in-out infinite; }
+.gc-art-animated .gc-art-contact-shadow { animation: art-shadow-follow 4.8s ease-in-out infinite; }
+@keyframes art-bottle-float {
+  0%, 100% { transform: translate3d(0, 1rpx, 0) rotate(0); }
+  50% { transform: translate3d(-3rpx, -10rpx, 0) rotate(-2.5deg); }
+}
+@keyframes art-shadow-follow {
+  0%, 100% { opacity: .66; transform: scale(1); }
+  50% { opacity: .38; transform: translateX(-3rpx) scale(.88, .78); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gc-art-animated .gc-art-bottle, .gc-art-animated .gc-art-contact-shadow { animation: none; }
+}

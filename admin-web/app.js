@@ -214,22 +214,25 @@ const App = {
     // ----- Refunds -----
     const refunds = ref([]);
     const refundFilter = ref('pending');
+    const refundOperatorQr = reactive({ show: false, loading: false, image: '', error: '' });
     const refundFilters = [
       { label: '待处理', value: 'pending' },
-      { label: '已同意', value: 'approved' },
+      { label: '已退款', value: 'approved' },
       { label: '已拒绝', value: 'rejected' },
       { label: '全部', value: 'all' }
     ];
-    const refundModal = reactive({ show: false, data: null, approve: true, adminNote: '', returnReceived: false, restock: false });
+    const refundModal = reactive({ show: false, data: null, approve: true, adminNote: '', returnReceived: false, restock: false, readOnly: false });
+    const refundDiagnostics = reactive({});
+    const queryingRefundId = ref('');
     const processingAction = ref(false);
 
     // ===== 工具函数 =====
-    function showToast(msg, type = 'success') {
+    function showToast(msg, type = 'success', duration = 2500) {
       if (toast.timer) clearTimeout(toast.timer);
       toast.msg = msg;
       toast.type = type;
       toast.show = true;
-      toast.timer = setTimeout(() => { toast.show = false; }, 2500);
+      toast.timer = setTimeout(() => { toast.show = false; }, duration);
     }
 
     function formatPrice(cents) {
@@ -398,6 +401,8 @@ const App = {
     }
 
     async function logout() {
+      Object.keys(refundDiagnostics).forEach(id => { delete refundDiagnostics[id]; });
+      refundModal.show = false;
       await callAdmin('logout');
       await auth.signOut().catch(() => {});
       localStorage.removeItem('adminToken');
@@ -781,6 +786,111 @@ const App = {
       }
     }
 
+    // ===== 微信支付 API 直连凭证 =====
+    const payApiForm = reactive({ apiV2Key: '', certBase64: '', certFileName: '', certSizeKB: 0, certPassword: '' });
+    const savingPayApi = ref(false);
+
+    function onPayCertFileChange(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) {
+        payApiForm.certBase64 = '';
+        payApiForm.certFileName = '';
+        payApiForm.certSizeKB = 0;
+        return;
+      }
+      if (!/\.p12$/i.test(file.name)) {
+        showToast('请选择 .p12 证书文件（apiclient_cert.p12）', 'error');
+        ev.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        // ArrayBuffer → base64
+        const buf = new Uint8Array(reader.result);
+        let binary = '';
+        for (let i = 0; i < buf.length; i++) binary += String.fromCharCode(buf[i]);
+        payApiForm.certBase64 = btoa(binary);
+        payApiForm.certFileName = file.name;
+        payApiForm.certSizeKB = Math.round(buf.length / 1024 * 10) / 10;
+      };
+      reader.onerror = () => showToast('读取证书文件失败，请重试', 'error');
+      reader.readAsArrayBuffer(file);
+    }
+
+    async function savePayApiConfig() {
+      if (!payApiForm.apiV2Key || !payApiForm.certBase64) {
+        showToast('请填写 APIv2 密钥并选择证书文件', 'error');
+        return;
+      }
+      savingPayApi.value = true;
+      try {
+        const res = await callAdmin('savePayApiConfig', {
+          apiV2Key: payApiForm.apiV2Key,
+          apiCertP12: payApiForm.certBase64,
+          apiCertPassword: payApiForm.certPassword || ''
+        });
+        if (res.success) {
+          showToast(res.message || '直连凭证已保存');
+          payApiForm.apiV2Key = '';
+          payApiForm.certBase64 = '';
+          payApiForm.certFileName = '';
+          payApiForm.certSizeKB = 0;
+          payApiForm.certPassword = '';
+          loadSettings();
+        } else {
+          showToast(res.error || '保存失败', 'error');
+        }
+      } finally {
+        savingPayApi.value = false;
+      }
+    }
+
+    async function clearPayApiConfig() {
+      savingPayApi.value = true;
+      try {
+        const res = await callAdmin('clearPayApiConfig', {});
+        if (res.success) {
+          showToast(res.message || '已清除直连凭证');
+          loadSettings();
+        } else {
+          showToast(res.error || '清除失败', 'error');
+        }
+      } finally {
+        savingPayApi.value = false;
+      }
+    }
+
+    // ===== 一键诊断直连 =====
+    const debuggingPayApi = ref(false);
+    const payApiDebug = ref('');
+
+    async function debugPayApi() {
+      debuggingPayApi.value = true;
+      payApiDebug.value = '';
+      try {
+        const res = await callAdmin('debugPayApi', {});
+        if (res.success && res.diagnostics) {
+          const d = res.diagnostics;
+          const lines = [
+            '【直连凭证】' + (d.credentialsSaved ? '✅ 已保存' : '❌ 未保存'),
+            '【商户号】' + (d.mchId || '-'),
+            '【密钥长度】' + (d.keyLength || 0) + (d.keyLength === 32 ? ' ✅' : ' ❌ 应为32位'),
+            '【证书】' + (d.certLoad ? d.certLoad : (d.certBase64Length ? '已上传 ' + Math.round(d.certBase64Length * 3 / 4 / 1024 * 10) / 10 + 'KB' : '❌ 未上传')),
+            '【测试订单】' + (d.testOrderNo || d.orderQuerySkipped || '-'),
+            '【签名验证】' + (d.signature || d.orderQueryError || '未测试'),
+            '【模式检查】' + (d.modeCheck || '未测试'),
+            '【订单状态】' + (d.orderTradeState ? d.orderTradeState + '（交易号 ' + (d.orderTransactionId || '-') + '）' : (d.orderQueryErrCode ? 'err: ' + d.orderQueryErrCode + ' ' + d.orderQueryErrDes : '')),
+          ];
+          payApiDebug.value = lines.join('\n');
+        } else {
+          payApiDebug.value = JSON.stringify(res, null, 2);
+          showToast(res.error || '诊断失败', 'error');
+        }
+      } finally {
+        debuggingPayApi.value = false;
+      }
+    }
+
     async function previewMigration() {
       migration.previewing = true;
       const res = await callAdmin('migrationPreview');
@@ -960,6 +1070,66 @@ const App = {
     }
 
     // ===== Refunds =====
+    async function openRefundOperatorQr() {
+      if (!currentAccount.value || !['owner', 'finance'].includes(currentAccount.value.role) || refundOperatorQr.loading) return;
+      Object.assign(refundOperatorQr, { show: true, loading: true, image: '', error: '' });
+      try {
+        const result = await callAdminQrAuth('createQrLogin');
+        if (!result || !result.success || !result.qrDataUrl) throw new Error((result && result.error) || '二维码生成失败');
+        refundOperatorQr.image = result.qrDataUrl;
+      } catch (err) { refundOperatorQr.error = err.message || '二维码生成失败'; }
+      finally { refundOperatorQr.loading = false; }
+    }
+
+    function recordRefundDiagnostic(rf, action, result) {
+      const previous = refundDiagnostics[rf._id];
+      const data = result && result.data;
+      let detail = result && result.success
+        ? `${(data && data.status) || ''} ${(data && data.message) || result.message || '操作完成'}`
+        : `${(result && result.code) || ''} ${(result && result.error) || '未收到有效返回，状态未知'}`;
+      // 附带直连通道诊断信息（直连失败原因 + 走的哪个通道）
+      if (result && result.directApiError) {
+        detail += `\n[直连诊断] ${result.directApiError}`;
+      }
+      if (result && result.channel) {
+        detail += `\n[退款通道] ${result.channel}`;
+      } else if (result && result.fallback) {
+        detail += `\n[退款通道] 降级(${result.fallback})`;
+      }
+      const entry = `${new Date().toLocaleString()} · ${action}\n${detail}${data && data.outRefundNo ? '\n退款单号：' + data.outRefundNo : ''}`;
+      const entries = ((previous && previous.entries) || []).concat([entry]).slice(-10);
+      refundDiagnostics[rf._id] = { entries, text: entries.join('\n\n'),
+        orderNo: (rf.order && rf.order.orderNo) || rf.orderId || '',
+        isError: !(result && result.success) };
+    }
+
+    async function queryRefundStatus(rf) {
+      if (!rf || !rf._id || queryingRefundId.value || processingAction.value) return;
+      queryingRefundId.value = rf._id;
+      try {
+        const result = await callAdmin('queryRefundStatus', { refundId: rf._id });
+        if (result && /unknown action/i.test(result.error || '')) {
+          result.error = '云端尚未部署退款查询接口，请更新 admin 云函数（包含 refund-query.js）；本次没有发起退款。';
+        }
+        recordRefundDiagnostic(rf, '只读查询', result);
+      } catch (err) {
+        recordRefundDiagnostic(rf, '只读查询', { success: false, error: err.message || '查询异常' });
+      } finally {
+        queryingRefundId.value = '';
+      }
+    }
+
+    async function copyRefundDiagnostic(id) {
+      const info = refundDiagnostics[id];
+      if (!info) return;
+      try {
+        await navigator.clipboard.writeText(`订单号：${info.orderNo}\n${info.text}`);
+        showToast('诊断信息已复制');
+      } catch (err) {
+        showToast('无法自动复制，请选中诊断文字手动复制', 'error');
+      }
+    }
+
     async function loadRefunds() {
       const res = await callAdmin('refundList', { statusFilter: refundFilter.value });
       if (res.success) {
@@ -973,16 +1143,36 @@ const App = {
     }
 
     function refundStatusText(status) {
-      const map = { pending: '待处理', approved: '已同意', rejected: '已拒绝' };
+      const map = { pending: '待审批', pending_auto: '已批准待执行', processing: '正在核对', channel_processing: '渠道处理中', manual_review: '待人工核查', approved: '已退款', rejected: '已拒绝' };
       return map[status] || status || '-';
     }
 
     function refundStatusClass(status) {
-      const map = { pending: 'status-refunding', approved: 'status-refunded', rejected: 'status-cancelled' };
+      const map = { pending: 'status-refunding', pending_auto: 'status-refunding', processing: 'status-refunding', channel_processing: 'status-shipped', manual_review: 'status-refunding', approved: 'status-refunded', rejected: 'status-cancelled' };
       return map[status] || 'status-cancelled';
     }
 
+    function refundChannelLabel(rf) {
+      if (!rf) return '';
+      const ch = rf.refundChannel;
+      if (ch === 'wechat_manual') return '🟡 人工处理';
+      if (ch === 'mock') return '🔵 模拟退款';
+      if (ch === 'wechat') return '🟢 微信已退';
+      return '';
+    }
+
+    function refundChannelClass(rf) {
+      if (!rf) return '';
+      const ch = rf.refundChannel;
+      if (ch === 'wechat_manual') return 'status-refunding';
+      if (ch === 'mock') return 'status-cancelled';
+      if (ch === 'wechat') return 'status-paid';
+      return '';
+    }
+
     function openRefundModal(rf, approve) {
+      if (processingAction.value || queryingRefundId.value) return;
+      refundModal.readOnly = rf.status !== 'pending';
       refundModal.data = rf;
       refundModal.approve = approve;
       refundModal.adminNote = '';
@@ -992,29 +1182,52 @@ const App = {
     }
 
     function viewRefund(rf) {
-      refundModal.data = rf;
-      refundModal.approve = rf.status === 'pending';
+      if (processingAction.value || queryingRefundId.value) return;
+      openRefundModal(rf, true);
+      refundModal.readOnly = true;
       refundModal.adminNote = rf.adminNote || '';
       refundModal.show = true;
     }
 
     async function confirmRefund() {
+      if (processingAction.value || queryingRefundId.value || refundModal.readOnly || !refundModal.data || refundModal.data.status !== 'pending') return;
+      const rf = refundModal.data;
       processingAction.value = true;
-      const res = await callAdmin('processRefund', {
-        refundId: refundModal.data._id,
-        approve: refundModal.approve,
-        adminNote: refundModal.adminNote,
-        returnReceived: refundModal.returnReceived,
-        restock: refundModal.restock
-      });
-      processingAction.value = false;
-      if (res.success) {
-        showToast(res.message || '处理成功');
-        refundModal.show = false;
-        loadRefunds();
-        loadDashboard();
-      } else {
-        showToast(res.error || '操作失败', 'error');
+      try {
+        // 审批仅进入待执行队列，由绑定微信的店主/财务在手机上显式处理并核对。
+        const res = await callAdmin('processRefund', {
+          refundId: rf._id,
+          approve: refundModal.approve,
+          adminNote: refundModal.adminNote,
+          returnReceived: refundModal.returnReceived,
+          restock: refundModal.restock
+        });
+        recordRefundDiagnostic(rf, refundModal.approve ? '申请退款' : '拒绝退款', res);
+        if (res && res.success) {
+          if (res.autoProcessing) {
+            showToast(res.message || '退款已批准但尚未到账，请使用手机退款入口处理并核对', 'success', 6000);
+          } else if (res.fallback === 'wechat_manual') {
+            showToast(res.message || '退款已批准（人工处理模式）', 'warning', 6000);
+            if (res.warning) {
+              setTimeout(() => showToast(res.warning, 'warning', 8000), 200);
+            }
+          } else {
+            showToast(res.message || '处理成功');
+          }
+          refundModal.show = false;
+          loadRefunds();
+          loadDashboard();
+          // 自动处理中：60秒后自动刷新一次看结果
+          if (res.autoProcessing) {
+            setTimeout(() => { loadRefunds(); loadDashboard(); }, 60000);
+          }
+        } else {
+          showToast((res && res.error) || '操作失败，详情已保留', 'error');
+        }
+      } catch (err) {
+        recordRefundDiagnostic(rf, '退款操作异常', { success: false, error: err.message || '状态未知，请勿重复退款' });
+      } finally {
+        processingAction.value = false;
       }
     }
 
@@ -1058,7 +1271,8 @@ const App = {
       // withdrawals
       withdrawals, withdrawalFilter, withdrawalFilters, withdrawalModal,
       // refunds
-      refunds, refundFilter, refundFilters, refundModal, processingAction,
+      refunds, refundFilter, refundFilters, refundModal, processingAction, refundDiagnostics, queryingRefundId,
+      queryRefundStatus, copyRefundDiagnostic, refundOperatorQr, openRefundOperatorQr,
       // messages
       messageUsers, currentChatUser, currentChatUserName, chatMessages, replyText, chatBox,
       // settings
@@ -1072,9 +1286,11 @@ const App = {
       loadAccounts, createAccount, toggleAccount,
       loadAgents, switchAgentFilter, approveAgent, agentStatusText, agentStatusClass,
       loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal,
-      loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, openRefundModal, viewRefund, confirmRefund,
+      loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, refundChannelLabel, refundChannelClass, openRefundModal, viewRefund, confirmRefund,
       loadMessageUsers, selectChatUser, sendReply,
       loadSettings, changePassword, addAdminOpenId, removeAdminOpenId, saveCommissionRate,
+      payApiForm, savingPayApi, onPayCertFileChange, savePayApiConfig, clearPayApiConfig,
+      debuggingPayApi, payApiDebug, debugPayApi,
       fullReduction, addFullReductionRule, removeFullReductionRule, saveFullReduction,
       previewMigration, runMigration, previewTransactionCleanup, purgeTestTransactions,
       // utils

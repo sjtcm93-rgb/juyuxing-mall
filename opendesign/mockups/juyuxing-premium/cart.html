@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>橘与杏 · Bag</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=Inter:wght@300;400;500;600&family=Noto+Serif+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F5F1EB; --bg-pale: #FAF7F2; --bg-soft: #EFE9DF; --surface: #FFFFFF;
+  --ink: #1F1B16; --ink-soft: #3A332B; --text-2: #7A6F62; --text-3: #A89F92;
+  --line: #E8E2D8; --line-soft: #F0EBE2;
+  --accent: #5C7868; --accent-2: #B8845C; --accent-3: #2D4A3E;
+  --serif: "Cormorant Garamond","Noto Serif SC","Songti SC","STSong",serif;
+  --sans: "Inter","PingFang SC","Helvetica Neue",system-ui,sans-serif;
+  --track: 0.18em; --radius-s: 2px; --radius-m: 4px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+body {
+  font-family: var(--sans); background: #E5DFD3; color: var(--ink);
+  display:flex; justify-content:center; align-items:flex-start;
+  padding:32px 16px; min-height:100vh;
+}
+.phone {
+  width:390px; min-height:844px; background:var(--bg);
+  border-radius:46px;
+  box-shadow:0 30px 80px rgba(31,27,22,.22), 0 8px 24px rgba(31,27,22,.10);
+  overflow:hidden; position:relative; display:flex; flex-direction:column;
+}
+.statusbar { display:flex; justify-content:space-between; align-items:center; padding:18px 32px 6px; font-size:13px; font-weight:600; color:var(--ink); }
+.statusbar .right { display:flex; gap:6px; align-items:center; }
+.topnav { display:flex; align-items:center; justify-content:space-between; padding:8px 24px 16px; }
+.topnav .icon-btn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.topnav .icon-btn svg { stroke:var(--ink); }
+.topnav .brand { font-family:var(--serif); font-size:18px; font-weight:500; letter-spacing:.18em; color:var(--ink); text-transform:uppercase; flex:1; text-align:center; }
+.topnav .right-txt { font-size:11px; letter-spacing:var(--track); text-transform:uppercase; color:var(--ink); padding-bottom:2px; border-bottom:1px solid var(--ink); }
+.screen { overflow-y:auto; flex:1; scrollbar-width:none; }
+.screen::-webkit-scrollbar{display:none;}
+
+/* HEAD */
+.head { padding:8px 28px 16px; }
+.head .eyebrow { font-size:10px; letter-spacing:var(--track); text-transform:uppercase; color:var(--accent-2); font-weight:500; display:flex; align-items:center; gap:10px; }
+.head .eyebrow::before { content:""; width:18px; height:1px; background:var(--accent-2); }
+.head h1 { font-family:var(--serif); font-size:42px; font-weight:300; line-height:1.1; color:var(--ink); margin-top:14px; letter-spacing:-.01em; }
+.head h1 em { font-style:italic; color:var(--accent-3); font-weight:300; }
+.head .meta { display:flex; gap:18px; margin-top:14px; }
+.head .meta span { font-size:11px; color:var(--text-2); letter-spacing:.04em; }
+.head .meta span b { font-family:var(--serif); font-weight:500; color:var(--ink); margin-right:4px; font-size:14px; }
+
+/* CART ITEMS */
+.items { padding:0 24px; }
+.item {
+  background:var(--surface); border:1px solid var(--line-soft);
+  border-radius:var(--radius-m); padding:16px;
+  display:flex; gap:14px; margin-bottom:12px;
+}
+.item .img {
+  width:84px; height:108px; flex-shrink:0;
+  background:linear-gradient(140deg, #EFE3D2 0%, #E5D2B8 100%);
+  border-radius:var(--radius-s); position:relative; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.item .img.alt { background:linear-gradient(140deg, #FAF7F2 0%, #E8DFCB 100%); }
+.item .img.cool { background:linear-gradient(140deg, #E5E4D8 0%, #D8D9C7 100%); }
+.item .info { flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+.item .info .top .nm {
+  font-family:var(--serif); font-size:16px; font-weight:500; color:var(--ink); line-height:1.3;
+}
+.item .info .top .latin {
+  font-family:var(--serif); font-style:italic; font-size:10px; color:var(--text-3); margin-top:2px;
+}
+.item .info .top .spec {
+  display:inline-block; margin-top:6px; padding:3px 9px;
+  font-size:10px; letter-spacing:.04em; color:var(--text-2);
+  border:1px solid var(--line); border-radius:999px;
+}
+.item .info .bot { display:flex; justify-content:space-between; align-items:center; }
+.item .info .bot .pr { font-family:var(--serif); font-size:18px; color:var(--ink); font-weight:400; }
+.item .info .bot .pr small { font-size:11px; color:var(--text-2); vertical-align:top; }
+.item .info .bot .qty {
+  display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:var(--radius-s);
+}
+.item .info .bot .qty .b { width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:var(--ink); font-size:14px; }
+.item .info .bot .qty .v { width:30px; text-align:center; font-family:var(--serif); font-size:13px; }
+
+/* SUMMARY */
+.summary {
+  margin:24px 24px 0; padding:24px;
+  background:var(--bg-pale); border:1px solid var(--line-soft); border-radius:var(--radius-m);
+}
+.summary .h {
+  font-size:10px; letter-spacing:var(--track); text-transform:uppercase; color:var(--accent-2);
+  font-weight:500; margin-bottom:14px;
+}
+.summary .row { display:flex; justify-content:space-between; padding:8px 0; font-size:12px; color:var(--text-2); }
+.summary .row b { font-family:var(--serif); font-weight:500; color:var(--ink); }
+.summary .row.tot {
+  margin-top:8px; padding-top:14px; border-top:1px solid var(--line);
+  font-size:14px; color:var(--ink); font-family:var(--serif); font-weight:500;
+}
+.summary .row.tot b { font-size:22px; font-weight:400; }
+
+/* RITUAL TIP */
+.tip {
+  margin:28px 24px 0; padding:24px; text-align:center;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+.tip .mark {
+  font-family:var(--serif); font-size:10px; letter-spacing:.3em;
+  text-transform:uppercase; color:var(--accent-2);
+}
+.tip h3 {
+  font-family:var(--serif); font-size:24px; font-weight:300; color:var(--ink); margin-top:10px;
+}
+.tip h3 em { font-style:italic; color:var(--accent-3); }
+.tip p {
+  font-size:12px; line-height:1.8; color:var(--text-2);
+  margin-top:8px; max-width:280px; margin-left:auto; margin-right:auto;
+}
+
+/* TABBAR */
+.tabbar {
+  display:flex; justify-content:space-around; padding:14px 0 28px;
+  background:rgba(245,241,235,.96); backdrop-filter:blur(8px);
+  border-top:1px solid var(--line);
+}
+.tabbar .tab {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase; color:var(--text-3);
+}
+.tabbar .tab.active { color:var(--ink); }
+.tabbar .tab svg { stroke:currentColor; }
+.tabbar .tab .dot { width:4px; height:4px; border-radius:50%; background:var(--accent-2); margin-top:2px; }
+
+/* CHECKOUT BAR */
+.checkout {
+  position:absolute; left:0; right:0; bottom:0; z-index:5;
+  padding:14px 18px 22px;
+  background:rgba(245,241,235,.98); backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);
+  display:flex; align-items:center; gap:14px;
+}
+.checkout .left { display:flex; flex-direction:column; gap:2px; flex:1; }
+.checkout .left .label {
+  font-size:9px; letter-spacing:var(--track); text-transform:uppercase; color:var(--text-3);
+}
+.checkout .left .tot { font-family:var(--serif); font-size:24px; color:var(--ink); font-weight:400; line-height:1; margin-top:2px; }
+.checkout .left .tot small { font-size:13px; color:var(--text-2); vertical-align:top; }
+.checkout .btn {
+  padding:14px 28px; background:var(--ink); color:#FAF7F2;
+  font-size:11px; letter-spacing:var(--track); text-transform:uppercase;
+  border-radius:var(--radius-s); border:none; font-weight:500;
+  display:flex; align-items:center; gap:8px;
+}
+.checkout .btn svg { stroke:#FAF7F2; }
+</style>
+</head>
+<body>
+<div class="phone" style="position:relative;">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="right">
+      <svg width="16" height="10" viewBox="0 0 16 10"><path d="M1 8h2M5 6h2M9 4h2M13 2h2" stroke="currentColor" stroke-width="1.2"/></svg>
+      <svg width="14" height="10" viewBox="0 0 14 10"><path d="M1 4h12" stroke="currentColor" stroke-width="1.2"/><circle cx="7" cy="7" r="2.5" fill="currentColor"/></svg>
+    </span>
+  </div>
+  <div class="topnav">
+    <span class="icon-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.4"><path d="M15 6l-6 6 6 6"/></svg>
+    </span>
+    <div class="brand">Shopping Bag</div>
+    <span class="right-txt">Edit</span>
+  </div>
+  <div class="screen">
+    <div class="head">
+      <div class="eyebrow">Your selection</div>
+      <h1>The <em>bag</em>.</h1>
+      <div class="meta">
+        <span><b>3</b>件商品</span>
+        <span><b>2</b>种本草</span>
+      </div>
+    </div>
+
+    <div class="items">
+      <div class="item">
+        <div class="img">
+          <svg width="50" height="100" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#2D4A3E" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#EFE3D2" stroke="#2D4A3E" stroke-width=".8"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="top">
+            <div class="nm">小紫瓶 · 草本精华液</div>
+            <div class="latin">N° 01 · The Serum</div>
+            <span class="spec">30 ml</span>
+          </div>
+          <div class="bot">
+            <span class="pr"><small>¥</small>248</span>
+            <div class="qty">
+              <span class="b">−</span>
+              <span class="v">1</span>
+              <span class="b">+</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="img alt">
+          <svg width="50" height="100" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#E8DFCB" stroke="#5C7868" stroke-width=".8"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="top">
+            <div class="nm">柔肤水 · 玫瑰</div>
+            <div class="latin">N° 03 · Toner</div>
+            <span class="spec">200 ml</span>
+          </div>
+          <div class="bot">
+            <span class="pr"><small>¥</small>168</span>
+            <div class="qty">
+              <span class="b">−</span>
+              <span class="v">1</span>
+              <span class="b">+</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="item">
+        <div class="img cool">
+          <svg width="50" height="100" viewBox="0 0 60 140">
+            <rect x="22" y="4" width="16" height="10" fill="#3A332B" rx="1"/>
+            <path d="M24 14 Q18 22 18 36 L18 128 Q18 134 24 128 L36 128 Q42 134 42 128 L42 36 Q42 22 36 14 Z" fill="#D8D9C7" stroke="#5C7868" stroke-width=".8"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="top">
+            <div class="nm">面霜 · 艾草</div>
+            <div class="latin">N° 04 · Cream</div>
+            <span class="spec">50 g</span>
+          </div>
+          <div class="bot">
+            <span class="pr"><small>¥</small>298</span>
+            <div class="qty">
+              <span class="b">−</span>
+              <span class="v">1</span>
+              <span class="b">+</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="h">· Order Summary ·</div>
+      <div class="row"><span>商品小计</span><b>¥ 714</b></div>
+      <div class="row"><span>配送</span><b>¥ 12</b></div>
+      <div class="row"><span>会员折扣</span><b>− ¥ 36</b></div>
+      <div class="row tot"><span>应付总额</span><b>¥ 690</b></div>
+    </div>
+
+    <div class="tip">
+      <div class="mark">· A NOTE ·</div>
+      <h3>满 <em>¥ 600</em> 包邮</h3>
+      <p>再购 ¥ 16 即享顺丰包邮服务，并解锁会员 9 折礼遇。</p>
+    </div>
+
+    <div style="height:120px;"></div>
+  </div>
+
+  <div class="tabbar">
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-9z"/></svg>
+      Home
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      Discover
+    </div>
+    <div class="tab active">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><path d="M5 7h14l-1.4 11.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 7z"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/></svg>
+      Bag · 3
+      <span class="dot"></span>
+    </div>
+    <div class="tab">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+      Account
+    </div>
+  </div>
+
+  <div class="checkout">
+    <div class="left">
+      <span class="label">Subtotal · 3 items</span>
+      <span class="tot"><small>¥</small>690</span>
+    </div>
+    <button class="btn">Checkout
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+</div>
+</body>
+</html>
