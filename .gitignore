@@ -28,3 +28,7 @@ output/
 # Env
 .env
 .env.local
+
+# temp db inspect function
+cloudfunctions/zz-dbinspect/
+backups/
