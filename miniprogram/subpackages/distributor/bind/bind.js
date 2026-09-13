@@ -4,7 +4,7 @@ const API = require('../../../utils/api');
 const { toast } = require('../../../utils/util');
 
 Page({
-  data: { token: '', loading: false, error: '', activated: false, code: '' },
+  data: { token: '', loading: false, error: '', activated: false, code: '', form: { name: '', phone: '', nickName: '' } },
 
   onLoad(options) {
     let token = String(options.token || '').trim();
@@ -20,10 +20,26 @@ Page({
     this.setData({ token });
   },
 
+  onNameInput(e) { this.setData({ 'form.name': String(e.detail.value || '').trim() }); },
+  onPhoneInput(e) { this.setData({ 'form.phone': String(e.detail.value || '').trim() }); },
+  onNickNameInput(e) { this.setData({ 'form.nickName': String(e.detail.value || '').trim() }); },
+
+  validate() {
+    const { name, phone } = this.data.form;
+    if (!name || name.length < 2) return '请填写真实姓名（至少 2 个字）';
+    if (!/^1\d{10}$/.test(phone)) return '请填写正确的 11 位手机号';
+    return '';
+  },
+
   async activate() {
     if (this.data.loading) return;
     if (!this.data.token) {
       this.setData({ error: '邀请链接无效，请联系运营重新获取' });
+      return;
+    }
+    const error = this.validate();
+    if (error) {
+      this.setData({ error });
       return;
     }
     this.setData({ loading: true, error: '' });
@@ -34,7 +50,7 @@ Page({
         openId = login && login.openId;
         if (openId) wx.setStorageSync('openId', openId);
       }
-      const result = await API.claimAgentInvite(this.data.token);
+      const result = await API.claimAgentInvite(this.data.token, this.data.form);
       if (!result || !result.success) throw new Error((result && result.error) || '激活失败');
       this.setData({ activated: true, code: result.code || '', loading: false });
       toast('分销员身份已激活', 'success');

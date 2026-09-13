@@ -1,5 +1,23 @@
 <view class="page">
-  <view class="profile"><image src="{{userInfo.avatarUrl || '/images/avatar-placeholder.png'}}"/><text class="name">{{userInfo.nickName || '微信用户'}}</text><text class="level">{{info.level || '一级分销员'}}</text></view>
-  <view class="card"><view><text>身份状态</text><text>{{info.status === 'active' ? '已激活' : info.status}}</text></view><view bindtap="copyCode"><text>专属推广码</text><text class="code">{{info.code || '—'}}　复制</text></view><view><text>分销层级</text><text>一级分销</text></view></view>
+  <view class="profile"><image src="{{userInfo.avatarUrl || '/images/avatar-placeholder.png'}}"/><text class="name">{{info.nickName || userInfo.nickName || info.name || '分销员'}}</text><text class="level">{{info.level || '一级分销员'}}</text></view>
+  <view class="card">
+    <view><text>姓名</text><text wx:if="{{!editing}}">{{info.name || '—'}}</text></view>
+    <view><text>手机号</text><text wx:if="{{!editing}}">{{info.phone || '—'}}</text></view>
+    <block wx:if="{{editing}}">
+      <view class="edit-row"><text>姓名</text><input class="edit-input" placeholder="真实姓名" value="{{form.name}}" bindinput="onNameInput" maxlength="30" /></view>
+      <view class="edit-row"><text>手机号</text><input class="edit-input" placeholder="11 位手机号" type="number" value="{{form.phone}}" bindinput="onPhoneInput" maxlength="11" /></view>
+    </block>
+    <view bindtap="copyCode"><text>专属推广码</text><text class="code">{{info.code || '—'}}　复制</text></view>
+    <view><text>身份状态</text><text>{{info.status === 'active' ? '已激活' : info.status}}</text></view>
+    <view><text>分销层级</text><text>一级分销</text></view>
+  </view>
+  <text class="error" wx:if="{{error}}">{{error}}</text>
+  <view class="actions" wx:if="{{info.isAgent}}">
+    <button wx:if="{{!editing}}" class="primary-btn" bindtap="startEdit">修改联系资料</button>
+    <block wx:else>
+      <button class="primary-btn" bindtap="saveProfile" loading="{{saving}}" disabled="{{saving}}">保存</button>
+      <button class="ghost-btn" bindtap="cancelEdit" disabled="{{saving}}">取消</button>
+    </block>
+  </view>
   <view class="privacy">为保护消费者隐私，分销中心不会展示消费者姓名、手机号和收货地址。</view>
 </view>

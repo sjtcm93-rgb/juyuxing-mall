@@ -51,6 +51,16 @@ async function requireAgent(openId) {
   return isActiveAgent(user) ? user : null;
 }
 
+// 分销员资料校验：姓名 + 手机号均必填（店主需要联系方式管理分销员）
+function normalizeProfileInput(profile) {
+  const name = String((profile && profile.name) || '').trim();
+  const phone = String((profile && profile.phone) || '').trim();
+  const nickName = String((profile && profile.nickName) || '').trim().slice(0, 30);
+  if (name.length < 2 || name.length > 30) return { error: '请填写真实姓名（2-30 个字）' };
+  if (!/^1\d{10}$/.test(phone)) return { error: '请填写正确的 11 位手机号' };
+  return { name, phone, nickName };
+}
+
 async function generateReferralCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   for (let attempt = 0; attempt < 20; attempt++) {
@@ -72,6 +82,15 @@ exports.main = async (event) => {
       case 'claimInvite': {
         const token = String(event.token || '').trim();
         if (!token) return { success: false, error: '邀请链接无效' };
+        // 分销员自填资料（bind 页表单）：微信昵称选填；姓名/手机号在最终解析后校验必填
+        const rawProfile = event.profile || {};
+        const profile = {
+          name: String(rawProfile.name || '').trim().slice(0, 30),
+          phone: String(rawProfile.phone || '').trim(),
+          nickName: String(rawProfile.nickName || '').trim().slice(0, 30)
+        };
+        if (profile.name && profile.name.length < 2) return { success: false, error: '姓名至少 2 个字' };
+        if (profile.phone && !/^1\d{10}$/.test(profile.phone)) return { success: false, error: '请填写正确的 11 位手机号' };
         const user = await getUser(OPENID);
         if (!user) return { success: false, error: '请先登录后再激活' };
         if (isActiveAgent(user)) return { success: true, alreadyActive: true, code: user.referralCode || '' };
@@ -89,9 +108,19 @@ exports.main = async (event) => {
           if (!invite || !invite.expireTime || new Date(invite.expireTime) <= new Date()) {
             return { success: false, error: '邀请已失效，请联系运营重新生成' };
           }
+          // 优先级：分销员自填 > 邀请预填 > 微信昵称兜底
+          const finalName = profile.name || String(invite.name || '').trim() || profile.nickName || latestUser.nickName || '';
+          const finalPhone = profile.phone || String(invite.phone || '').trim();
+          if (!finalName || finalName.length < 2) {
+            return { success: false, error: '请填写真实姓名（2-30 个字）' };
+          }
+          if (!/^1\d{10}$/.test(finalPhone)) {
+            return { success: false, error: '请填写 11 位手机号，方便平台联系您' };
+          }
           const info = {
-            level: '一级分销员', status: 'active', name: invite.name || latestUser.nickName || '',
-            phone: invite.phone || '', inviteId: invite._id, activateTime: db.serverDate()
+            level: '一级分销员', status: 'active', name: finalName, phone: finalPhone,
+            nickName: profile.nickName || latestUser.nickName || '',
+            inviteId: invite._id, activateTime: db.serverDate()
           };
           await transaction.collection('users').doc(OPENID).update({
             data: { isAgent: true, referralCode: code, agentInfo: info, updateTime: db.serverDate() }
@@ -103,6 +132,21 @@ exports.main = async (event) => {
         });
       }
 
+      case 'updateProfile': {
+        const agent = await requireAgent(OPENID);
+        if (!agent) return { success: false, error: '分销员身份未激活' };
+        const profile = normalizeProfileInput(event.profile || {});
+        if (profile.error) return { success: false, error: profile.error };
+        const agentInfo = Object.assign({}, agent.agentInfo, {
+          name: profile.name, phone: profile.phone,
+          nickName: profile.nickName || agent.agentInfo.nickName || agent.nickName || ''
+        });
+        await db.collection('users').doc(OPENID).update({
+          data: { agentInfo, updateTime: db.serverDate() }
+        });
+        return { success: true, agentInfo };
+      }
+
       case 'info': {
         const user = await getUser(OPENID);
         return {
@@ -110,7 +154,10 @@ exports.main = async (event) => {
           isAgent: isActiveAgent(user),
           level: (user && user.agentInfo && user.agentInfo.level) || '',
           code: (user && user.referralCode) || '',
-          status: (user && user.agentInfo && user.agentInfo.status) || ''
+          status: (user && user.agentInfo && user.agentInfo.status) || '',
+          name: (user && user.agentInfo && user.agentInfo.name) || '',
+          phone: (user && user.agentInfo && user.agentInfo.phone) || '',
+          nickName: (user && user.agentInfo && user.agentInfo.nickName) || (user && user.nickName) || ''
         };
       }
 

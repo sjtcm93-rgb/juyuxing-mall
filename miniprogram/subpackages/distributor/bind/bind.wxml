@@ -10,6 +10,20 @@
       <button class="primary-btn" bindtap="enterDashboard">进入分销中心</button>
     </block>
     <block wx:else>
+      <view class="profile-form">
+        <view class="form-item">
+          <text class="form-label">姓名 <text class="required">*</text></text>
+          <input class="form-input" placeholder="请填写真实姓名" value="{{form.name}}" bindinput="onNameInput" maxlength="30" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">手机号 <text class="required">*</text></text>
+          <input class="form-input" placeholder="用于平台联系与结算" type="number" value="{{form.phone}}" bindinput="onPhoneInput" maxlength="11" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">微信昵称</text>
+          <input class="form-input" placeholder="可点击键盘上方「使用微信昵称」一键填入" type="nickname" value="{{form.nickName}}" bindinput="onNickNameInput" bindblur="onNickNameInput" maxlength="30" />
+        </view>
+      </view>
       <text class="error" wx:if="{{error}}">{{error}}</text>
       <button class="primary-btn" bindtap="activate" loading="{{loading}}" disabled="{{loading}}">{{loading ? '激活中…' : '确认激活'}}</button>
     </block>
