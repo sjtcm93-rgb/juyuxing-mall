@@ -327,7 +327,8 @@ exports.main = async (event, context) => {
     }
 
     case 'createInvite': {
-      const token = crypto.randomBytes(24).toString('base64url');
+      // 12 字节 → 16 字符 base64url；配合小程序码 scene "i=<token>"（18 字符）不超微信 32 字符限制
+      const token = crypto.randomBytes(12).toString('base64url');
       const expireTime = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       const result = await db.collection('agent_invites').add({ data: {
         tokenHash: hashToken(token), tokenPreview: token.slice(-6), status: 'pending',

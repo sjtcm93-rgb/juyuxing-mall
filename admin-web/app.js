@@ -594,6 +594,44 @@ const App = {
     }
 
     // ===== 分销邀请 =====
+    const inviteQrModal = reactive({ visible: false, loading: false, qrDataUrl: '', error: '', invite: null });
+
+    function closeInviteQr() {
+      inviteQrModal.visible = false;
+    }
+
+    function extractInviteToken(invitePath) {
+      const match = String(invitePath || '').match(/[?&]token=([^&]+)/);
+      return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    async function openInviteQr(invite) {
+      inviteQrModal.visible = true;
+      inviteQrModal.loading = true;
+      inviteQrModal.error = '';
+      inviteQrModal.qrDataUrl = '';
+      inviteQrModal.invite = invite || null;
+      if (invite && invite.qrDataUrl) {
+        inviteQrModal.qrDataUrl = invite.qrDataUrl;
+        inviteQrModal.loading = false;
+        return;
+      }
+      const token = invite ? extractInviteToken(invite.invitePath || '') : '';
+      if (!token) {
+        inviteQrModal.loading = false;
+        inviteQrModal.error = '该邀请缺少令牌信息，仅创建时可生成小程序码';
+        return;
+      }
+      const res = await callAdminQrAuth('inviteQr', { token });
+      inviteQrModal.loading = false;
+      if (res.success && res.qrDataUrl) {
+        inviteQrModal.qrDataUrl = res.qrDataUrl;
+        if (invite) invite.qrDataUrl = res.qrDataUrl;
+      } else {
+        inviteQrModal.error = res.error || '小程序码生成失败，请稍后重试';
+      }
+    }
+
     async function loadInvites() {
       const res = await callAdmin('inviteList');
       if (res.success) invites.value = res.data || [];
@@ -605,8 +643,12 @@ const App = {
       inviteForm.name = '';
       inviteForm.phone = '';
       await navigator.clipboard.writeText(res.invitePath).catch(() => {});
-      showToast('邀请路径已生成并复制');
-      loadInvites();
+      showToast('邀请已生成');
+      await loadInvites();
+      // 立即生成小程序码并弹窗展示，供分销员扫码激活
+      const token = extractInviteToken(res.invitePath);
+      if (token) await openInviteQr({ token, invitePath: res.invitePath });
+      else showToast('邀请路径已复制', 'error');
     }
 
     async function revokeInvite(invite) {
@@ -1282,7 +1324,7 @@ const App = {
       loadDashboard, loadOrders, switchOrderFilter, openShipModal, confirmShip, viewOrder,
       loadProducts, openProductModal, saveProduct, toggleProduct, deleteProduct,
       loadInventory, adjustInventory, loadFinance,
-      loadInvites, createInvite, revokeInvite,
+      loadInvites, createInvite, revokeInvite, inviteQrModal, openInviteQr, closeInviteQr,
       loadAccounts, createAccount, toggleAccount,
       loadAgents, switchAgentFilter, approveAgent, agentStatusText, agentStatusClass,
       loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal,

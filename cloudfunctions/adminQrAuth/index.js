@@ -15,6 +15,8 @@ const { getUnlimitedWxacode } = require('./wxacode-client');
 
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
 const CONFIRM_PAGE = 'pages/index/index';
+// 分销员邀请小程序码直达 C 端激活页
+const INVITE_PAGE = 'subpackages/distributor/bind/bind';
 // 项目尚未上线，后台扫码使用在公众平台选定的体验版。
 // 正式发布前改为 release，并与正式小程序版本一同验收。
 const REQUESTED_ENV_VERSION = String(process.env.MINIPROGRAM_ENV_VERSION || 'trial').trim();
@@ -126,13 +128,13 @@ async function resolveWechatAccount(openId) {
   return owner.wechatOpenId === openId ? owner : null;
 }
 
-async function createQrImage(publicId, context) {
+async function createSceneQrImage(scene, page, context) {
   const envVersion = QR_ENV_VERSION;
   let buffer;
   if (context && context.OPENID && cloud.openapi && cloud.openapi.wxacode) {
     const code = await cloud.openapi.wxacode.getUnlimited({
-      scene: `q=${publicId}`,
-      page: CONFIRM_PAGE,
+      scene,
+      page,
       checkPath: false,
       envVersion,
       width: 430
@@ -145,14 +147,18 @@ async function createQrImage(publicId, context) {
     buffer = await getUnlimitedWxacode({
       appId,
       appSecret,
-      scene: `q=${publicId}`,
-      page: CONFIRM_PAGE,
+      scene,
+      page,
       checkPath: false,
       envVersion,
       width: 430
     });
   }
   return buffer ? `data:image/png;base64,${buffer.toString('base64')}` : '';
+}
+
+async function createQrImage(publicId, context) {
+  return createSceneQrImage(`q=${publicId}`, CONFIRM_PAGE, context);
 }
 
 async function createQrLogin(context) {
@@ -178,6 +184,27 @@ async function createQrLogin(context) {
     qrDataUrl,
     confirmPage: CONFIRM_PAGE
   };
+}
+
+// 为待领取的分销员邀请生成小程序码（scene: i=<token>，直达激活页）。
+// 仅对有效待领取邀请开放；同版本二维码生成后缓存在邀请文档中，便于后台随时重新展示。
+async function createInviteQrImage(token, context) {
+  const inviteRes = await db.collection('agent_invites')
+    .where({ tokenHash: hashValue(token), status: 'pending' }).limit(1).get().catch(() => ({ data: [] }));
+  const invite = inviteRes.data && inviteRes.data[0];
+  if (!invite) return { success: false, error: '邀请不存在、已使用或已撤销' };
+  if (invite.expireTime && new Date(invite.expireTime) <= new Date()) {
+    return { success: false, error: '邀请已过期，请重新生成' };
+  }
+  if (invite.qrDataUrl && invite.qrEnvVersion === QR_ENV_VERSION) {
+    return { success: true, qrDataUrl: invite.qrDataUrl, inviteId: invite._id, cached: true };
+  }
+  const qrDataUrl = await createSceneQrImage(`i=${token}`, INVITE_PAGE, context);
+  if (!qrDataUrl) return { success: false, error: '小程序码生成失败，请稍后重试' };
+  await db.collection('agent_invites').doc(invite._id).update({
+    data: { qrDataUrl, qrEnvVersion: QR_ENV_VERSION, qrCreateTime: db.serverDate() }
+  });
+  return { success: true, qrDataUrl, inviteId: invite._id };
 }
 
 async function inspectQrLogin(event, openId) {
@@ -294,6 +321,13 @@ exports.main = async (event = {}) => {
       case 'pollQrLogin': {
         await ensureAdminSessionsCollection();
         return await pollQrLogin(event);
+      }
+      case 'inviteQr': {
+        const token = String(event.token || '').trim();
+        if (!/^[A-Za-z0-9_-]{8,64}$/.test(token)) {
+          return { success: false, error: '邀请参数无效' };
+        }
+        return await createInviteQrImage(token, context);
       }
       default: return { success: false, error: 'unknown action' };
     }

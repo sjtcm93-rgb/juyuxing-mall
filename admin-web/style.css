@@ -456,3 +456,15 @@ input, select, textarea { font-family: inherit; outline: none; }
 .refund-diagnostic pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; user-select: text; font: inherit; font-size: 13px; line-height: 1.6; }
 .refund-diagnostic .refund-error { color: #a62d25; }
 .page-refunds > .section-card { overflow-x: auto; }
+/* ===== 分销邀请小程序码弹窗 ===== */
+.invite-qr-modal { width: 340px; text-align: center; }
+.invite-qr-body {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 240px; margin: 12px 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: #fafafa; padding: 12px;
+}
+.invite-qr-image { width: 220px; height: 220px; display: block; }
+.invite-qr-tip { color: var(--text-secondary); font-size: 13px; }
+.invite-qr-error { color: #a62d25; }
+.invite-qr-hint { color: var(--text-secondary); font-size: 12px; line-height: 1.6; margin: 0 0 4px; }

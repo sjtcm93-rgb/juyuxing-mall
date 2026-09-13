@@ -7,7 +7,17 @@ Page({
   data: { token: '', loading: false, error: '', activated: false, code: '' },
 
   onLoad(options) {
-    this.setData({ token: String(options.token || '').trim() });
+    let token = String(options.token || '').trim();
+    // 扫小程序码进入：scene 格式 "i=<token>"（见 adminQrAuth createInviteQrImage）
+    if (!token && options.scene) {
+      const params = decodeURIComponent(String(options.scene)).split('&').reduce((result, part) => {
+        const index = part.indexOf('=');
+        if (index > 0) result[part.slice(0, index)] = part.slice(index + 1);
+        return result;
+      }, {});
+      if (params.i) token = String(params.i).trim();
+    }
+    this.setData({ token });
   },
 
   async activate() {

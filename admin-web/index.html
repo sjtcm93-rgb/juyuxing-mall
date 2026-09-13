@@ -252,8 +252,25 @@
         </div>
         <div class="section-card">
           <table class="data-table" v-if="invites.length"><thead><tr><th>姓名</th><th>手机号</th><th>状态</th><th>到期时间</th><th>尾码</th><th>操作</th></tr></thead>
-            <tbody><tr v-for="invite in invites" :key="invite._id"><td>{{ invite.name || '-' }}</td><td>{{ invite.phone || '-' }}</td><td>{{ invite.status }}</td><td>{{ formatTime(invite.expireTime) }}</td><td>{{ invite.tokenPreview }}</td><td><button v-if="invite.status === 'pending'" class="btn-sm btn-danger" @click="revokeInvite(invite)">撤销</button></td></tr></tbody>
+            <tbody><tr v-for="invite in invites" :key="invite._id"><td>{{ invite.name || '-' }}</td><td>{{ invite.phone || '-' }}</td><td>{{ invite.status }}</td><td>{{ formatTime(invite.expireTime) }}</td><td>{{ invite.tokenPreview }}</td><td><button v-if="invite.status === 'pending' && invite.qrDataUrl" class="btn-sm btn-primary" @click="openInviteQr(invite)">查看二维码</button> <button v-if="invite.status === 'pending'" class="btn-sm btn-danger" @click="revokeInvite(invite)">撤销</button></td></tr></tbody>
           </table><div v-else class="empty-state">暂无邀请</div>
+        </div>
+      </div>
+
+      <!-- ===== 分销邀请小程序码弹窗 ===== -->
+      <div v-if="inviteQrModal.visible" class="modal-overlay" @click.self="closeInviteQr">
+        <div class="modal-box invite-qr-modal">
+          <h3 class="modal-title">分销员邀请小程序码</h3>
+          <p class="modal-order-no" v-if="inviteQrModal.invite && inviteQrModal.invite.name">被邀请人：{{ inviteQrModal.invite.name }}</p>
+          <div class="invite-qr-body">
+            <div v-if="inviteQrModal.loading" class="invite-qr-tip">正在生成小程序码…</div>
+            <img v-else-if="inviteQrModal.qrDataUrl" :src="inviteQrModal.qrDataUrl" alt="分销员邀请小程序码" class="invite-qr-image" />
+            <div v-else class="invite-qr-tip invite-qr-error">{{ inviteQrModal.error || '小程序码不可用' }}</div>
+          </div>
+          <p class="invite-qr-hint">请让分销员用微信扫码，进入小程序后点击「确认激活」即可成为正式分销员。截图发送同样有效，7 天内有效。</p>
+          <div class="modal-actions">
+            <button class="btn-primary" @click="closeInviteQr">关闭</button>
+          </div>
         </div>
       </div>
 
