@@ -4,8 +4,87 @@ const cloud = require('wx-server-sdk');
 cloud.init({ env: 'cloud1-d4gx1jxk675274501' });
 const db = cloud.database();
 const _ = db.command;
+const confirmPayment = require('./payment-effects').createPaymentEffects(cloud, db);
 
 const ORDER_EXPIRE_MS = 30 * 60 * 1000;
+// 回调丢失自愈：下单超过该时间仍 pending 且有预支付单的订单，主动查单补齐支付副作用
+const RECONCILE_AFTER_MS = 3 * 60 * 1000;
+
+function generateNonceStr(length = 32) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let str = '';
+  for (let i = 0; i < length; i++) str += chars.charAt(Math.floor(Math.random() * chars.length));
+  return str;
+}
+
+async function getSubMchId() {
+  const cfgRes = await db.collection('pay_config').doc('default').get().catch(() => null);
+  const config = (cfgRes && cfgRes.data) || {};
+  return String(config.subMchId || '').trim();
+}
+
+// 用户侧对账自愈（必须带微信用户上下文调用：cloudPay 云调用类接口在定时器/服务端直调下无有效票据）。
+// 1) 微信侧已支付但回调未落库的订单 → 补齐支付副作用（置 paid、扣库存、记现金流、生成佣金）；
+// 2) 已过期且微信侧未支付的订单 → 释放库存并关闭（maintenance 定时器在无上下文调用下事务不可用）。
+// 任何失败都不阻塞主流程，只记日志。
+async function reconcilePendingOrders(userId) {
+  try {
+    if (!userId) return;
+    const since = new Date(Date.now() - RECONCILE_AFTER_MS);
+    const res = await db.collection('orders')
+      .where({ userId, status: 'pending', createTime: _.lt(since) })
+      .limit(10).get().catch(() => ({ data: [] }));
+    const orders = res.data || [];
+    if (!orders.length) return;
+    const now = Date.now();
+    const subMchId = await getSubMchId();
+    for (const order of orders) {
+      try {
+        const expired = order.expireTime && new Date(order.expireTime).getTime() <= now;
+        const paidOnWx = order.prepayId && subMchId &&
+          cloud.cloudPay && typeof cloud.cloudPay.queryOrder === 'function'
+          ? await queryOrderState(subMchId, order.orderNo)
+          : null;
+        if (paidOnWx && paidOnWx.tradeState === 'SUCCESS') {
+          await confirmPayment({
+            outTradeNo: order.orderNo,
+            transactionId: paidOnWx.transactionId,
+            totalFee: paidOnWx.totalFee,
+            source: 'reconcile'
+          });
+          console.log('[order] 对账补齐已支付订单:', order.orderNo);
+          continue;
+        }
+        if (expired && order.inventoryStatus === 'reserved') {
+          const closed = await releaseOrderReservations(order, 'payment_timeout');
+          if (closed) console.log('[order] 对账关闭过期未支付订单:', order.orderNo);
+        }
+      } catch (err) {
+        console.error('[order] 对账失败:', order.orderNo, err && (err.message || err));
+      }
+    }
+  } catch (err) {
+    console.warn('[order] 对账流程异常:', err && (err.message || err));
+  }
+}
+
+async function queryOrderState(subMchId, orderNo) {
+  try {
+    const query = await cloud.cloudPay.queryOrder({
+      subMchId, outTradeNo: orderNo, nonceStr: generateNonceStr()
+    });
+    if (!query) return null;
+    const totalFeeValue = query.totalFee !== undefined ? query.totalFee : query.total_fee;
+    return {
+      tradeState: query.tradeState || query.trade_state || '',
+      transactionId: query.transactionId || query.transaction_id || '',
+      totalFee: totalFeeValue === undefined ? null : Number(totalFeeValue)
+    };
+  } catch (err) {
+    console.warn('[order] 查单失败:', orderNo, err && (err.message || err));
+    return null;
+  }
+}
 
 function updatedCount(result) {
   return result && result.stats ? result.stats.updated : result && result.updated;
@@ -301,6 +380,7 @@ exports.main = async (event) => {
       }
 
       case 'counts': {
+        await reconcilePendingOrders(OPENID);
         const statuses = ['pending', 'paid', 'shipped', 'refunding'];
         const data = { pending: 0, paid: 0, shipped: 0, refunding: 0 };
         await Promise.all(statuses.map(async status => {

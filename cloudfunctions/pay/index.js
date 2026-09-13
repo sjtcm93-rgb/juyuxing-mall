@@ -79,6 +79,37 @@ exports.main = async (event, context) => {
         };
       }
 
+      // ===== 回调丢失自愈：已有预支付单且下单超过 3 分钟，先向微信查单 =====
+      // 避免"用户已付款但回调未落库"时重复拉起支付；查到已支付直接补齐副作用。
+      if (order.prepayId && !paymentConfig.useMockPay) {
+        const orderAge = Date.now() - new Date(order.createTime).getTime();
+        if (orderAge > 3 * 60 * 1000) {
+          try {
+            const query = await cloud.cloudPay.queryOrder({
+              subMchId: paymentConfig.subMchId,
+              outTradeNo: order.orderNo,
+              nonceStr: generateNonceStr()
+            });
+            const tradeState = query && (query.tradeState || query.trade_state);
+            if (tradeState === 'SUCCESS') {
+              const totalFeeValue = query.totalFee !== undefined ? query.totalFee : query.total_fee;
+              await confirmPayment({
+                outTradeNo: order.orderNo,
+                transactionId: (query.transactionId || query.transaction_id) || '',
+                totalFee: totalFeeValue === undefined ? null : Number(totalFeeValue),
+                source: 'reconcile'
+              });
+              return {
+                success: true, alreadyPaid: true, reconciled: true,
+                message: '订单已支付', orderId
+              };
+            }
+          } catch (err) {
+            console.warn('[pay] 查单自愈失败:', order.orderNo, err && (err.message || err));
+          }
+        }
+      }
+
       // ===== 显式授权的模拟支付模式（仅用于开发环境）=====
       if (paymentConfig.useMockPay) {
         const mockTxnId = 'MOCK_TXN_' + order.orderNo;
