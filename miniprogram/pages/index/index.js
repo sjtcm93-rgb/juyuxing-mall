@@ -301,7 +301,7 @@ Page({
     if (ref) {
       wx.setStorageSync('pendingReferrer', ref);
       if (wx.getStorageSync('openId')) {
-        // 已登录用户：绑定前需用户显式确认（同一推荐码只问一次）
+        // 已登录用户：经由分享链接进入即静默绑定（不弹窗）
         getApp().confirmReferralBinding(ref).then(agreed => {
           if (!agreed) return;
           API.login({ action: 'login', ref }, { silent: true }).then(result => {

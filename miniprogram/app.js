@@ -119,32 +119,8 @@ App({
     return query.ref || wx.getStorageSync('pendingReferrer') || null;
   },
 
-  // 推荐关系绑定前的显式确认（合规要求：不静默绑定）。
-  // 同一推荐码只询问一次，结果缓存在本地。
+  // 推荐关系绑定（店主决定：经由分享链接进入即静默绑定，不再弹窗确认）。
   confirmReferralBinding(ref) {
-    return new Promise((resolve) => {
-      if (!ref) { resolve(false); return; }
-      const key = 'refConsent_' + String(ref).trim().toUpperCase();
-      const saved = wx.getStorageSync(key);
-      if (saved === 'agreed') { resolve(true); return; }
-      if (saved === 'refused') { resolve(false); return; }
-      wx.showModal({
-        title: '邀请确认',
-        content: '您经由好友分享的邀请进入「橘与杏」。同意后，您之后的订单将计入该好友的推广业绩；不影响商品价格与您的任何权益。',
-        confirmText: '同意',
-        cancelText: '暂不',
-        success: (res) => {
-          if (res.confirm) {
-            wx.setStorageSync(key, 'agreed');
-            resolve(true);
-          } else {
-            wx.setStorageSync(key, 'refused');
-            wx.removeStorageSync('pendingReferrer');
-            resolve(false);
-          }
-        },
-        fail: () => resolve(false)
-      });
-    });
+    return Promise.resolve(!!ref);
   }
 })

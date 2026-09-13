@@ -86,7 +86,7 @@ Page({
       success: async (res) => {
         const { nickName, avatarUrl } = res.userInfo;
         try {
-          // 推荐关系绑定需用户显式确认（合规要求，同一推荐码只问一次）
+          // 推荐关系绑定：经由分享链接进入即静默绑定（不弹窗）
           let ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
           if (ref) {
             const agreed = await getApp().confirmReferralBinding(ref);
@@ -133,7 +133,7 @@ Page({
   async loginWithOpenIdOnly() {
     if (wx.getStorageSync('openId')) return;
     try {
-      // 推荐关系绑定需用户显式确认（合规要求，同一推荐码只问一次）
+      // 推荐关系绑定：经由分享链接进入即静默绑定（不弹窗）
       let ref = wx.getStorageSync('pendingReferrer') || getApp().getReferrer();
       if (ref) {
         const agreed = await getApp().confirmReferralBinding(ref);
