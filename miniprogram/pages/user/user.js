@@ -2,6 +2,7 @@ const API = require('../../utils/api');
 const { toast } = require('../../utils/util');
 
 const ORDER_COUNTS_CACHE_TTL = 30 * 1000;
+const AGENT_STATUS_CACHE_TTL = 60 * 1000;
 const EMPTY_ORDER_COUNTS = { pending: 0, paid: 0, shipped: 0, refunding: 0 };
 
 function isValidOrderCounts(counts) {
@@ -13,7 +14,7 @@ function readTimedCache(key, ttl) {
   try {
     const cache = wx.getStorageSync(key);
     if (!cache || !Number.isFinite(cache.timestamp) || Date.now() - cache.timestamp >= ttl) return null;
-    return cache.data || null;
+    return cache.data === undefined ? null : cache.data;
   } catch (e) {
     return null;
   }
@@ -31,11 +32,29 @@ Page({
     isLoggedIn: false,
     hasUserInfo: false,
     showPrivacy: false,
-    orderCounts: EMPTY_ORDER_COUNTS
+    orderCounts: EMPTY_ORDER_COUNTS,
+    isAgent: false
   },
 
   onShow() {
-    return Promise.all([this.loadUserInfo(), this.loadOrderCounts()]);
+    return Promise.all([this.loadUserInfo(), this.loadOrderCounts(), this.loadAgentStatus()]);
+  },
+
+  // 已激活分销员显示「分销中心」入口（分包页面，普通用户不可见）；60s 缓存减少云函数调用
+  async loadAgentStatus() {
+    const openId = wx.getStorageSync('openId');
+    if (!openId) { this.setData({ isAgent: false }); return; }
+    const cacheKey = 'userAgentStatus_' + openId;
+    const cached = readTimedCache(cacheKey, AGENT_STATUS_CACHE_TTL);
+    if (cached !== null && cached !== undefined) { this.setData({ isAgent: !!cached }); return; }
+    try {
+      const info = await API.getAgentInfo({ silent: true });
+      const active = !!(info && info.success && info.isAgent && info.status === 'active');
+      this.setData({ isAgent: active });
+      writeTimedCache(cacheKey, active);
+    } catch (e) {
+      this.setData({ isAgent: false });
+    }
   },
 
   async loadUserInfo() {

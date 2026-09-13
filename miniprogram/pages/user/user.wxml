@@ -49,6 +49,11 @@
 
   <!-- 功能入口 -->
   <view class="card section menu-section">
+    <navigator wx:if="{{isAgent}}" url="/subpackages/distributor/dashboard/dashboard" class="menu-item">
+      <image class="menu-icon-img" src="/images/icons/distributor.png" mode="aspectFit"></image>
+      <text class="menu-text">分销中心</text>
+      <text class="menu-arrow">›</text>
+    </navigator>
     <navigator url="/pages/address/address" class="menu-item">
       <image class="menu-icon-img" src="/images/icons/location.png" mode="aspectFit"></image>
       <text class="menu-text">收货地址</text>

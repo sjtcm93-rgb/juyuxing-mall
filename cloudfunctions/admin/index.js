@@ -639,9 +639,10 @@ exports.main = async (event, context) => {
     }
 
     case 'agentList': {
-      // 获取代理列表，支持状态筛选
+      // 获取代理列表，支持状态筛选。只列真正的分销员（isAgent=true），
+      // 普通用户注册时 login 会写入空壳 agentInfo，不能混进代理管理。
       const statusFilter = event.statusFilter || 'pending';
-      let query = {};
+      const query = { isAgent: true };
       if (statusFilter !== 'all') {
         query['agentInfo.status'] = statusFilter;
       }

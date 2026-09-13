@@ -182,20 +182,21 @@ async function testUserCenterCache() {
     });
 
     await user.onShow();
-    assert.equal(calls.agent, 0, 'A 端个人中心不加载分销员信息');
+    // 分销入口探测：每次冷缓存调一次 agent:info，60s 内复用缓存
+    assert.equal(calls.agent, 1, 'A 端个人中心为分销入口探测调用一次 agent:info');
     assert.equal(calls.admin, 0, 'A 端个人中心不校验后台权限');
     assert.equal(calls.counts, 1, 'user center uses aggregate order counts on cold entry');
     assert.equal(calls.oldOrderList, 0, 'user center no longer fans out to order:list for counts');
     assert.deepEqual(user.data.orderCounts, { pending: 1, paid: 2, shipped: 3, refunding: 4 });
 
     await user.onShow();
-    assert.equal(calls.agent, 0, 'A 端页面刷新仍不调用分销接口');
+    assert.equal(calls.agent, 1, '分销员状态 60s 内复用缓存');
     assert.equal(calls.counts, 1, 'order counts are reused from 30s cache');
 
     now += 31000;
     await user.loadOrderCounts();
     assert.equal(calls.counts, 2, 'order counts refresh after 30s cache expires');
-    assert.equal(calls.agent, 0, 'order count refresh不触发分销请求');
+    assert.equal(calls.agent, 1, 'order count refresh不触发分销请求');
   } finally {
     Date.now = realNow;
   }

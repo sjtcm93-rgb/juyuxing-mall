@@ -91,10 +91,18 @@ required.forEach(rel => {
 // 校验 app.json 中注册的每个页面都有 js/wxml/wxss/json 四件套、tabBar 图标存在
 const appJson = JSON.parse(read('miniprogram/app.json'));
 const customerHomeWxml = read('miniprogram/pages/index/index.wxml');
-if (!/goDistributorCenter|分销中心|分享赚钱/.test(read('miniprogram/pages/user/user.wxml'))) {
-  ok('A 端个人中心不展示分销入口');
+const userCenterWxml = read('miniprogram/pages/user/user.wxml');
+if (/goDistributorCenter|分享赚钱/.test(userCenterWxml)) {
+  fail('A 端角色隔离', '个人中心仍包含无条件分销入口');
+} else if (/分销中心/.test(userCenterWxml)) {
+  // 已激活分销员可见的条件入口：普通消费者不可见，不违背角色隔离
+  if (/wx:if="\{\{isAgent\}\}"[^>]*url="\/subpackages\/distributor\/dashboard\/dashboard"/.test(userCenterWxml)) {
+    ok('A 端个人中心分销入口仅对已激活分销员显示（isAgent 条件保护）');
+  } else {
+    fail('A 端角色隔离', '个人中心分销入口缺少 isAgent 条件保护');
+  }
 } else {
-  fail('A 端角色隔离', '个人中心仍包含分销入口');
+  ok('A 端个人中心不展示分销入口');
 }
 for (const page of appJson.pages) {
   for (const ext of ['js', 'wxml', 'wxss', 'json']) {
