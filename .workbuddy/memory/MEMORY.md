@@ -49,9 +49,10 @@
 - 2026-09-13 关键修复：微信云支付服务商模式回调 event 字段为驼峰且 event.openid 是平台侧标识、event.subOpenid 才是小程序侧用户标识（与订单 userId 同源）——payNotify 已修正并加回调留痕 paynotify_events；数据清空后最新备份：云存储 backups/db-backup-2026-09-13T09-12-44-873Z.json（135 文档）
 - **2026-09-14 关键能力：云函数自触发（admin 退款用）**——云开发支付的服务商订单退款必须带小程序票据调用 cloudPay；B端网页/直调都没有票据（-501001）。解法：AppSecret（admin env MINIPROGRAM_APPSECRET）换 stable_token → `api.weixin.qq.com/tcb/invokecloudfunction` 触发的调用上下文（SOURCE=wx_http）cloudPay 可用（已实测）。admin 的 processRefund/retryRefund 均走此链路。
 - wx-server-sdk 嵌套坑：update 里写嵌套对象会被展平成点路径，null 字段上建子字段报 Cannot create field——整体替换用 `_.set()`；订单类文档避免写 `字段: null` 占位
-- MCP updateFunctionCode 部署不重置超时/环境变量（与 CLI 相反），优先用 MCP 部署云函数
+- MCP updateFunctionCode 部署不重置超时/环境变量（与 CLI 相反），优先用 MCP 部署云函数；**但部署传播有 1-3 分钟延迟，部署后立即调用会命中旧热实例，必须等 1-2 分钟再验证**
+- **云开发事务头号坑（2026-09-14 提现事故根因）：db.runTransaction 回调内严禁 Promise.all 并发查询/写入——事务会话不支持并发请求，报 -501001 TransactionBusy。事务内所有操作必须逐个 await 顺序执行。已全量扫描，其余云函数的 Promise.all 都在非事务上下文，安全**
+- 提现规则（2026-09-14 更新）：买家确认收货 → 佣金 frozen→settled 即可提现（customer_receive），发货超 7 天 maintenance 定时器自动收货兜底；**已取消最低提现金额**（金额>0 即可申请）；提现页显示冻结金额提示 + 全部提现按钮
 - 退款 UX：B端点「同意」即自动执行；「待人工核查」单据有「重试退款」按钮（微信按 outRefundNo 幂等）；商户基本账户余额不足会拒退（新商户常见：收款次日结算到卡），需商户平台充值后重试
-- 提现规则（勿改）：买家确认收货 → 佣金 frozen→settled 即可提现（customer_receive），发货超 7 天 maintenance 定时器自动收货兜底；最低提现 ¥10；提现页显示冻结金额提示（withdrawal info 返回 frozenAmount）
-- 小程序版本：1.0.6 已上传（含提现页冻结提示 + 地址原生选择器）；用户需 mp 后台选为体验版。CLI upload --project 须传项目根目录（project.config.json 在根目录）
+- 小程序版本：**1.0.7 已上传**（提现事务修复 + 无最低金额 + 地址选择模式可新增/编辑 + 冻结提示）；用户需 mp 后台选为体验版。CLI upload --project 须传项目根目录（project.config.json 在根目录）
 - 数据库备份放 backups/（gitignored，含支付密钥，敏感勿外传）；当前备份：db-backup-2026-09-12T12-53-24.json（122 文档）
 - 云端待清理：zz-dbinspect 临时函数（已 RETIRED 桩化，上线前控制台删除）
