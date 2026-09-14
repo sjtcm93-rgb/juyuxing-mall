@@ -10,12 +10,13 @@
     </view>
     <view class="form-row form-row-region">
       <text class="form-label">省市区</text>
-      <view class="region-picker-trigger" bindtap="onOpenRegion">
-        <text wx:if="{{region[0]}}" class="region-text">{{region[0]}} {{region[1]}} {{region[2]}}</text>
-        <text wx:else class="region-placeholder">请选择省/市/区</text>
-        <text class="region-arrow">›</text>
-      </view>
-      <region-picker id="regionPicker" value="{{region}}" bind:change="onRegionChange" />
+      <picker mode="region" value="{{region}}" bindchange="onRegionChange">
+        <view class="region-picker-trigger">
+          <text wx:if="{{region[0]}}" class="region-text">{{region[0]}} {{region[1]}} {{region[2]}}</text>
+          <text wx:else class="region-placeholder">请选择省/市/区</text>
+          <text class="region-arrow">›</text>
+        </view>
+      </picker>
     </view>
     <view class="form-row form-row-textarea">
       <text class="form-label">详细地址</text>

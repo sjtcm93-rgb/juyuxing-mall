@@ -1231,12 +1231,33 @@ const App = {
       refundModal.show = true;
     }
 
+    // 重试「待人工核查」的退款（例如商户余额不足被拒后，充值完毕再试；微信按退款单号幂等不会重复退款）
+    async function retryRefund(rf) {
+      if (processingAction.value || queryingRefundId.value || !rf) return;
+      processingAction.value = true;
+      try {
+        const res = await callAdmin('retryRefund', { refundId: rf._id });
+        recordRefundDiagnostic(rf, '重试退款', res);
+        if (res && res.success) {
+          showToast(res.message || '重试成功', res.channelAccepted ? 'warning' : 'success', 6000);
+        } else {
+          showToast((res && res.error) || '重试失败，详情已保留', 'error', 8000);
+        }
+        loadRefunds();
+        loadDashboard();
+      } catch (err) {
+        recordRefundDiagnostic(rf, '重试退款异常', { success: false, error: err.message || '状态未知，请勿重复退款' });
+      } finally {
+        processingAction.value = false;
+      }
+    }
+
     async function confirmRefund() {
       if (processingAction.value || queryingRefundId.value || refundModal.readOnly || !refundModal.data || refundModal.data.status !== 'pending') return;
       const rf = refundModal.data;
       processingAction.value = true;
       try {
-        // 审批仅进入待执行队列，由绑定微信的店主/财务在手机上显式处理并核对。
+        // 同意即直连微信退款 API 原路退回买家；仅直连凭证未配置时回退手机入口流程。
         const res = await callAdmin('processRefund', {
           refundId: rf._id,
           approve: refundModal.approve,
@@ -1328,7 +1349,7 @@ const App = {
       loadAccounts, createAccount, toggleAccount,
       loadAgents, switchAgentFilter, approveAgent, agentStatusText, agentStatusClass,
       loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal,
-      loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, refundChannelLabel, refundChannelClass, openRefundModal, viewRefund, confirmRefund,
+      loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, refundChannelLabel, refundChannelClass, openRefundModal, viewRefund, confirmRefund, retryRefund,
       loadMessageUsers, selectChatUser, sendReply,
       loadSettings, changePassword, addAdminOpenId, removeAdminOpenId, saveCommissionRate,
       payApiForm, savingPayApi, onPayCertFileChange, savePayApiConfig, clearPayApiConfig,

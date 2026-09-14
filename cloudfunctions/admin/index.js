@@ -3,13 +3,77 @@
 const cloud = require('wx-server-sdk');
 const { queryRefundStatus } = require('./refund-query');
 const { applyRefundEffects } = require('./refund-effects');
-const { loadPayApiConfig, directOrderQuery } = require('./wxpay-direct');
+const { loadPayApiConfig, directOrderQuery, directRefund } = require('./wxpay-direct');
 const crypto = require('crypto');
+const https = require('https');
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
 const APP_ID = 'wx6e685f787f1cd099';
+const APP_SECRET = String(process.env.MINIPROGRAM_APPSECRET || '').trim();
 cloud.init({ env: ENV_ID });
 const db = cloud.database();
 const _ = db.command;
+
+// ===== 微信 HTTP API 自触发（关键能力）=====
+// 云开发支付的服务商模式订单，退款必须由「带小程序票据的调用」发起 cloudPay.refund。
+// B 端网页（匿名登录）没有该票据；用 AppSecret 换 stable_token 后经
+// api.weixin.qq.com/tcb/invokecloudfunction 触发的调用自带票据（SOURCE=wx_http，已实测可用）。
+let wxTokenCache = null;
+
+function wxHttpPostJson(url, body) {
+  const payload = Buffer.from(JSON.stringify(body || {}));
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const req = https.request({
+      hostname: urlObj.hostname,
+      path: urlObj.pathname + (urlObj.search || ''),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': payload.length },
+      timeout: 15000
+    }, res => {
+      const chunks = [];
+      res.setEncoding('utf8');
+      res.on('data', chunk => chunks.push(chunk));
+      res.on('end', () => {
+        try { resolve(JSON.parse(chunks.join(''))); }
+        catch (e) { reject(new Error('微信接口响应解析失败')); }
+      });
+    });
+    req.on('timeout', () => req.destroy(new Error('微信接口请求超时')));
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+async function getWxStableToken() {
+  if (!APP_SECRET) throw new Error('MINIPROGRAM_APPSECRET 未配置');
+  if (wxTokenCache && wxTokenCache.expiresAt > Date.now()) return wxTokenCache.accessToken;
+  const res = await wxHttpPostJson('https://api.weixin.qq.com/cgi-bin/stable_token', {
+    grant_type: 'client_credential', appid: APP_ID, secret: APP_SECRET, force_refresh: false
+  });
+  if (!res.access_token) {
+    throw new Error('stable_token 获取失败: ' + String(res.errcode || '') + ' ' + String(res.errmsg || ''));
+  }
+  const expiresIn = Math.max(300, Number(res.expires_in) || 7200);
+  wxTokenCache = { accessToken: res.access_token, expiresAt: Date.now() + (expiresIn - 300) * 1000 };
+  return res.access_token;
+}
+
+// 经微信 HTTP API 触发 admin 自身（返回被触发调用的结果对象）
+async function invokeSelfViaWxHttp(action, data) {
+  const token = await getWxStableToken();
+  const url = 'https://api.weixin.qq.com/tcb/invokecloudfunction?env=' + ENV_ID +
+    '&name=admin&access_token=' + encodeURIComponent(token);
+  const res = await wxHttpPostJson(url, { action, ...data });
+  if (res.errcode !== 0 || typeof res.resp_data !== 'string') {
+    throw new Error('云函数自触发失败: ' + String(res.errcode || '') + ' ' + String(res.errmsg || ''));
+  }
+  try {
+    return JSON.parse(res.resp_data);
+  } catch (e) {
+    throw new Error('云函数自触发返回解析失败');
+  }
+}
 
 function updatedCount(result) {
   return result && result.stats ? result.stats.updated : result && result.updated;
@@ -30,7 +94,7 @@ const ROLE_PERMISSIONS = {
     'messageUsers', 'messageHistory', 'adminReply', 'getSettings', 'setFullReduction', 'changePassword', 'logout'
   ],
   finance: [
-    'checkAdmin', 'me', 'dashboard', 'orderList', 'refundList', 'processRefund', 'queryRefundStatus',
+    'checkAdmin', 'me', 'dashboard', 'orderList', 'refundList', 'processRefund', 'executeRefund', 'retryRefund', 'queryRefundStatus',
     'withdrawalList', 'processWithdrawal', 'financeOverview', 'getSettings', 'changePassword', 'logout'
   ]
 };
@@ -207,6 +271,122 @@ async function runInChunks(items, task, size = 20) {
 async function removeDocuments(collectionName, documents) {
   await runInChunks(documents, item => db.collection(collectionName).doc(item._id).remove());
   return documents.length;
+}
+
+// ===== 一键退款：审批通过后直接执行退款，无需手机端二次操作 =====
+// 双通道设计（云开发支付订单为 CloudBase 服务商模式，直连 API 查不到此类订单）：
+//  通道一 cloud.cloudPay.refund —— 覆盖云开发支付订单；要求调用方带云调用票据（B 端网页登录态）
+//  通道二 商户直连 API —— 覆盖直连模式订单；用商户自己的 APIv2 密钥 + 证书
+// 安全设计：
+//  1) 提交微信前先落痕 submittedAt —— 网络结果未知时只允许只读查询核对，禁止盲目重试；
+//  2) 微信退款 API 按退款单号幂等，同一 outRefundNo 重复提交不会重复扣款；
+//  3) 渠道受理成功后事务入账（refund-effects 幂等）；失败转 manual_review 并保留原因。
+async function finalizeApprovedRefund(refundId, wechatRefundId, channel) {
+  try {
+    await db.runTransaction(async transaction => {
+      const latest = (await transaction.collection('refunds').doc(refundId).get()).data;
+      if (!latest) throw new Error('退款记录不存在');
+      if (latest.status === 'approved') return;
+      if (!['pending_auto', 'processing', 'channel_processing', 'manual_review'].includes(latest.status)) {
+        throw new Error('退款状态已变化（' + latest.status + '），请人工核对');
+      }
+      const latestOrder = (await transaction.collection('orders').doc(latest.orderId).get()).data;
+      if (!latestOrder) throw new Error('关联订单不存在');
+      await applyRefundEffects(transaction, db, latestOrder, latest, latest.restock === true);
+      await transaction.collection('refunds').doc(refundId).update({ data: {
+        status: 'approved', refundId: wechatRefundId, refundChannel: channel,
+        channelStatus: 'SUCCESS', lastProcessError: '', refundTime: db.serverDate(), processTime: db.serverDate()
+      } });
+    });
+    return { success: true, completed: true, message: '退款成功，微信将原路退回买家（一般几分钟内到账）' };
+  } catch (err) {
+    return {
+      success: true, completed: true, channelAccepted: true,
+      message: '微信已受理退款，本地入账延迟：' + String((err && err.message) || err).slice(0, 150) + '。请稍后用「只读查询退款」核对，不要重复退款。'
+    };
+  }
+}
+
+async function executeApprovedRefundDirect(refundId) {
+  const rfRes = await db.collection('refunds').doc(refundId).get().catch(() => null);
+  const rf = rfRes && rfRes.data;
+  if (!rf) return { success: false, error: '退款记录不存在' };
+  if (rf.status === 'approved') return { success: true, alreadyProcessed: true, message: '该退款已完成' };
+  // manual_review：仅允许显式重试（retryRefund）触达；微信退款按 outRefundNo 幂等，重试不会重复退款
+  if (!['pending_auto', 'processing', 'channel_processing', 'manual_review'].includes(rf.status)) {
+    return { success: false, error: '退款状态为 ' + rf.status + '，不支持自动执行，请人工核查' };
+  }
+  const orderRes = await db.collection('orders').doc(rf.orderId).get().catch(() => null);
+  const order = orderRes && orderRes.data;
+  if (!order) return { success: false, error: '关联订单不存在' };
+  if (!order.transactionId) return { success: false, error: '订单缺少微信支付交易号，无法自动退款' };
+  if (!rf.outRefundNo) return { success: false, error: '退款单号缺失，请人工核查' };
+  const refundFee = Number.isSafeInteger(rf.approvedAmount) ? rf.approvedAmount : order.totalFee;
+  let subMchId = String(rf.subMchId || '').trim();
+  if (!subMchId) {
+    const payCfgRes = await db.collection('pay_config').doc('default').get().catch(() => null);
+    subMchId = String((payCfgRes && payCfgRes.data && payCfgRes.data.subMchId) || '').trim();
+  }
+  if (!subMchId) return { success: false, error: '微信支付商户号未配置' };
+
+  // 提交前落痕：结果未知时不允许盲目重试（与 refund-processor 的安全约定一致）
+  await db.collection('refunds').doc(refundId).update({
+    data: { submittedAt: db.serverDate(), processAttempts: _.inc(1) }
+  }).catch(() => {});
+
+  const errors = [];
+  const field = (obj, camel, snake) => obj && obj[camel] !== undefined ? obj[camel] : (obj ? obj[snake] : undefined);
+
+  // ===== 通道一：CloudBase 云支付（云开发支付的服务商模式订单走此通道）=====
+  try {
+    const resp = await cloud.cloudPay.refund({
+      subMchId, outTradeNo: order.orderNo, outRefundNo: rf.outRefundNo,
+      nonceStr: crypto.randomBytes(16).toString('hex'),
+      totalFee: order.totalFee, refundFee,
+      envId: ENV_ID, functionName: 'refund-processor'
+    });
+    const rc = field(resp, 'returnCode', 'return_code');
+    const pc = field(resp, 'resultCode', 'result_code');
+    if (rc === 'SUCCESS' && pc === 'SUCCESS') {
+      const wechatRefundId = String(field(resp, 'refundId', 'refund_id') || '');
+      return await finalizeApprovedRefund(refundId, wechatRefundId, 'cloudbase');
+    }
+    errors.push('云支付: ' + String(field(resp, 'errCodeDes', 'err_code_des') || field(resp, 'errCode', 'err_code') ||
+      field(resp, 'returnMsg', 'return_msg') || '未受理'));
+  } catch (err) {
+    errors.push('云支付: ' + String((err && (err.errMsg || err.message)) || err).slice(0, 120));
+  }
+
+  // ===== 通道二：商户直连 API（直连模式订单走此通道）=====
+  const cfg = await loadPayApiConfig(db);
+  if (cfg) {
+    try {
+      const wxResp = await directRefund({
+        appId: APP_ID,
+        mchId: cfg.subMchId,
+        apiV2Key: cfg.apiV2Key,
+        pfxBuffer: Buffer.from(cfg.apiCertP12, 'base64'),
+        passphrase: cfg.apiCertPassword,
+        outTradeNo: order.orderNo,
+        outRefundNo: rf.outRefundNo,
+        totalFee: order.totalFee,
+        refundFee
+      });
+      if (wxResp && wxResp.return_code === 'SUCCESS' && wxResp.result_code === 'SUCCESS') {
+        return await finalizeApprovedRefund(refundId, String(wxResp.refund_id || ''), 'direct');
+      }
+      errors.push('直连: ' + String((wxResp && (wxResp.err_code_des || wxResp.return_msg || wxResp.err_code)) || '未受理'));
+    } catch (err) {
+      errors.push('直连: ' + String((err && err.message) || err).slice(0, 120));
+    }
+  } else {
+    errors.push('直连: 未配置凭证');
+  }
+
+  await db.collection('refunds').doc(refundId).update({
+    data: { status: 'manual_review', lastProcessError: errors.join('；').slice(0, 300) }
+  }).catch(() => {});
+  return { success: false, error: '微信未受理退款：' + errors.join('；').slice(0, 300) };
 }
 
 exports.main = async (event, context) => {
@@ -626,7 +806,9 @@ exports.main = async (event, context) => {
       const updateRes = await db.collection('orders').where({ _id: orderId, status: 'paid' }).update({
         data: {
           status: 'shipped',
-          logistics: { company: normalizedCompany, trackingNo: normalizedTrackingNo, status: '已发货' },
+          // 历史订单 logistics 为 null：嵌套对象更新会报 Cannot create field in element null，
+          // 用 _.set 整体替换字段，兼容 null / 缺失 / 已有对象三种情况
+          logistics: _.set({ company: normalizedCompany, trackingNo: normalizedTrackingNo, status: '已发货' }),
           shipTime: db.serverDate(),
           autoReceiveTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           updateTime: db.serverDate()
@@ -865,7 +1047,7 @@ exports.main = async (event, context) => {
         if (!subMchId) return { success: false, error: '微信支付商户号未配置，无法发起退款' };
       }
       // Approval, rejection and mock completion compete within the same transaction.
-      return await db.runTransaction(async transaction => {
+      const approvalResult = await db.runTransaction(async transaction => {
         const latestRefund = (await transaction.collection('refunds').doc(refundId).get()).data;
         if (!latestRefund || latestRefund.status !== 'pending') {
           return { success: false, error: '该退款申请已处理，请刷新状态' };
@@ -892,10 +1074,54 @@ exports.main = async (event, context) => {
           Object.assign(data, { refundChannel: 'mock', refundTime: db.serverDate() });
         }
         await transaction.collection('refunds').doc(refundId).update({ data });
-        return isMockPayment
-          ? { success: true, message: '模拟支付退款已完成（无真实资金）' }
-          : { success: true, autoProcessing: true, message: '退款已批准但尚未到账。请店主或财务在小程序后台登录确认页执行“处理并核对退款”。' };
+        return { success: true };
       });
+      if (!approvalResult.success) return approvalResult;
+      if (isMockPayment) {
+        return { success: true, message: '模拟支付退款已完成（无真实资金）' };
+      }
+      // ===== 一键退款 =====
+      // B 端网页调用没有小程序票据（cloudPay 会报 -501001），
+      // 先经微信 HTTP API 自触发一次（带票据上下文）执行退款；失败再回退当前上下文双通道。
+      if (APP_SECRET) {
+        try {
+          const execResult = await invokeSelfViaWxHttp('executeRefund', { adminToken, refundId });
+          if (execResult && typeof execResult === 'object') return execResult;
+        } catch (err) {
+          console.warn('[admin] 自触发退款未成功，回退当前上下文执行:', err && err.message);
+        }
+      }
+      return await executeApprovedRefundDirect(refundId);
+    }
+
+    case 'executeRefund': {
+      // 由 processRefund / retryRefund 经微信 HTTP API 自触发（上下文带小程序票据，cloudPay 可用）。
+      // 鉴权走常规 adminToken 通道；权限归入 processRefund 同组。
+      const refundId = String(event.refundId || '').trim();
+      if (!refundId) return { success: false, error: '退款参数无效' };
+      return await executeApprovedRefundDirect(refundId);
+    }
+
+    case 'retryRefund': {
+      // 重试「待人工核查」的退款（如商户余额不足被微信拒绝后，充值完毕再试）。
+      // 微信退款 API 按 outRefundNo 幂等：同一退款单号重复提交不会重复扣款。
+      const refundId = String(event.refundId || '').trim();
+      if (!refundId) return { success: false, error: '退款参数无效' };
+      const rfRes = await db.collection('refunds').doc(refundId).get().catch(() => null);
+      const rf = rfRes && rfRes.data;
+      if (!rf) return { success: false, error: '退款记录不存在' };
+      if (!['manual_review', 'pending_auto', 'processing', 'channel_processing'].includes(rf.status)) {
+        return { success: false, error: '当前状态（' + rf.status + '）无需重试' };
+      }
+      if (APP_SECRET) {
+        try {
+          const execResult = await invokeSelfViaWxHttp('executeRefund', { adminToken, refundId });
+          if (execResult && typeof execResult === 'object') return execResult;
+        } catch (err) {
+          console.warn('[admin] 自触发重试未成功，回退当前上下文执行:', err && err.message);
+        }
+      }
+      return await executeApprovedRefundDirect(refundId);
     }
 
     case 'productList': {
@@ -1494,7 +1720,7 @@ exports.main = async (event, context) => {
     console.error('[admin] 运行时错误:', err);
     return {
       success: false,
-      error: '云函数执行失败'
+      error: '云函数执行失败: ' + String((err && (err.errMsg || err.message)) || err).slice(0, 200)
     };
   }
 };

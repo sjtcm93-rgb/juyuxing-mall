@@ -12,7 +12,7 @@
   </script>
   <title>橘与杏 管理后台</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=abc-v13">
+  <link rel="stylesheet" href="style.css?v=abc-v15">
   <script defer src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"></script>
   <script defer src="vendor/vue.global.prod.js"></script>
 </head>
@@ -431,8 +431,12 @@
       <div v-if="currentPage === 'refunds'" class="page-refunds">
         <h2 class="page-title">退款管理</h2>
         <p class="refund-query-note">退款异常时请先查询微信结果，不要重复退款。查询不会修改订单、库存或账本。</p>
-        <p class="refund-query-note">审批通过不等于已退款。使用手机入口执行并核对，只有渠道确认成功才入账；旧的“人工处理”记录需核对商户平台，不能视为已到账。</p>
-        <button class="btn-default" @click="openRefundOperatorQr">打开手机退款入口</button>
+        <p class="refund-query-note">点「同意退款」即直接原路退回买家微信（一般几分钟到账），无需其他操作。个别异常单会转为「待人工核查」，请按提示用只读查询核对。</p>
+        <details style="margin-bottom: 12px;">
+          <summary class="refund-query-note" style="cursor: pointer; color: #888;">备用：手机退款入口（异常单核对用）</summary>
+          <button class="btn-default" style="margin-top: 8px;" @click="openRefundOperatorQr">打开手机退款入口</button>
+          <p class="refund-query-note" style="margin-top: 6px;">店主/财务扫码进入后台确认页，点击“处理并核对退款”，用于直连失败后的异常单处理。</p>
+        </details>
         <section v-if="refundOperatorQr.show" class="section-card refund-diagnostic">
           <strong>店主 / 财务微信扫码</strong>
           <p>扫码进入后台登录确认页，点击“处理并核对退款”。无需再次确认电脑登录；二维码过期请重新生成。</p>
@@ -484,6 +488,10 @@
                     <button class="btn-sm btn-success" @click="openRefundModal(rf, true)">同意</button>
                     <button class="btn-sm btn-danger" @click="openRefundModal(rf, false)">拒绝</button>
                   </template>
+                  <template v-else-if="rf.status === 'manual_review'">
+                    <button class="btn-sm btn-success" @click="retryRefund(rf)" :disabled="!!queryingRefundId || processingAction">重试退款</button>
+                    <button class="btn-sm btn-default" @click="viewRefund(rf)">详情</button>
+                  </template>
                   <button v-else class="btn-sm btn-default" @click="viewRefund(rf)">详情</button>
                   <button class="btn-sm btn-default" @click="queryRefundStatus(rf)" :disabled="!!queryingRefundId || processingAction">
                     {{ queryingRefundId === rf._id ? '查询中…' : '查询微信退款（只读）' }}
@@ -522,12 +530,12 @@
           </div>
 
           <div class="section-card">
-            <h3 class="section-title">历史微信支付直连凭证（诊断用途）</h3>
+            <h3 class="section-title">微信支付直连凭证（一键退款必需）</h3>
             <p class="settings-hint" v-if="settings.payApiDirect && settings.payApiDirect.configured">
-              已保留直连凭证{{ settings.payApiDirect.updateTime ? '（' + formatTime(settings.payApiDirect.updateTime) + '）' : '' }}。当前退款执行不使用此通道，请到退款管理使用手机入口处理。
+              已配置直连凭证{{ settings.payApiDirect.updateTime ? '（' + formatTime(settings.payApiDirect.updateTime) + '）' : '' }}。退款管理点「同意退款」将通过此通道直接原路退回买家。
             </p>
             <p class="settings-hint" v-else>
-              当前退款流程不要求上传直连证书，也不保证直连可以查询 CloudBase 服务商订单。仅在明确需要诊断时配置；不要为解决退款问题盲目上传密钥。
+              尚未配置直连凭证：退款同意后将无法一键退回，需走手机退款入口。请在此录入商户 APIv2 密钥和退款证书。
             </p>
             <div class="form-group">
               <label>APIv2 密钥（32位）</label>
@@ -834,6 +842,6 @@
 
 </div>
 
-  <script defer src="app.js?v=abc-v13"></script>
+  <script defer src="app.js?v=abc-v15"></script>
 </body>
 </html>

@@ -332,7 +332,7 @@ exports.main = async (event) => {
             orderNo, userId: OPENID, items: enrichedItems, totalFee: actualTotalFee,
             originalTotalFee: calculatedTotal, couponDiscount, couponId: event.couponId || '',
             fullReductionDiscount,
-            status: 'pending', inventoryStatus: 'reserved', address: safeAddress, logistics: null, agentId,
+            status: 'pending', inventoryStatus: 'reserved', address: safeAddress, agentId,
             commission: agentId ? Math.round(actualTotalFee * commissionRate) : 0,
             commissionRate: agentId ? commissionRate : 0,
             commissionStatus: agentId ? 'pending' : 'none', remark: String(remark || '').slice(0, 200),

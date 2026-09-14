@@ -41,9 +41,8 @@ Page({
     this.setData({ [field]: e.detail.value });
   },
 
-  onOpenRegion() { this.selectComponent("#regionPicker").show(); },
-
   onRegionChange(e) {
+    // 原生 region picker：e.detail.value = ['省', '市', '区']
     this.setData({ region: e.detail.value });
   },
 
