@@ -4,6 +4,7 @@ const cloud = require('wx-server-sdk');
 const { queryRefundStatus } = require('./refund-query');
 const { applyRefundEffects } = require('./refund-effects');
 const { loadPayApiConfig, directOrderQuery, directRefund } = require('./wxpay-direct');
+const { initiateTransfer, queryBill, isBillNotExistError, genOutBillNo } = require('./wxpay-transfer');
 const crypto = require('crypto');
 const https = require('https');
 const ENV_ID = 'cloud1-d4gx1jxk675274501';
@@ -95,7 +96,7 @@ const ROLE_PERMISSIONS = {
   ],
   finance: [
     'checkAdmin', 'me', 'dashboard', 'orderList', 'refundList', 'processRefund', 'executeRefund', 'retryRefund', 'queryRefundStatus',
-    'withdrawalList', 'processWithdrawal', 'financeOverview', 'getSettings', 'changePassword', 'logout'
+    'withdrawalList', 'processWithdrawal', 'queryWithdrawalTransfer', 'financeOverview', 'getSettings', 'changePassword', 'logout'
   ]
 };
 
@@ -881,20 +882,14 @@ exports.main = async (event, context) => {
       const { withdrawalId, approve, remark } = event;
       if (!withdrawalId) return { success: false, error: '提现记录ID不能为空' };
       try {
-        return await withTransaction(async transaction => {
-          const wdRes = await transaction.collection('withdrawals').doc(withdrawalId).get();
-          const wd = wdRes.data;
-          if (!wd) return { success: false, error: '提现记录不存在' };
-          const targetStatus = approve ? 'approved' : 'rejected';
-          if (wd.status === targetStatus) {
-            return { success: true, alreadyProcessed: true, message: approve ? '该笔提现已确认打款' : '该笔提现已拒绝' };
-          }
-          if (wd.status !== 'pending') return { success: false, error: '该提现申请已处理' };
-
-          const userRes = await transaction.collection('users').doc(wd.agentId).get().catch(() => null);
-          if (!userRes || !userRes.data) return { success: false, error: '分销员账号不存在' };
-
-          if (!approve) {
+        if (!approve) {
+          // 拒绝：仅待审核状态可拒绝
+          return await withTransaction(async transaction => {
+            const wdRes = await transaction.collection('withdrawals').doc(withdrawalId).get();
+            const wd = wdRes.data;
+            if (!wd) return { success: false, error: '提现记录不存在' };
+            if (wd.status === 'rejected') return { success: true, alreadyProcessed: true, message: '该笔提现已拒绝' };
+            if (wd.status !== 'pending') return { success: false, error: '该提现申请已处理' };
             await transaction.collection('withdrawals').doc(withdrawalId).update({
               data: { status: 'rejected', processTime: db.serverDate(), remark: remark || '' }
             });
@@ -902,65 +897,229 @@ exports.main = async (event, context) => {
               data: { withdrawalVersion: _.inc(1), updateTime: db.serverDate() }
             });
             return { success: true, message: '已拒绝' };
-          }
+          });
+        }
 
-          const settledList = await transaction.collection('commissions')
-            .where({ agentId: wd.agentId, status: 'settled' })
-            .orderBy('settleTime', 'asc')
-            .limit(1000)
-            .get();
-          const ledgerBalance = (settledList.data || [])
-            .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-          if (ledgerBalance < wd.amount) {
-            return { success: false, error: '可提现佣金已发生变化，请重新审核' };
-          }
+        // 同意：pending → 消耗佣金流水 → 自动发起微信转账；pending_pay → 直接重试转账
+        const wdRes = await db.collection('withdrawals').doc(withdrawalId).get();
+        const wd = wdRes.data;
+        if (!wd) return { success: false, error: '提现记录不存在' };
+        if (wd.status === 'transferring') {
+          return { success: false, error: '该笔转账处理中（待分销员确认收款），请点「查询到账状态」跟进' };
+        }
+        if (wd.status === 'success' || wd.status === 'approved') {
+          return { success: true, alreadyProcessed: true, message: '该笔提现已打款' };
+        }
+        if (wd.status !== 'pending' && wd.status !== 'pending_pay') {
+          return { success: false, error: '该提现申请已处理' };
+        }
 
-          let remaining = wd.amount;
-          for (const c of (settledList.data || []).filter(item => Number(item.amount) > 0)) {
-            if (remaining <= 0) break;
-            const commissionAmount = Number(c.amount) || 0;
-            const consume = Math.min(commissionAmount, remaining);
-            if (consume === commissionAmount) {
-              await transaction.collection('commissions').doc(c._id).update({ data: {
-                status: 'paid', paidTime: db.serverDate(), paidByWithdrawal: withdrawalId
-              } });
-            } else {
-              await transaction.collection('commissions').doc(c._id).update({
-                data: { amount: commissionAmount - consume }
-              });
-              await transaction.collection('commissions').add({ data: {
-                agentId: wd.agentId, orderId: c.orderId, orderNo: c.orderNo,
-                amount: consume, rate: c.rate, type: c.type || 'earning',
-                idempotencyKey: `withdrawal:${withdrawalId}:${c._id}`,
-                status: 'paid', settleTime: c.settleTime, paidTime: db.serverDate(),
-                paidByWithdrawal: withdrawalId, source: 'split-from-' + c._id
+        if (wd.status === 'pending') {
+          // 事务：校验余额并消耗佣金流水，状态置为 pending_pay（已审核待打款）
+          const txResult = await withTransaction(async transaction => {
+            const wdRes2 = await transaction.collection('withdrawals').doc(withdrawalId).get();
+            const wd2 = wdRes2.data;
+            if (!wd2) return { success: false, error: '提现记录不存在' };
+            if (wd2.status !== 'pending') return { success: false, error: '该提现申请已处理' };
+
+            const userRes = await transaction.collection('users').doc(wd2.agentId).get().catch(() => null);
+            if (!userRes || !userRes.data) return { success: false, error: '分销员账号不存在' };
+
+            const settledList = await transaction.collection('commissions')
+              .where({ agentId: wd2.agentId, status: 'settled' })
+              .orderBy('settleTime', 'asc')
+              .limit(1000)
+              .get();
+            const ledgerBalance = (settledList.data || [])
+              .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            if (ledgerBalance < wd2.amount) {
+              return { success: false, error: '可提现佣金已发生变化，请重新审核' };
+            }
+
+            let remaining = wd2.amount;
+            for (const c of (settledList.data || []).filter(item => Number(item.amount) > 0)) {
+              if (remaining <= 0) break;
+              const commissionAmount = Number(c.amount) || 0;
+              const consume = Math.min(commissionAmount, remaining);
+              if (consume === commissionAmount) {
+                await transaction.collection('commissions').doc(c._id).update({ data: {
+                  status: 'paid', paidTime: db.serverDate(), paidByWithdrawal: withdrawalId
+                } });
+              } else {
+                await transaction.collection('commissions').doc(c._id).update({
+                  data: { amount: commissionAmount - consume }
+                });
+                await transaction.collection('commissions').add({ data: {
+                  agentId: wd2.agentId, orderId: c.orderId, orderNo: c.orderNo,
+                  amount: consume, rate: c.rate, type: c.type || 'earning',
+                  idempotencyKey: `withdrawal:${withdrawalId}:${c._id}`,
+                  status: 'paid', settleTime: c.settleTime, paidTime: db.serverDate(),
+                  paidByWithdrawal: withdrawalId, source: 'split-from-' + c._id
+                } });
+              }
+              remaining -= consume;
+            }
+            if (remaining !== 0) throw new Error('佣金流水不足，提现审核已回滚');
+
+            const payoutKey = 'commission_payout:' + withdrawalId;
+            const payoutExists = await transaction.collection('cashflow_entries')
+              .where({ idempotencyKey: payoutKey })
+              .count();
+            if (payoutExists.total === 0) {
+              await transaction.collection('cashflow_entries').add({ data: {
+                idempotencyKey: payoutKey, type: 'commission_payout', direction: 'out', amount: wd2.amount,
+                withdrawalId, agentId: wd2.agentId, status: 'posted', createTime: db.serverDate()
               } });
             }
-            remaining -= consume;
-          }
-          if (remaining !== 0) throw new Error('佣金流水不足，提现审核已回滚');
-
-          const payoutKey = 'commission_payout:' + withdrawalId;
-          const payoutExists = await transaction.collection('cashflow_entries')
-            .where({ idempotencyKey: payoutKey })
-            .count();
-          if (payoutExists.total === 0) {
-            await transaction.collection('cashflow_entries').add({ data: {
-              idempotencyKey: payoutKey, type: 'commission_payout', direction: 'out', amount: wd.amount,
-              withdrawalId, agentId: wd.agentId, status: 'posted', createTime: db.serverDate()
+            await transaction.collection('withdrawals').doc(withdrawalId).update({ data: {
+              status: 'pending_pay', processTime: db.serverDate(), remark: remark || '',
+              payoutMode: 'wechat_transfer'
             } });
-          }
-          await transaction.collection('withdrawals').doc(withdrawalId).update({ data: {
-            status: 'approved', processTime: db.serverDate(), remark: remark || '',
-            payoutMode: 'manual_confirmed'
-          } });
-          await transaction.collection('users').doc(wd.agentId).update({
-            data: { withdrawalVersion: _.inc(1), updateTime: db.serverDate() }
+            await transaction.collection('users').doc(wd2.agentId).update({
+              data: { withdrawalVersion: _.inc(1), updateTime: db.serverDate() }
+            });
+            return { success: true };
           });
-          return { success: true, message: '已确认线下打款', consumed: wd.amount };
-        });
+          if (txResult && txResult.success === false) return txResult;
+        }
+
+        // —— 发起微信商家转账（升级版单笔转账）——
+        // ⚠️ 防重复转账：如该笔提现已有转账单号（上次调用可能超时但微信侧已建单），
+        // 必须先查单确认原单为终态失败（FAIL/CANCELLED）或不存在，才能换单号重试。
+        let billNo = wd.outBatchNo || '';
+        if (billNo) {
+          let queried = null;
+          try {
+            queried = await queryBill(billNo);
+          } catch (qErr) {
+            if (isBillNotExistError(qErr)) {
+              // 原单未创建成功（上次调用未到达微信侧），可安全换单重试
+              queried = null;
+            } else {
+              // 查单失败（网络/系统错误）：不能盲目换单，存在重复转账资金风险
+              const qMsg = String((qErr && qErr.code ? qErr.code + ': ' : '') + (qErr && qErr.message || qErr)).slice(0, 200);
+              return {
+                success: false,
+                error: '查询原转账单失败（' + qMsg + '）。为防止重复转账，暂不能重新发起，请稍后重试或先点「查询到账状态」'
+              };
+            }
+          }
+          if (queried) {
+            const qState = queried.state;
+            if (qState === 'SUCCESS') {
+              await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+                status: 'success', finishTime: db.serverDate(), lastPayError: ''
+              } });
+              return { success: true, message: '原转账单已完成，分销员已收款' };
+            }
+            if (qState === 'FAIL' || qState === 'CANCELLED') {
+              // 原单终态失败：换单号重试（旧单号存档）
+              await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+                lastOutBatchNo: billNo, outBatchNo: ''
+              } });
+              billNo = '';
+            } else {
+              // 非终态（ACCEPTED/PROCESSING/WAIT_USER_CONFIRM/TRANSFERING/CANCELING）：单仍在微信侧流转
+              await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+                status: 'transferring', lastPayError: ''
+              } });
+              return {
+                success: true,
+                message: '原转账单仍在处理中（状态：' + qState + '），无需重新发起；分销员确认收款后可点「查询到账状态」'
+              };
+            }
+          } else {
+            // 原单不存在：清号换单重试
+            await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+              lastOutBatchNo: billNo, outBatchNo: ''
+            } });
+            billNo = '';
+          }
+        }
+
+        // 生成/复用商户单号，并在调用微信前先落库（防调用超时后单号无法追溯）
+        const outBillNo = billNo || genOutBillNo();
+        await db.collection('withdrawals').doc(withdrawalId).update({ data: { outBatchNo: outBillNo } });
+        try {
+          const transfer = await initiateTransfer({
+            amountFen: wd.amount,
+            openid: wd.agentId,
+            remark: '分销佣金提现',
+            outBillNo
+          });
+          const st = transfer.state;
+          const updateData = {
+            transferBillNo: transfer.transferBillNo || '',
+            transferTime: db.serverDate(),
+            transferAttempts: _.inc(1),
+            lastPayError: '',
+            status: st === 'SUCCESS' ? 'success' : 'transferring'
+          };
+          if (st === 'SUCCESS') updateData.finishTime = db.serverDate();
+          await db.collection('withdrawals').doc(withdrawalId).update({ data: updateData });
+          return {
+            success: true,
+            transferInitiated: true,
+            state: st,
+            message: st === 'SUCCESS'
+              ? '转账成功，佣金已转入分销员微信零钱'
+              : '已发起微信转账，分销员将在微信「服务通知」中收到确认收款提醒（24小时内有效）'
+          };
+        } catch (err) {
+          const errMsg = String((err && err.code ? err.code + ': ' : '') + (err && err.message || err)).slice(0, 300);
+          // 注意：outBatchNo 保留在单据上——重试时会先查单确认原单状态，防止重复转账
+          await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+            status: 'pending_pay',
+            transferAttempts: _.inc(1),
+            lastPayError: errMsg
+          } });
+          return {
+            success: true,
+            transferFailed: true,
+            message: '审批成功，但微信转账发起失败：' + errMsg + '。可点击「重试转账」再次发起（将先核查原单状态）',
+            pendingPay: true
+          };
+        }
       } catch (err) {
         return { success: false, error: (err && err.message) || '提现审核失败' };
+      }
+    }
+
+    case 'queryWithdrawalTransfer': {
+      const withdrawalId = event.withdrawalId;
+      if (!withdrawalId) return { success: false, error: '提现记录ID不能为空' };
+      try {
+        const wdRes = await db.collection('withdrawals').doc(withdrawalId).get();
+        const wd = wdRes.data;
+        if (!wd) return { success: false, error: '提现记录不存在' };
+        if (!wd.outBatchNo) return { success: false, error: '该笔提现尚未发起转账' };
+        const bill = await queryBill(wd.outBatchNo);
+        const st = bill.state;
+        if (st === 'SUCCESS') {
+          await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+            status: 'success', finishTime: db.serverDate(), lastPayError: ''
+          } });
+          return { success: true, batchStatus: st, withdrawalStatus: 'success', message: '转账已完成，分销员已收款' };
+        }
+        if (st === 'FAIL' || st === 'CANCELLED') {
+          await db.collection('withdrawals').doc(withdrawalId).update({ data: {
+            status: 'pending_pay',
+            lastOutBatchNo: wd.outBatchNo,
+            outBatchNo: '',
+            transferBillNo: '',
+            lastPayError: (st === 'CANCELLED'
+              ? '转账单已关闭（分销员超时未确认收款）'
+              : '转账失败' + (bill.failReason ? '：' + bill.failReason : '')) + '，可重新发起'
+          } });
+          return { success: true, batchStatus: st, withdrawalStatus: 'pending_pay', message: '转账单已' + (st === 'CANCELLED' ? '关闭' : '失败') + '，可点击「重试转账」重新发起' };
+        }
+        const statusText = st === 'WAIT_USER_CONFIRM' ? '待分销员确认收款（请在微信「服务通知」中点击确认）'
+          : st === 'ACCEPTED' ? '微信已受理'
+          : (st === 'PROCESSING' || st === 'TRANSFERING') ? '转账处理中'
+          : st === 'CANCELING' ? '转账单撤销中' : st;
+        return { success: true, batchStatus: st, withdrawalStatus: wd.status, message: '当前状态：' + statusText };
+      } catch (err) {
+        return { success: false, error: (err && err.message) || '查询转账状态失败' };
       }
     }
 

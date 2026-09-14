@@ -205,7 +205,9 @@ const App = {
     const withdrawalFilter = ref('pending');
     const withdrawalFilters = [
       { label: '待处理', value: 'pending' },
-      { label: '已通过', value: 'approved' },
+      { label: '待打款', value: 'pending_pay' },
+      { label: '转账中', value: 'transferring' },
+      { label: '已到账', value: 'success' },
       { label: '已拒绝', value: 'rejected' },
       { label: '全部', value: 'all' }
     ];
@@ -1057,12 +1059,26 @@ const App = {
     }
 
     function withdrawalStatusText(status) {
-      const map = { pending: '待处理', approved: '已通过', rejected: '已拒绝' };
+      const map = {
+        pending: '待处理',
+        pending_pay: '已审核·待打款',
+        transferring: '转账中·待确认收款',
+        success: '已到账',
+        approved: '已通过(线下)',
+        rejected: '已拒绝'
+      };
       return map[status] || status || '-';
     }
 
     function withdrawalStatusClass(status) {
-      const map = { pending: 'status-pending', approved: 'status-paid', rejected: 'status-cancelled' };
+      const map = {
+        pending: 'status-pending',
+        pending_pay: 'status-pending',
+        transferring: 'status-refunding',
+        success: 'status-paid',
+        approved: 'status-paid',
+        rejected: 'status-cancelled'
+      };
       return map[status] || 'status-cancelled';
     }
 
@@ -1088,9 +1104,39 @@ const App = {
 
     function viewWithdrawal(wd) {
       withdrawalModal.data = wd;
-      withdrawalModal.approve = wd.status === 'pending';
+      withdrawalModal.approve = ['pending', 'pending_pay'].includes(wd.status);
       withdrawalModal.remark = wd.remark || '';
       withdrawalModal.show = true;
+    }
+
+    async function retryWithdrawalTransfer(wd) {
+      if (processingAction.value) return;
+      processingAction.value = true;
+      const res = await callAdmin('processWithdrawal', {
+        withdrawalId: wd._id,
+        approve: true,
+        remark: ''
+      });
+      processingAction.value = false;
+      if (res.success) {
+        showToast(res.message || '已发起转账');
+        loadWithdrawals();
+      } else {
+        showToast(res.error || '重试失败', 'error');
+      }
+    }
+
+    async function queryTransferStatus(wd) {
+      if (processingAction.value) return;
+      processingAction.value = true;
+      const res = await callAdmin('queryWithdrawalTransfer', { withdrawalId: wd._id });
+      processingAction.value = false;
+      if (res.success) {
+        showToast(res.message || ('批次状态：' + res.batchStatus));
+        loadWithdrawals();
+      } else {
+        showToast(res.error || '查询失败', 'error');
+      }
     }
 
     async function confirmWithdrawal() {
@@ -1348,7 +1394,7 @@ const App = {
       loadInvites, createInvite, revokeInvite, inviteQrModal, openInviteQr, closeInviteQr,
       loadAccounts, createAccount, toggleAccount,
       loadAgents, switchAgentFilter, approveAgent, agentStatusText, agentStatusClass,
-      loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal,
+      loadWithdrawals, switchWithdrawalFilter, withdrawalStatusText, withdrawalStatusClass, withdrawalMethodText, openWithdrawalModal, viewWithdrawal, confirmWithdrawal, retryWithdrawalTransfer, queryTransferStatus,
       loadRefunds, switchRefundFilter, refundStatusText, refundStatusClass, refundChannelLabel, refundChannelClass, openRefundModal, viewRefund, confirmRefund, retryRefund,
       loadMessageUsers, selectChatUser, sendReply,
       loadSettings, changePassword, addAdminOpenId, removeAdminOpenId, saveCommissionRate,

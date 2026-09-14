@@ -12,7 +12,7 @@
   </script>
   <title>橘与杏 管理后台</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="style.css?v=abc-v15">
+  <link rel="stylesheet" href="style.css?v=abc-v16">
   <script defer src="https://static.cloudbase.net/cloudbase-js-sdk/2.27.1/cloudbase.full.js"></script>
   <script defer src="vendor/vue.global.prod.js"></script>
 </head>
@@ -416,8 +416,10 @@
                 <td><span :class="['status-tag', withdrawalStatusClass(wd.status)]">{{ withdrawalStatusText(wd.status) }}</span></td>
                 <td class="td-time">{{ formatTime(wd.createTime) }}</td>
                 <td class="td-actions">
-                  <button v-if="wd.status === 'pending'" class="btn-sm btn-success" @click="openWithdrawalModal(wd, true)">通过</button>
+                  <button v-if="wd.status === 'pending'" class="btn-sm btn-success" @click="openWithdrawalModal(wd, true)">同意并转账</button>
                   <button v-if="wd.status === 'pending'" class="btn-sm btn-danger" @click="openWithdrawalModal(wd, false)">拒绝</button>
+                  <button v-if="wd.status === 'pending_pay'" class="btn-sm btn-success" @click="retryWithdrawalTransfer(wd)">重试转账</button>
+                  <button v-if="wd.status === 'transferring'" class="btn-sm btn-default" @click="queryTransferStatus(wd)">查询到账</button>
                   <button v-if="wd.status !== 'pending'" class="btn-sm btn-default" @click="viewWithdrawal(wd)">详情</button>
                 </td>
               </tr>
@@ -762,7 +764,7 @@
   <!-- ===== 提现审批弹窗 ===== -->
   <div v-if="withdrawalModal.show" class="modal-overlay" @click.self="withdrawalModal.show = false">
     <div class="modal-box">
-      <h3 class="modal-title">{{ withdrawalModal.approve ? '确认已线下打款' : '拒绝提现' }}</h3>
+      <h3 class="modal-title">{{ withdrawalModal.approve ? '同意提现并自动转账' : '拒绝提现' }}</h3>
       <div class="order-detail" v-if="withdrawalModal.data">
         <div class="detail-row"><span class="detail-label">分销员</span><span class="detail-value">{{ withdrawalModal.data.agentName || withdrawalModal.data.agentId.slice(-8) }}</span></div>
         <div class="detail-row"><span class="detail-label">金额</span><span class="detail-value td-price">{{ formatPrice(withdrawalModal.data.amount) }} 元</span></div>
@@ -777,6 +779,14 @@
           <span class="detail-label">支付宝</span>
           <span class="detail-value">{{ withdrawalModal.data.alipayInfo.account }} ({{ withdrawalModal.data.alipayInfo.name }})</span>
         </div>
+        <div class="detail-row" v-if="withdrawalModal.data.lastPayError">
+          <span class="detail-label">最近转账失败原因</span>
+          <span class="detail-value" style="color:#d93025;">{{ withdrawalModal.data.lastPayError }}</span>
+        </div>
+        <div class="detail-row" v-if="withdrawalModal.data.status === 'transferring'">
+          <span class="detail-label">转账进度</span>
+          <span class="detail-value">已发起微信转账，请提醒分销员在微信「服务通知」中点击确认收款</span>
+        </div>
       </div>
       <div class="form-group" v-if="!withdrawalModal.approve">
         <label>拒绝原因（选填）</label>
@@ -784,12 +794,12 @@
       </div>
       <div class="form-group" v-if="withdrawalModal.approve">
         <label>备注（选填）</label>
-        <input v-model="withdrawalModal.remark" class="form-input" placeholder="如：已银行转账" />
+        <input v-model="withdrawalModal.remark" class="form-input" placeholder="选填" />
       </div>
       <div class="modal-actions">
         <button class="btn-default" @click="withdrawalModal.show = false">取消</button>
         <button :class="withdrawalModal.approve ? 'btn-primary' : 'btn-danger'" @click="confirmWithdrawal" :disabled="processingAction">
-          {{ processingAction ? '处理中...' : (withdrawalModal.approve ? '确认已打款' : '确认拒绝') }}
+          {{ processingAction ? '处理中...' : (withdrawalModal.approve ? '确认转账到零钱' : '确认拒绝') }}
         </button>
       </div>
     </div>
@@ -842,6 +852,6 @@
 
 </div>
 
-  <script defer src="app.js?v=abc-v15"></script>
+  <script defer src="app.js?v=abc-v16"></script>
 </body>
 </html>

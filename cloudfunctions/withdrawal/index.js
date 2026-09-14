@@ -76,6 +76,10 @@ exports.main = async (event) => {
       if (!Number.isInteger(amount) || amount <= 0) {
         return { success: false, error: '提现金额无效' };
       }
+      // 微信商家转账单笔下限为 0.3 元，低于此金额转账接口会直接拒绝
+      if (amount < 30) {
+        return { success: false, error: '单笔提现不能低于 0.3 元（微信转账最低限额）' };
+      }
       if (!name || !account) {
         return { success: false, error: '请填写收款信息' };
       }

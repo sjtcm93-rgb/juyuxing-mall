@@ -32,3 +32,4 @@ output/
 # temp db inspect function
 cloudfunctions/zz-dbinspect/
 backups/
+cloudfunctions/admin/certs/

@@ -217,10 +217,11 @@ if (agentSrc.includes('generateReferralCode') && agentSrc.includes('crypto.rando
 } else fail('推广码生成', '必须使用随机码并检查唯一性');
 
 const withdrawalSrc = read('cloudfunctions/withdrawal/index.js');
-if (!/amount\s*<\s*\d+/.test(withdrawalSrc) && withdrawalSrc.includes('amount <= 0')) {
-  ok('提现无最低金额限制（金额 > 0 即可申请）');
+if (withdrawalSrc.includes('amount <= 0') && withdrawalSrc.includes('amount < 30') &&
+    withdrawalSrc.includes('0.3 元')) {
+  ok('提现仅保留 0.3 元微信转账下限（无其他最低金额限制）');
 } else {
-  fail('最低提现金额', '不应存在最低提现金额限制（用户要求取消）');
+  fail('提现金额下限', '应只保留微信转账 0.3 元下限（amount < 30 拒绝），不应有其他限制');
 }
 
 const initSrc = read('cloudfunctions/init/index.js');
@@ -457,10 +458,11 @@ if (reservationUnique && commissionUnique && withdrawalUnique && refundUnique) {
   fail('幂等唯一索引', '库存、佣金、提现或退款缺少 idempotencyKey 唯一索引');
 }
 if (withdrawalSrc.includes('withTransaction') && withdrawalSrc.includes('withdrawalVersion') &&
-    withdrawalSrc.includes('idempotencyKey') && adminSrc.includes("payoutMode: 'manual_confirmed'")) {
-  ok('提现申请与人工打款确认具备事务和幂等保护');
+    withdrawalSrc.includes('idempotencyKey') && adminSrc.includes("payoutMode: 'wechat_transfer'") &&
+    adminSrc.includes('initiateTransfer')) {
+  ok('提现申请与自动转账打款具备事务和幂等保护');
 } else {
-  fail('提现事务保护', '申请或审核缺少事务冲突字段、幂等键或人工打款标识');
+  fail('提现事务保护', '申请或审核缺少事务冲突字段、幂等键或自动转账标识');
 }
 if (adminSrc.includes('createOutRefundNo') && adminSrc.includes("refundChannel: 'mock'") &&
     adminSrc.includes('订单缺少微信支付交易号') && orderSrc.includes('idempotencyKey: `refund_request:')) {
