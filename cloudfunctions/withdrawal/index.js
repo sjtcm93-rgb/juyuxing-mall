@@ -18,20 +18,20 @@ function normalizeRequestId(value) {
 }
 
 async function getBalance(database, agentId) {
-  const [commissionRes, pendingRes, frozenRes] = await Promise.all([
-    database.collection('commissions')
-      .where({ agentId, status: 'settled' })
-      .limit(1000)
-      .get(),
-    database.collection('withdrawals')
-      .where({ agentId, status: _.in(['pending', 'processing']) })
-      .limit(1000)
-      .get(),
-    database.collection('commissions')
-      .where({ agentId, status: 'frozen' })
-      .limit(1000)
-      .get()
-  ]);
+  // 注意：此函数会被传入事务对象调用。云开发事务会话不支持并发请求（Promise.all 会报
+  // TransactionBusy -501001），必须逐个 await 顺序执行查询。
+  const commissionRes = await database.collection('commissions')
+    .where({ agentId, status: 'settled' })
+    .limit(1000)
+    .get();
+  const pendingRes = await database.collection('withdrawals')
+    .where({ agentId, status: _.in(['pending', 'processing']) })
+    .limit(1000)
+    .get();
+  const frozenRes = await database.collection('commissions')
+    .where({ agentId, status: 'frozen' })
+    .limit(1000)
+    .get();
   const ledgerBalance = (commissionRes.data || [])
     .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const pendingAmount = (pendingRes.data || [])
@@ -76,9 +76,6 @@ exports.main = async (event) => {
       if (!Number.isInteger(amount) || amount <= 0) {
         return { success: false, error: '提现金额无效' };
       }
-      if (amount < 1000) {
-        return { success: false, error: '最低提现金额为10元' };
-      }
       if (!name || !account) {
         return { success: false, error: '请填写收款信息' };
       }
@@ -86,12 +83,15 @@ exports.main = async (event) => {
         return { success: false, error: '收款信息过长' };
       }
 
+      const steps = [];
       try {
         const result = await withTransaction(async transaction => {
+          steps.push('tx-start');
           const duplicateRes = await transaction.collection('withdrawals')
             .where({ idempotencyKey })
             .limit(1)
             .get();
+          steps.push('dup ok');
           const duplicate = duplicateRes.data && duplicateRes.data[0];
           if (duplicate) {
             return { withdrawalId: duplicate._id, duplicate: true };
@@ -99,10 +99,12 @@ exports.main = async (event) => {
 
           // 读写用户版本字段，使同一分销员的并发申请冲突后重新计算余额。
           const latestUserRes = await transaction.collection('users').doc(OPENID).get();
+          steps.push('user ok');
           if (!latestUserRes.data || !latestUserRes.data.isAgent) {
             throw new Error('分销员身份未激活');
           }
           const balance = await getBalance(transaction, OPENID);
+          steps.push('balance ok');
           if ((balance.ledgerBalance - balance.pendingAmount) <= 0) {
             throw new Error('当前存在退款冲销，佣金余额恢复为正后方可提现');
           }
@@ -125,9 +127,11 @@ exports.main = async (event) => {
             processTime: null,
             remark: ''
           } });
+          steps.push('add ok');
           await transaction.collection('users').doc(OPENID).update({
             data: { withdrawalVersion: _.inc(1), updateTime: db.serverDate() }
           });
+          steps.push('update ok');
           return { withdrawalId: createRes._id, duplicate: false };
         });
         return {
@@ -136,7 +140,7 @@ exports.main = async (event) => {
           duplicate: result.duplicate
         };
       } catch (err) {
-        return { success: false, error: (err && err.message) || '提现申请失败' };
+        return { success: false, error: (err && err.message) || '提现申请失败', steps };
       }
     }
 

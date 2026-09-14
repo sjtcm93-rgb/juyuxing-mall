@@ -3,6 +3,14 @@
     <text>可提现金额</text><text class="balance">¥{{available}}</text><text class="sub">审核中 ¥{{pendingAmount}} · 账面余额 ¥{{ledgerBalance}}</text>
     <view class="frozen-tip" wx:if="{{frozenCount > 0}}">冻结中 ¥{{frozenAmount}}（{{frozenCount}}笔）— 买家确认收货后自动转为可提现</view>
   </view>
-  <view class="card"><text class="title">申请提现</text><input type="digit" value="{{amount}}" bindinput="onAmount" placeholder="最低 10 元"/><input value="{{name}}" bindinput="onName" placeholder="收款人姓名"/><input value="{{account}}" bindinput="onAccount" placeholder="收款账号"/><button bindtap="submit" loading="{{submitting}}">提交申请</button></view>
+  <view class="card"><text class="title">申请提现</text>
+    <view class="amount-row">
+      <input class="amount-input" type="digit" value="{{amount}}" bindinput="onAmount" placeholder="请输入提现金额"/>
+      <view class="full-btn" bindtap="fullAmount">全部提现</view>
+    </view>
+    <input value="{{name}}" bindinput="onName" placeholder="收款人姓名"/><input value="{{account}}" bindinput="onAccount" placeholder="收款账号（微信号/支付宝/银行卡号）"/>
+    <view class="tip">提现申请会在 1-3 个工作日内审核打款</view>
+    <button bindtap="submit" loading="{{submitting}}">提交申请</button>
+  </view>
   <view class="card"><text class="title">提现记录</text><view class="record" wx:for="{{records}}" wx:key="_id"><text>¥{{item.amount / 100}}</text><text>{{item.status}}</text></view><text class="empty" wx:if="{{records.length === 0}}">暂无记录</text></view>
 </view>

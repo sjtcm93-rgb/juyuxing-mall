@@ -22,7 +22,7 @@
       <text class="form-label">收款账号</text>
       <input class="form-input" placeholder="微信号/支付宝/银行卡号" value="{{account}}" bindinput="onAccount" />
     </view>
-    <text class="form-tip">最低提现金额 10 元，提现申请会在 1-3 个工作日内审核</text>
+    <text class="form-tip">提现申请会在 1-3 个工作日内审核</text>
   </view>
 
   <view class="submit-wrap safe-bottom">

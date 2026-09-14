@@ -13,6 +13,14 @@
   border-radius: 8rpx;
 }
 .address-detail { font-size: var(--fs-sm); color: var(--color-text); line-height: 1.6; }
+.select-tip {
+  margin: var(--space-sm) var(--space-md) 0;
+  padding: 14rpx 20rpx;
+  background: var(--color-primary-light, #FFF3E8);
+  border-radius: 12rpx;
+  font-size: var(--fs-xs);
+  color: var(--color-primary);
+}
 .address-actions {
   display: flex;
   justify-content: flex-end;

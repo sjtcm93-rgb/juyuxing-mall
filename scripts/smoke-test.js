@@ -217,11 +217,10 @@ if (agentSrc.includes('generateReferralCode') && agentSrc.includes('crypto.rando
 } else fail('推广码生成', '必须使用随机码并检查唯一性');
 
 const withdrawalSrc = read('cloudfunctions/withdrawal/index.js');
-const minWdMatch = withdrawalSrc.match(/amount\s*<\s*(\d+)/);
-if (minWdMatch && parseInt(minWdMatch[1], 10) === 1000) {
-  ok('最低提现金额 = 10 元 (1000 分)');
+if (!/amount\s*<\s*\d+/.test(withdrawalSrc) && withdrawalSrc.includes('amount <= 0')) {
+  ok('提现无最低金额限制（金额 > 0 即可申请）');
 } else {
-  fail('最低提现金额', '应为 1000 分 (10 元)');
+  fail('最低提现金额', '不应存在最低提现金额限制（用户要求取消）');
 }
 
 const initSrc = read('cloudfunctions/init/index.js');

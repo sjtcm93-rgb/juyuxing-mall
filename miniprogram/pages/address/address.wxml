@@ -11,6 +11,7 @@
   />
 
   <block wx:else>
+    <view class="select-tip" wx:if="{{selectMode}}">点击地址即可选用，也可新增或编辑</view>
     <view
       wx:for="{{addresses}}"
       wx:key="_id"
@@ -24,14 +25,14 @@
         <text wx:if="{{item.isDefault}}" class="default-tag">默认</text>
       </view>
       <text class="address-detail">{{item.regionText}} {{item.detail}}</text>
-      <view class="address-actions" wx:if="{{!selectMode}}">
+      <view class="address-actions">
         <view wx:if="{{!item.isDefault}}" class="addr-action" data-id="{{item._id}}" catchtap="setDefault">设为默认</view>
         <view class="addr-action" data-id="{{item._id}}" catchtap="editAddress">编辑</view>
         <view class="addr-action addr-action-danger" data-id="{{item._id}}" catchtap="deleteAddress">删除</view>
       </view>
     </view>
 
-    <view wx:if="{{!selectMode}}" class="add-btn-wrap safe-bottom">
+    <view class="add-btn-wrap safe-bottom">
       <button class="add-btn" bindtap="addAddress">+ 新增收货地址</button>
     </view>
   </block>

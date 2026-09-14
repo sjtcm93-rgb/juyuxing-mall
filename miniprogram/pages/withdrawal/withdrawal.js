@@ -47,7 +47,6 @@ Page({
     if (this.data.submitting) return;
     const amount = Number(this.data.amount);
     if (isNaN(amount) || amount <= 0) { toast('请输入有效金额'); return; }
-    if (amount < 10) { toast('最低提现金额为10元'); return; }
     if (amount > this.data.available) { toast('可提现余额不足'); return; }
     if (!this.data.name.trim() || !this.data.account.trim()) { toast('请填写收款信息'); return; }
 

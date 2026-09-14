@@ -22,10 +22,11 @@ Page({
   onAmount(e) { this.setData({ amount: e.detail.value }); },
   onName(e) { this.setData({ name: e.detail.value }); },
   onAccount(e) { this.setData({ account: e.detail.value }); },
+  fullAmount() { this.setData({ amount: this.data.available }); },
   async submit() {
     if (this.data.submitting) return;
     const amount = Math.round(Number(this.data.amount) * 100);
-    if (!Number.isFinite(amount) || amount < 1000) { toast('最低提现金额为 10 元'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { toast('请输入有效金额'); return; }
     if (!this.data.name.trim() || !this.data.account.trim()) { toast('请填写收款信息'); return; }
     const requestId = this.data.requestId || `wd_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
     this.setData({ submitting: true, requestId });
