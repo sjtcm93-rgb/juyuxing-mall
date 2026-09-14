@@ -3,7 +3,7 @@
 ## 项目基本信息
 - AppID: wx6e685f787f1cd099
 - 云环境 ID: cloud1-d4gx1jxk675274501
-- 微信支付商户号: 1114186048（商户号已绑定，待 pay_config.useMockPay=false 切真实支付；当前仍走 mock）
+- 微信支付商户号: 1114186048（真实支付已开通并验证，payNotify 回调链路已修复，2026-09-13）
 - 项目路径: /Users/orange/Documents/橘与杏商城/
 
 ## 技术架构
@@ -39,3 +39,17 @@
 - 用户非技术背景，微信后台控制台导航需极细化的"点哪、看到什么"级指引。
 - agent 无法代操作微信/腾讯云控制台（需本人账号+扫码）；采用"用户点一步、agent 指一步"的陪走模式。
 - 注意区分两个产品：腾讯云 console.cloud.tencent.com/tcb（独立 CloudBase）≠ 微信内置云开发（微信开发者工具/mp 后台「云开发」，环境 cloud1-d4gx1jxk675274501）。
+
+## 云开发自动化能力（2026-09-12 验证）
+- 开发者工具 CLI：/Applications/wechatwebdevtools.app/Contents/MacOS/cli（需 IDE 运行中；HTTP 服务 127.0.0.1:16285）
+- 常用：islogin / cloud env list / cloud functions list|deploy --env cloud1-d4gx1jxk675274501 --names <fn> --project <项目路径> --remote-npm-install / auto --auto-port 9420
+- miniprogram-automator 装于 /Users/orange/.workbuddy/binaries/node/workspace，连接 ws://localhost:9420 可 evaluate 调用 wx.cloud.callFunction/database（异步 Promise 已验证可用）
+- 部署新函数若报 "Creating 状态" 错误，等 20 秒重试即成功（首次已在创建）
+- **⚠️ CLI 部署重置超时的坑（两次真机事故）：`cli cloud functions deploy` 不应用 cloudbaserc 且把函数超时重置为默认 3 秒。每次 CLI 部署任何函数后必须立即用 MCP updateFunctionConfig 补设超时（标准值见 cloudbaserc：product/banner/login/category/favorite/cart=5s，coupon/chat/order/pay/agent/commission/withdrawal/admin=10s，payNotify/adminQrAuth/promotion=20s，maintenance=30s，refund-processor=60s）。2026-09-13 已全量核验修正。**
+- 2026-09-13 关键修复：微信云支付服务商模式回调 event 字段为驼峰且 event.openid 是平台侧标识、event.subOpenid 才是小程序侧用户标识（与订单 userId 同源）——payNotify 已修正并加回调留痕 paynotify_events；数据清空后最新备份：云存储 backups/db-backup-2026-09-13T09-12-44-873Z.json（135 文档）
+- **2026-09-14 关键能力：云函数自触发（admin 退款用）**——云开发支付的服务商订单退款必须带小程序票据调用 cloudPay；B端网页/直调都没有票据（-501001）。解法：AppSecret（admin env MINIPROGRAM_APPSECRET）换 stable_token → `api.weixin.qq.com/tcb/invokecloudfunction` 触发的调用上下文（SOURCE=wx_http）cloudPay 可用（已实测）。admin 的 processRefund/retryRefund 均走此链路。
+- wx-server-sdk 嵌套坑：update 里写嵌套对象会被展平成点路径，null 字段上建子字段报 Cannot create field——整体替换用 `_.set()`；订单类文档避免写 `字段: null` 占位
+- MCP updateFunctionCode 部署不重置超时/环境变量（与 CLI 相反），优先用 MCP 部署云函数
+- 退款 UX：B端点「同意」即自动执行；「待人工核查」单据有「重试退款」按钮（微信按 outRefundNo 幂等）；商户基本账户余额不足会拒退（新商户常见：收款次日结算到卡），需商户平台充值后重试
+- 数据库备份放 backups/（gitignored，含支付密钥，敏感勿外传）；当前备份：db-backup-2026-09-12T12-53-24.json（122 文档）
+- 云端待清理：zz-dbinspect 临时函数（已 RETIRED 桩化，上线前控制台删除）

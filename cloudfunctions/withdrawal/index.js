@@ -18,7 +18,7 @@ function normalizeRequestId(value) {
 }
 
 async function getBalance(database, agentId) {
-  const [commissionRes, pendingRes] = await Promise.all([
+  const [commissionRes, pendingRes, frozenRes] = await Promise.all([
     database.collection('commissions')
       .where({ agentId, status: 'settled' })
       .limit(1000)
@@ -26,16 +26,24 @@ async function getBalance(database, agentId) {
     database.collection('withdrawals')
       .where({ agentId, status: _.in(['pending', 'processing']) })
       .limit(1000)
+      .get(),
+    database.collection('commissions')
+      .where({ agentId, status: 'frozen' })
+      .limit(1000)
       .get()
   ]);
   const ledgerBalance = (commissionRes.data || [])
     .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   const pendingAmount = (pendingRes.data || [])
     .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const frozenAmount = (frozenRes.data || [])
+    .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
   return {
     ledgerBalance,
     pendingAmount,
     pendingCount: (pendingRes.data || []).length,
+    frozenAmount,
+    frozenCount: (frozenRes.data || []).length,
     available: Math.max(0, ledgerBalance - pendingAmount)
   };
 }
@@ -99,6 +107,9 @@ exports.main = async (event) => {
             throw new Error('当前存在退款冲销，佣金余额恢复为正后方可提现');
           }
           if (amount > (balance.ledgerBalance - balance.pendingAmount)) {
+            if (balance.frozenAmount > 0) {
+              throw new Error('可提现余额不足：还有冻结中的佣金，买家确认收货后即可提现');
+            }
             throw new Error('可提现余额不足');
           }
 

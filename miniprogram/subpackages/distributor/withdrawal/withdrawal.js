@@ -6,7 +6,7 @@ const { toast } = require('../../../utils/util');
 function money(value) { return ((Number(value) || 0) / 100).toFixed(2); }
 
 Page({
-  data: { available: '0.00', ledgerBalance: '0.00', pendingAmount: '0.00', records: [], amount: '', name: '', account: '', requestId: '', submitting: false },
+  data: { available: '0.00', ledgerBalance: '0.00', pendingAmount: '0.00', frozenAmount: '0.00', frozenCount: 0, records: [], amount: '', name: '', account: '', requestId: '', submitting: false },
   onShow() { this.load(); },
   async load() {
     const [info, history] = await Promise.all([
@@ -14,7 +14,8 @@ Page({
       API.getWithdrawalList({ pageSize: 30 }, { silent: true })
     ]);
     if (info && info.success) this.setData({
-      available: money(info.available), ledgerBalance: money(info.ledgerBalance), pendingAmount: money(info.pendingAmount)
+      available: money(info.available), ledgerBalance: money(info.ledgerBalance), pendingAmount: money(info.pendingAmount),
+      frozenAmount: money(info.frozenAmount), frozenCount: info.frozenCount || 0
     });
     this.setData({ records: (history && history.data) || [] });
   },
